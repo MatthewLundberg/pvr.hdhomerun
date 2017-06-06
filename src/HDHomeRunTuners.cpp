@@ -851,6 +851,7 @@ const char* Lineup::GetLiveStreamURL(const PVR_CHANNEL& channel)
         pass ++;
     } while (pass < 2);
 
+    /*
     uint32_t localip = tuner->LocalIP();
 
     char cstr[32];
@@ -862,6 +863,7 @@ const char* Lineup::GetLiveStreamURL(const PVR_CHANNEL& channel)
     {
         sprintf(cstr, "%d",    channel.iChannelNumber);
     }
+    */
     static char buf[1024];
     sprintf(buf, "%s", info.URL(tuner).c_str());
 
