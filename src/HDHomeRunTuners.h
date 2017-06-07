@@ -286,7 +286,7 @@ public:
     {
         return _tuners.find(t) != _tuners.end();
     }
-    std::string URL(Tuner* t) const
+    std::string DlnaURL(Tuner* t) const
     {
         auto it = _url.find(t);
         if (it != _url.end())
@@ -349,12 +349,21 @@ public:
 
     const char* GetLiveStreamURL(const PVR_CHANNEL& channel);
 
+    std::string DlnaURL(const PVR_CHANNEL& channel);
+    bool OpenLiveStream(const PVR_CHANNEL& channel);
+    void CloseLiveStream(void);
+
+    int ReadLiveStream(unsigned char* buffer, unsigned int size);
+
+
 private:
     std::set<Tuner*>          _tuners;
     std::set<uint32_t>        _device_ids;
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
+
+    void* _filehandle;
 };
 
 

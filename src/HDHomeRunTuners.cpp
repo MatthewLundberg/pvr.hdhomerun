@@ -713,8 +713,6 @@ PVR_ERROR Lineup::PvrGetChannels(ADDON_HANDLE handle, bool radio)
         PVR_STRCPY(pvrChannel.strChannelName, name->c_str());
         PVR_STRCPY(pvrChannel.strIconPath, guide._imageURL.c_str());
 
-        sprintf(pvrChannel.strStreamURL, "pvr://stream/%d", number.ID());
-
         g.PVR->TransferChannelEntry(handle, &pvrChannel);
     }
     return PVR_ERROR_NO_ERROR;
@@ -827,7 +825,7 @@ PVR_ERROR Lineup::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
     return PVR_ERROR_NO_ERROR;
 }
 
-const char* Lineup::GetLiveStreamURL(const PVR_CHANNEL& channel)
+std::string Lineup::DlnaURL(const PVR_CHANNEL& channel)
 {
     Lock lock(this);
 
@@ -850,22 +848,35 @@ const char* Lineup::GetLiveStreamURL(const PVR_CHANNEL& channel)
         pass ++;
     } while (pass < 2);
 
-    /*
-    uint32_t localip = tuner->LocalIP();
-
-    char cstr[32];
-    if (channel.iSubChannelNumber)
-    {
-        sprintf(cstr, "%d.%d", channel.iChannelNumber, channel.iSubChannelNumber);
-    }
-    else
-    {
-        sprintf(cstr, "%d",    channel.iChannelNumber);
-    }
-    */
-    static char buf[1024];
-    sprintf(buf, "%s", info.URL(tuner).c_str());
-
-    return buf;
+    return info.DlnaURL(tuner);
 }
+
+bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
+{
+    Lock lock(this);
+
+    std::string URL = DlnaURL(channel);
+
+    _filehandle = g.XBMC->OpenFile(URL.c_str(), 0);
+
+    return _filehandle != nullptr;
+}
+void Lineup::CloseLiveStream(void)
+{
+    Lock lock(this);
+
+    g.XBMC->CloseFile(_filehandle);
+    _filehandle = nullptr;
+}
+int Lineup::ReadLiveStream(unsigned char* buffer, unsigned int size)
+{
+    Lock lock(this);
+
+    if (_filehandle)
+    {
+        return g.XBMC->ReadFile(_filehandle, buffer, size);
+    }
+    return 0;
+}
+
 }; // namespace PVRHDHomeRun

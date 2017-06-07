@@ -325,11 +325,15 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle,
 
 bool OpenLiveStream(const PVR_CHANNEL &channel)
 {
-    return false;
+    return g.lineup ?
+            g.lineup->OpenLiveStream(channel) :
+            false;
 }
 
 void CloseLiveStream(void)
 {
+    if (g.lineup)
+        g.lineup->CloseLiveStream();
 }
 
 bool SwitchChannel(const PVR_CHANNEL &channel)
@@ -438,7 +442,7 @@ void DemuxFlush(void)
 }
 int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
 {
-    return 0;
+    return g.lineup ? g.lineup->ReadLiveStream(pBuffer, iBufferSize) : 0;
 }
 long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */)
 {
