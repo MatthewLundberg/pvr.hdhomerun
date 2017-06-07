@@ -611,7 +611,7 @@ void Lineup::UpdateGuide()
                 tuner->DeviceID(), URL.c_str());
 
         std::string guidedata;
-        if (!GetFileContents(URL.c_str(), guidedata))
+        if (!GetFileContents(URL, guidedata))
         {
             KODI_LOG(LOG_ERROR, "Error requesting guide for %08x from %s",
                     tuner->DeviceID(), URL.c_str());
@@ -821,7 +821,6 @@ PVR_ERROR Lineup::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
         PVR_CHANNEL_GROUP_MEMBER channelGroupMember = {0};
         PVR_STRCPY(channelGroupMember.strGroupName, group.strGroupName);
         channelGroupMember.iChannelUniqueId = number.ID();
-        //channelGroupMember.iChannelUniqueId = number._channel;
 
         g.PVR->TransferChannelGroupMember(handle, &channelGroupMember);
     }
