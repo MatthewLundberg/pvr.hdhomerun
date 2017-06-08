@@ -837,17 +837,7 @@ std::string Lineup::DlnaURL(const PVR_CHANNEL& channel)
         return "";
     }
     auto& info = _info[id];
-
-    Tuner* tuner = nullptr;
-
-    int pass = 0;
-    do {
-        tuner = info.GetNextTuner();
-        if (tuner)
-            break;
-        pass ++;
-    } while (pass < 2);
-
+    Tuner* tuner =  info.GetNextTuner();
     return info.DlnaURL(tuner);
 }
 
@@ -855,9 +845,25 @@ bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
 {
     Lock lock(this);
 
-    std::string URL = DlnaURL(channel);
-
-    _filehandle = g.XBMC->OpenFile(URL.c_str(), 0);
+    if (_filehandle)
+    {
+        CloseLiveStream();
+    }
+    int pass = 0;
+    do
+    {
+        std::string URL = DlnaURL(channel);
+        if (URL.size())
+        {
+            _filehandle = g.XBMC->OpenFile(URL.c_str(), 0);
+        }
+        else
+        {
+            pass ++;
+        }
+        if (_filehandle)
+            break;
+    } while (pass < 2);
 
     return _filehandle != nullptr;
 }
