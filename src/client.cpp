@@ -46,15 +46,17 @@ public:
         for (;;)
         {
             for (int i = 0; i < 60 * 60; i++)
+            {
                 if (P8PLATFORM::CThread::Sleep(1000))
                     break;
+            }
 
             if (IsStopped())
                 break;
 
             if (g.lineup)
             {
-                g.lineup->UpdateGuide();
+                g.lineup->Update();
                 g.PVR->TriggerChannelUpdate();
             }
         }
