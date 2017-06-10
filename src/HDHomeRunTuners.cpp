@@ -25,6 +25,8 @@
 #include "client.h"
 #include "Utils.h"
 #include "HDHomeRunTuners.h"
+#include <chrono>
+#include <thread>
 #include <functional>
 #include <algorithm>
 #include <iterator>
@@ -436,16 +438,6 @@ bool Lineup::DiscoverTuners()
         }
     }
 
-    if (tuner_added) {
-        // TODO - check lineup, add new tuner to lineup entries, might create new lineup entries for this tuner.
-
-        UpdateLineup();
-        UpdateGuide();
-    }
-    if (tuner_removed) {
-        // TODO - Lineup should be correct, anything to do?
-    }
-
     return tuner_added || tuner_removed;
 }
 
@@ -470,6 +462,9 @@ bool Lineup::UpdateLineup()
     KODI_LOG(LOG_DEBUG, "Lineup::UpdateLineup");
 
     Lock lock(this);
+    std::set<GuideNumber> prior;
+    std::copy(_lineup.begin(), _lineup.end(), std::inserter(prior, prior.begin()));
+
     _lineup.clear();
 
     for (auto tuner: _tuners)
@@ -507,6 +502,7 @@ bool Lineup::UpdateLineup()
         }
     }
 
+    bool added = false;
     for (const auto& number: _lineup)
     {
         auto& info = _info[number];
@@ -520,9 +516,19 @@ bool Lineup::UpdateLineup()
                 number._guidename.c_str(),
                 tuners.c_str()
         );
-    }
 
-    return true; // TODO - detect changed lineup.
+        if (prior.find(number) == prior.end())
+            added = true;
+    }
+    if (added)
+        return true;
+
+    bool removed = false;
+    for (const auto& number: prior)
+    {
+        if (_lineup.find(number) == _lineup.end())
+            return true;
+    }
 }
 
 // Increment the first element until max is reached, then increment further indices.
@@ -620,7 +626,7 @@ std::vector<Tuner*> Lineup::_minimal_covering()
 
 bool Lineup::_age_out()
 {
-    // Lock must be acquired before calling this method;
+    Lock lock(this);
 
     bool changed = false;
     // Age-out old entries
@@ -719,6 +725,9 @@ bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner)
 }
 bool Lineup::_update_guide_basic()
 {
+    // Find a minimal covering of the lineup, to avoid duplicate guide requests.
+    Lock lock(this);
+
     std::vector<Tuner*> tuners = _minimal_covering();
     if (tuners.size() == 0)
         return false;
@@ -735,8 +744,21 @@ bool Lineup::_update_guide_basic()
 bool Lineup::_update_guide_extended()
 {
     bool added = false;
-    for (const auto& number: _lineup)
+    std::set<GuideNumber> lineup;
     {
+        Lock lock(this);
+        if (_updating_guide)
+            return false;
+
+        _updating_guide = true;
+        std::copy(_lineup.begin(), _lineup.end(), std::inserter(lineup, lineup.begin()));
+    }
+    for (const auto& number: lineup)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        Lock lock(this);
+
         const auto& info = _info[number];
         auto tuner = info.GetFirstTuner();
 
@@ -744,19 +766,22 @@ bool Lineup::_update_guide_extended()
             continue;
 
         if (_insert_guide_data(&number, tuner))
+        {
             added = true;
+        }
+    }
+    {
+        Lock lock(this);
+        _updating_guide = false;
     }
 
     return added;
 }
 
-bool Lineup::UpdateGuide()
+bool Lineup::UpdateGuide(bool extended)
 {
-    // Find a minimal covering of the lineup, to avoid duplicate guide requests.
-    Lock lock(this);
-
     bool added;
-    if (g.Settings.extendedGuide)
+    if (extended)
     {
         added = _update_guide_extended();
     }

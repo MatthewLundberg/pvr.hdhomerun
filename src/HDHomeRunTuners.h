@@ -321,12 +321,12 @@ public:
 
     bool DiscoverTuners();
     bool UpdateLineup();
-    bool UpdateGuide();
-    bool Update()
+    bool UpdateGuide(bool extended);
+    bool Update(bool extended = false)
     {
         bool newTuner  = DiscoverTuners();
         bool newLineup = UpdateLineup();
-        bool newGuide  = UpdateGuide();
+        bool newGuide  = UpdateGuide(extended);
 
         return newTuner || newLineup || newGuide;
     }
@@ -365,6 +365,7 @@ private:
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
+    bool                      _updating_guide;
 
     void* _filehandle;
 };
