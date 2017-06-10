@@ -77,6 +77,16 @@ bool GuideNumber::operator==(const GuideNumber& rhs) const
 std::string GuideNumber::toString() const
 {
     char channel[64];
+    if (_subchannel)
+        sprintf(channel, "%d.%d", _channel, _subchannel);
+    else
+        sprintf(channel, "%d", _channel);
+
+    return channel;
+}
+std::string GuideNumber::extendedName() const
+{
+    char channel[64];
     sprintf(channel, "%d.%d", _channel, _subchannel);
     return std::string("") + channel + " "
             + "_guidename("   + _guidename   + ") ";
@@ -138,7 +148,7 @@ Info::Info(const Json::Value& v)
     _drm       = v["DRM"].asBool();
     _hd        = v["HD"].asBool();
 
-     //KODI_LOG(LOG_DEBUG, "LineupEntry::LineupEntry %s", toString().c_str());
+     //KODI_LOG(LOG_DEBUG, "LineupEntry::LineupEntry %s", extendedName().c_str());
 }
 
 Tuner* Info::GetNextTuner()
@@ -407,12 +417,12 @@ bool Lineup::DiscoverTuners()
                 auto info = _info[number];
                 if (info.RemoveTuner(tuner))
                 {
-                    KODI_LOG(LOG_DEBUG, "Removed tuner from GuideNumber %s", number.toString().c_str());
+                    KODI_LOG(LOG_DEBUG, "Removed tuner from GuideNumber %s", number.extendedName().c_str());
                 }
                 if (info.TunerCount() == 0)
                 {
                     // No tuners left for this lineup guide entry, remove it
-                    KODI_LOG(LOG_DEBUG, "No tuners left, removing GuideNumber %s", number.toString().c_str());
+                    KODI_LOG(LOG_DEBUG, "No tuners left, removing GuideNumber %s", number.extendedName().c_str());
                     _lineup.erase(number);
                     _info.erase(number);
                     _guide.erase(number);
@@ -635,73 +645,129 @@ bool Lineup::_age_out()
 
     return changed;
 }
+bool Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tuner* tuner)
+{
+    if (jsontunerguide.type() != Json::arrayValue)
+    {
+        KODI_LOG(LOG_ERROR, "Top-level JSON guide data is not an array for %08x", tuner->DeviceID());
+        return false;
+    }
+
+    bool added;
+
+    for (auto& jsonchannelguide : jsontunerguide)
+    {
+        GuideNumber number = jsonchannelguide;
+
+        if (_guide.find(number) == _guide.end())
+        {
+            KODI_LOG(LOG_DEBUG, "Inserting guide for channel %u", number.ID());
+            _guide[number] = jsonchannelguide;
+        }
+
+        Guide& channelguide = _guide[number];
+
+        auto jsonguidenetries = jsonchannelguide["Guide"];
+        if (jsonguidenetries.type() != Json::arrayValue)
+        {
+            KODI_LOG(LOG_ERROR, "Guide entries is not an array for %08x", tuner->DeviceID());
+            continue;
+        }
+        for (auto& jsonentry: jsonguidenetries)
+        {
+            if (channelguide.InsertEntry(jsonentry))
+                added = true;
+        }
+    }
+
+    return added;
+}
+bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner)
+{
+    bool added = false;
+
+    std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
+    URL.append(EncodeURL(tuner->Auth()));
+
+    if (number)
+    {
+        URL.append("?Channel=");
+        URL.append(number->toString());
+    }
+    KODI_LOG(LOG_DEBUG, "Requesting HDHomeRun guide for %08x: %s",
+            tuner->DeviceID(), URL.c_str());
+
+    std::string guidedata;
+    if (!GetFileContents(URL, guidedata))
+    {
+        KODI_LOG(LOG_ERROR, "Error requesting guide for %08x from %s",
+                tuner->DeviceID(), URL.c_str());
+        return false;
+    }
+
+    Json::Reader jsonreader;
+    Json::Value  jsontunerguide;
+    if (!jsonreader.parse(guidedata, jsontunerguide))
+    {
+        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %08x", tuner->DeviceID());
+        return false;
+    }
+    if (_insert_json_guide_data(jsontunerguide, tuner))
+        added = true;
+
+    return added;
+}
+bool Lineup::_update_guide_basic()
+{
+    std::vector<Tuner*> tuners = _minimal_covering();
+    if (tuners.size() == 0)
+        return false;
+
+    bool added = false;
+
+    for (auto tuner: tuners) {
+        if (_insert_guide_data(nullptr, tuner))
+            added = true;
+    }
+
+    return added;
+}
+bool Lineup::_update_guide_extended()
+{
+    bool added = false;
+    for (const auto& number: _lineup)
+    {
+        const auto& info = _info[number];
+        auto tuner = info.GetFirstTuner();
+
+        if (!tuner)
+            continue;
+
+        if (_insert_guide_data(&number, tuner))
+            added = true;
+    }
+
+    return added;
+}
 
 bool Lineup::UpdateGuide()
 {
     // Find a minimal covering of the lineup, to avoid duplicate guide requests.
     Lock lock(this);
 
-    std::vector<Tuner*> tuners = _minimal_covering();
-    if (tuners.size() == 0)
-        return false;
-
-    for (auto tuner: tuners) {
-
-        std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
-        URL.append(EncodeURL(tuner->Auth()));
-
-        KODI_LOG(LOG_DEBUG, "Requesting HDHomeRun guide for %08x: %s",
-                tuner->DeviceID(), URL.c_str());
-
-        std::string guidedata;
-        if (!GetFileContents(URL, guidedata))
-        {
-            KODI_LOG(LOG_ERROR, "Error requesting guide for %08x from %s",
-                    tuner->DeviceID(), URL.c_str());
-            continue;
-        }
-
-        Json::Reader jsonreader;
-        Json::Value  jsontunerguide;
-        if (!jsonreader.parse(guidedata, jsontunerguide))
-        {
-            KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %08x", tuner->DeviceID());
-            continue;
-        }
-        if (jsontunerguide.type() != Json::arrayValue)
-        {
-            KODI_LOG(LOG_ERROR, "Top-level JSON guide data is not an array for %08x", tuner->DeviceID());
-            continue;
-        }
-
-        for (auto& jsonchannelguide : jsontunerguide)
-        {
-            GuideNumber number = jsonchannelguide;
-
-            if (_guide.find(number) == _guide.end())
-            {
-                KODI_LOG(LOG_DEBUG, "Inserting guide for channel %u", number.ID());
-                _guide[number] = jsonchannelguide;
-            }
-
-            Guide& channelguide = _guide[number];
-
-            auto jsonguidenetries = jsonchannelguide["Guide"];
-            if (jsonguidenetries.type() != Json::arrayValue)
-            {
-                KODI_LOG(LOG_ERROR, "Guide entries is not an array for %08x", tuner->DeviceID());
-                continue;
-            }
-            for (auto& jsonentry: jsonguidenetries)
-            {
-                channelguide.InsertEntry(jsonentry);
-            }
-        }
+    bool added;
+    if (g.Settings.extendedGuide)
+    {
+        added = _update_guide_extended();
+    }
+    else
+    {
+        added = _update_guide_basic();
     }
 
     bool aged_out = _age_out();
 
-    return true; // TODO - detect changed guide
+    return added || aged_out;
 }
 
 int Lineup::PvrGetChannelsAmount()

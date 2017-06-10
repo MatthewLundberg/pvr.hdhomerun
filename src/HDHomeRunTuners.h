@@ -84,6 +84,7 @@ public:
     uint32_t _channel;
     uint32_t _subchannel;
 
+    std::string extendedName() const;
     std::string toString() const;
 
     uint32_t ID() const
@@ -143,12 +144,13 @@ public:
     Guide(const Json::Value&);
     Guide() = default;
 
-    void InsertEntry(Json::Value& v) {
+    bool InsertEntry(Json::Value& v) {
         auto ins = _entries.insert(v);
         if (ins.second) {
             auto& entry = const_cast<GuideEntry&>(*(ins.first));
             entry._id = _nextidx ++;
         }
+        return ins.second;
     }
 
     std::string          _guidename;
@@ -262,6 +264,14 @@ class Info
 public:
     Info(const Json::Value&);
     Info() = default;
+    const Tuner* GetFirstTuner() const
+    {
+        auto it = _tuners.begin();
+        if (it == _tuners.end())
+            return nullptr;
+
+        return *it;
+    }
     Tuner* GetNextTuner();
     void ResetNextTuner();
     bool AddTuner(Tuner*, const std::string& url);
@@ -345,6 +355,10 @@ public:
 private:
     std::vector<Tuner*> _minimal_covering(void);
     bool                _age_out(void);
+    bool                _insert_json_guide_data(const Json::Value&, const Tuner*);
+    bool                _insert_guide_data(const GuideNumber*, const Tuner*);
+    bool                _update_guide_basic();
+    bool                _update_guide_extended();
 
     std::set<Tuner*>          _tuners;
     std::set<uint32_t>        _device_ids;
