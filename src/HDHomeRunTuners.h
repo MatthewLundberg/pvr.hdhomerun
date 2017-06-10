@@ -105,17 +105,17 @@ class GuideEntry
 public:
     GuideEntry(const Json::Value&);
 
-    time_t   _starttime;
-    time_t   _endtime;
-    time_t   _originalairdate;
-    std::string   _title;
-    std::string   _episodenumber;
-    std::string   _episodetitle;
-    std::string   _synopsis;
-    std::string   _imageURL;
-    std::string   _seriesID;
-    uint32_t _genre;
-    uint32_t _id;
+    time_t      _starttime;
+    time_t      _endtime;
+    time_t      _originalairdate;
+    std::string _title;
+    std::string _episodenumber;
+    std::string _episodetitle;
+    std::string _synopsis;
+    std::string _imageURL;
+    std::string _seriesID;
+    uint32_t    _genre;
+    uint32_t    _id;
 
     bool operator<(const GuideEntry& rhs) const
     {
@@ -151,9 +151,9 @@ public:
         }
     }
 
-    std::string               _guidename;
-    std::string               _affiliate;
-    std::string               _imageURL;
+    std::string          _guidename;
+    std::string          _affiliate;
+    std::string          _imageURL;
     std::set<GuideEntry> _entries;
     uint32_t             _nextidx = 1;
 };
@@ -217,7 +217,7 @@ private:
     hdhomerun_device_t*         _device;
     hdhomerun_discover_device_t _discover_device;
     // Discover Data
-    std::string                      _lineupURL;
+    std::string                 _lineupURL;
     unsigned int                _tunercount;
     bool                        _legacy;
 public:
@@ -283,18 +283,18 @@ public:
     }
     std::string TunerListString() const;
 
-    std::string   _guidename;
-    bool     _hd       = false;
-    bool     _drm      = false;
-    bool     _favorite = false;
+    std::string _guidename;
+    bool        _hd       = false;
+    bool        _drm      = false;
+    bool        _favorite = false;
 
 private:
     // Tuners which can receive this channel.
-    // Entries are owned by Lineup
-    bool                       _has_next = false;
-    std::set<Tuner*>::iterator _next;
-    std::set<Tuner*>           _tuners;
-    std::map<Tuner*, std::string>   _url;
+    // Tuner pointers are owned by Lineup
+    bool                          _has_next = false;
+    std::set<Tuner*>              _tuners;
+    std::set<Tuner*>::iterator    _next;
+    std::map<Tuner*, std::string> _url;
 };
 
 class Lineup : public Lockable
