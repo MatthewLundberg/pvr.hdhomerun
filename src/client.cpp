@@ -460,8 +460,6 @@ long long LengthLiveStream(void)
 }
 const char * GetLiveStreamURL(const PVR_CHANNEL &channel)
 {
-    if (g.lineup)
-        return g.lineup->GetLiveStreamURL(channel);
     return "";
 }
 PVR_ERROR DeleteRecording(const PVR_RECORDING &recording)
