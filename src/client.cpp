@@ -43,21 +43,36 @@ class UpdateThread: public P8PLATFORM::CThread
 public:
     void *Process()
     {
-        for (;;)
+        for (int counter=0;counter++;)
         {
-            for (int i = 0; i < 60 * 60; i++)
-            {
-                if (P8PLATFORM::CThread::Sleep(1000))
-                    break;
-            }
+            P8PLATFORM::CThread::Sleep(1000);
 
             if (IsStopped())
                 break;
 
             if (g.lineup)
             {
-                g.lineup->Update();
-                g.PVR->TriggerChannelUpdate();
+                bool changed;
+                if (!(counter & g.Settings.tunerDiscoverInterval))
+                {
+                    if (g.lineup->DiscoverTuners())
+                        changed = true;
+                }
+                if (!(counter & g.Settings.lineupUpdateInterval))
+                {
+                    if (g.lineup->UpdateLineup())
+                        changed = true;
+                }
+                if (!(counter & g.Settings.guideUpdateInterval))
+                {
+                    if (g.lineup->UpdateGuide())
+                        changed = true;
+                }
+                if (changed)
+                {
+                    g.PVR->TriggerChannelUpdate();
+                    g.PVR->TriggerChannelGroupsUpdate();
+                }
             }
         }
         return nullptr;
@@ -113,10 +128,15 @@ void ADDON_ReadSettings(void)
     g.XBMC->GetSetting("debug",          &g.Settings.bDebug);
     g.XBMC->GetSetting("hide_unknown",   &g.Settings.bHideUnknownChannels);
     g.XBMC->GetSetting("use_legacy",     &g.Settings.bUseLegacy);
+    g.XBMC->GetSetting("extended",       &g.Settings.extendedGuide);
 
     char channel_name[64] = "Guide Name";
     g.XBMC->GetSetting("channel_name", channel_name);
     SetChannelName(channel_name);
+
+    char protocol[64] = "TCP";
+    g.XBMC->GetSetting("protocol", protocol);
+    SetProtocol(protocol);
 }
 
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
@@ -228,6 +248,10 @@ ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
     {
         SetProtocol((char*) settingValue);
         return ADDON_STATUS_NEED_RESTART;
+    }
+    else if (strcmp(settingName, "extended") == 0)
+    {
+        g.Settings.extendedGuide = *(bool*) settingValue;
     }
 
     return ADDON_STATUS_OK;

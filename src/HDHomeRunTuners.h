@@ -309,14 +309,16 @@ public:
         }
     }
 
-    void DiscoverTuners();
-    void UpdateGuide();
-    void UpdateLineup();
-    void Update()
+    bool DiscoverTuners();
+    bool UpdateLineup();
+    bool UpdateGuide();
+    bool Update()
     {
-        DiscoverTuners();
-        UpdateLineup();
-        UpdateGuide();
+        bool newTuner  = DiscoverTuners();
+        bool newLineup = UpdateLineup();
+        bool newGuide  = UpdateGuide();
+
+        return newTuner || newLineup || newGuide;
     }
     void AddLineupEntry(const Json::Value&, Tuner*);
 
@@ -341,6 +343,9 @@ public:
 
 
 private:
+    std::vector<Tuner*> _minimal_covering(void);
+    bool                _age_out(void);
+
     std::set<Tuner*>          _tuners;
     std::set<uint32_t>        _device_ids;
     std::set<GuideNumber>     _lineup;

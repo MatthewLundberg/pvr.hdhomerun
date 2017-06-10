@@ -352,7 +352,7 @@ uint32_t Tuner::LocalIP() const
     return 0;
 }
 
-void Lineup::DiscoverTuners()
+bool Lineup::DiscoverTuners()
 {
     struct hdhomerun_discover_device_t discover_devices[64];
     size_t tuner_count = hdhomerun_discover_find_devices_custom_v2(
@@ -435,6 +435,8 @@ void Lineup::DiscoverTuners()
     if (tuner_removed) {
         // TODO - Lineup should be correct, anything to do?
     }
+
+    return tuner_added || tuner_removed;
 }
 
 void Lineup::AddLineupEntry(const Json::Value& v, Tuner* tuner)
@@ -453,7 +455,7 @@ void Lineup::AddLineupEntry(const Json::Value& v, Tuner* tuner)
     _info[number].AddTuner(tuner, v["URL"].asString());
 }
 
-void Lineup::UpdateLineup()
+bool Lineup::UpdateLineup()
 {
     KODI_LOG(LOG_DEBUG, "Lineup::UpdateLineup");
 
@@ -509,6 +511,8 @@ void Lineup::UpdateLineup()
                 tuners.c_str()
         );
     }
+
+    return true; // TODO - detect changed lineup.
 }
 
 // Increment the first element until max is reached, then increment further indices.
@@ -535,12 +539,9 @@ bool increment_index(
     return false;
 }
 
-void Lineup::UpdateGuide()
+std::vector<Tuner*> Lineup::_minimal_covering()
 {
-    // Find a minimal covering of the lineup, to avoid duplicate guide requests.
-
-    Lock lock(this);
-
+    // Lock must be acquired before calling this method.
     // The _tuners std::set cannot be indexed by position, so copy to a vector.
     std::vector<Tuner*> tuners;
     std::copy(_tuners.begin(), _tuners.end(), std::back_inserter(tuners));
@@ -587,23 +588,67 @@ void Lineup::UpdateGuide()
         if (matched)
             break;
     }
-    if (!matched)
+    std::vector<Tuner*> retval;
+
+    if (matched)
     {
-        return;
+        std::string idx;
+        for (auto& i : index) {
+            char buf[10];
+            sprintf(buf, " %08x", tuners[i]->DeviceID());
+            idx += buf;
+            retval.push_back(tuners[i]);
+        }
+        KODI_LOG(LOG_DEBUG, "UpateGuide - Need to scan %u tuner(s) - %s", index.size(), idx.c_str());
     }
-    std::string idx;
-    for (auto& i : index) {
-        char buf[10];
-        sprintf(buf, " %08x", tuners[i]->DeviceID());
-        idx += buf;
+    else
+    {
+        KODI_LOG(LOG_INFO, "UpdateGuide - Found no tuners!");
     }
-    KODI_LOG(LOG_DEBUG, "UpateGuide - Need to scan %u tuner(s) - %s", index.size(), idx.c_str());
+    return retval;
+}
 
-    for (auto idx: index) {
-		auto tuner = tuners[idx];
+bool Lineup::_age_out()
+{
+    // Lock must be acquired before calling this method;
 
-		std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
-		URL.append(EncodeURL(tuner->Auth()));
+    bool changed = false;
+    // Age-out old entries
+    uint32_t max_age = g.Settings.guideAgeOut;
+    time_t   now = time(nullptr);
+    for (auto& mapentry : _guide)
+    {
+        auto& guide = mapentry.second;
+
+        for (auto& entry : guide._entries)
+        {
+            time_t end = entry._endtime;
+            if ((now > end) && ((now - end) > max_age))
+            {
+                KODI_LOG(LOG_DEBUG, "Deleting guide entry for age %u: %s - %s", (now-end), entry._title.c_str(), entry._episodetitle.c_str());
+
+                guide._entries.erase(entry);
+                changed = true;
+            }
+        }
+    }
+
+    return changed;
+}
+
+bool Lineup::UpdateGuide()
+{
+    // Find a minimal covering of the lineup, to avoid duplicate guide requests.
+    Lock lock(this);
+
+    std::vector<Tuner*> tuners = _minimal_covering();
+    if (tuners.size() == 0)
+        return false;
+
+    for (auto tuner: tuners) {
+
+        std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
+        URL.append(EncodeURL(tuner->Auth()));
 
         KODI_LOG(LOG_DEBUG, "Requesting HDHomeRun guide for %08x: %s",
                 tuner->DeviceID(), URL.c_str());
@@ -654,24 +699,9 @@ void Lineup::UpdateGuide()
         }
     }
 
-    // Age-out old entries, delete if more than one day old (make this configurable?)
-    uint32_t max_age = 86400;
-    time_t   now = time(nullptr);
-    for (auto& mapentry : _guide)
-    {
-        auto& guide = mapentry.second;
+    bool aged_out = _age_out();
 
-        for (auto& entry : guide._entries)
-        {
-            time_t end = entry._endtime;
-            if ((now > end) && ((now - end) > max_age))
-            {
-                KODI_LOG(LOG_DEBUG, "Deleting guide entry for age %u: %s - %s", (now-end), entry._title.c_str(), entry._episodetitle.c_str());
-
-                guide._entries.erase(entry);
-            }
-        }
-    }
+    return true; // TODO - detect changed guide
 }
 
 int Lineup::PvrGetChannelsAmount()

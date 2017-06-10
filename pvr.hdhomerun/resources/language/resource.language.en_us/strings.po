@@ -40,6 +40,10 @@ msgctxt "#32006"
 msgid "Use legacy hardware (Requires UDP protocol)"
 msgstr "Use legacy hardware (Requires UDP protocol)"
 
+msgctxt "#32007"
+msgid "Name to display"
+msgstr "Name to display"
+
 msgctxt "#32010"
 msgid "Hide unknown channels"
 msgstr "Hide unknown channels"
@@ -48,7 +52,7 @@ msgctxt "#32011"
 msgid "Protocol"
 msgstr "Protocol"
 
-msgctxt "#32007"
-msgid "Name to display"
-msgstr "Name to display"
+msgctxt "#32012"
+msgid "Use Extended Guide"
+msgstr "Use Extended Guide"
 

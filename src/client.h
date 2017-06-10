@@ -61,6 +61,13 @@ struct SettingsType
     bool bHideUnknownChannels   = true;
     CHANNEL_NAME eChannelName   = AFFILIATE;
     PROTOCOL     eProtocol      = TCP;
+    bool extendedGuide          = false;
+    uint16_t udpPort            = 5000;
+
+    int tunerDiscoverInterval   = 300;
+    int lineupUpdateInterval    = 300;
+    int guideUpdateInterval     = 1800;
+    int guideAgeOut             = 86400;
 };
 
 struct GlobalsType

@@ -12,6 +12,7 @@
 <!--    <setting id="mark_new" type="bool" label="32005" default="true" />  -->
     <setting id="protocol" type="select" label="32011" values="TCP|UDP" default="TCP" />    
     <setting id="use_legacy" type="bool" label="32006" default="false" />
+    <setting id="extended" type="bool" label="32012" default="false" />
 
   </category>
 
