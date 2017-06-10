@@ -3,9 +3,6 @@
  *      Copyright (C) 2017 Matthew Lundberg <matthew.k.lundberg@gmail.com>
  *      https://github.com/MatthewLundberg/pvr.hdhomerun
  *
- *      Copyright (C) 2015 Zoltan Csizmadia <zcsizmadia@gmail.com>
- *      https://github.com/zcsizmadia/pvr.hdhomerun
- *
  *      Copyright (C) 2011 Pulse-Eight
  *      http://www.pulse-eight.com/
  *
