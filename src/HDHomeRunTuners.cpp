@@ -324,6 +324,7 @@ void Tuner::RefreshLineup()
 {
     if (_legacy)
     {
+        // Lineup URL for legacy devices expires, retrieve it again.
         _get_discover_data();
     }
 }
