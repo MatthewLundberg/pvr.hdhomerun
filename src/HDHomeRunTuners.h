@@ -36,19 +36,6 @@
 
 namespace PVRHDHomeRun {
 
-/*
-template<typename T>
-bool operator<(const T& a, const T& b)
-{
-    return a.operator<(b);
-}
-template<typename T>
-bool operator==(const T& a, const T& b)
-{
-    return a.operator==(b);
-}
-*/
-
 class Lockable {
 public:
     virtual ~Lockable() {}

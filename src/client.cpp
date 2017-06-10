@@ -87,6 +87,17 @@ void SetChannelName(const char* name)
         g.Settings.eChannelName = SettingsType::AFFILIATE;
     }
 }
+void SetProtocol(const char* proto)
+{
+    if (strcmp(proto, "TCP") == 0)
+    {
+        g.Settings.eProtocol = SettingsType::TCP;
+    }
+    else if (strcmp(proto, "UDP") == 0)
+    {
+        g.Settings.eProtocol = SettingsType::UDP;
+    }
+}
 
 extern "C"
 {
@@ -211,6 +222,11 @@ ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
     else if (strcmp(settingName, "channel_name") == 0)
     {
         SetChannelName((char*) settingValue);
+        return ADDON_STATUS_NEED_RESTART;
+    }
+    else if (strcmp(settingName, "protocol") == 0)
+    {
+        SetProtocol((char*) settingValue);
         return ADDON_STATUS_NEED_RESTART;
     }
 

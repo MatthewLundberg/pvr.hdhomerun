@@ -48,6 +48,10 @@ struct SettingsType
         GUIDE_NAME,
         AFFILIATE
     };
+    enum PROTOCOL {
+        TCP,
+        UDP
+    };
 
     bool bHideProtected         = true;
     bool bHideDuplicateChannels = true;
@@ -56,6 +60,7 @@ struct SettingsType
     bool bUseLegacy             = false;
     bool bHideUnknownChannels   = true;
     CHANNEL_NAME eChannelName   = AFFILIATE;
+    PROTOCOL     eProtocol      = TCP;
 };
 
 struct GlobalsType
