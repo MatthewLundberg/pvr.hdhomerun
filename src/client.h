@@ -53,14 +53,13 @@ struct SettingsType
         UDP
     };
 
-    bool bHideProtected         = true;
-    bool bHideDuplicateChannels = true;
-    bool bDebug                 = false;
-    bool bMarkNew               = false;
-    bool bUseLegacy             = false;
-    bool bHideUnknownChannels   = true;
-    CHANNEL_NAME eChannelName   = AFFILIATE;
-    PROTOCOL     eProtocol      = TCP;
+    bool hideProtectedChannels  = true;
+    bool debugLog               = false;
+    bool markNewProgram         = false;
+    bool useLegacyTuners        = false;
+    bool hideUnknownChannels    = true;
+    CHANNEL_NAME channelName    = AFFILIATE;
+    PROTOCOL     protocol       = TCP;
     bool extendedGuide          = false;
     uint16_t udpPort            = 5000;
 
@@ -72,10 +71,10 @@ struct SettingsType
 
 struct GlobalsType
 {
-    bool         bCreated                = false;
+    bool         isCreated               = false;
     ADDON_STATUS currentStatus           = ADDON_STATUS_UNKNOWN;
-    std::string  strUserPath;
-    std::string  strClientPath;
+    std::string  userPath;
+    std::string  clientPath;
     ADDON::CHelper_libXBMC_addon* XBMC   = nullptr;
     CHelper_libXBMC_pvr*          PVR    = nullptr;
     Lineup*                       lineup = nullptr;

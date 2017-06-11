@@ -383,7 +383,7 @@ bool Lineup::DiscoverTuners()
         auto& dd = discover_devices[i];
         auto  id = dd.device_id;
 
-        if (dd.is_legacy && !g.Settings.bUseLegacy)
+        if (dd.is_legacy && !g.Settings.useLegacyTuners)
             continue;
 
         discovered_ids.insert(id);
@@ -445,7 +445,7 @@ bool Lineup::DiscoverTuners()
 void Lineup::AddLineupEntry(const Json::Value& v, Tuner* tuner)
 {
     GuideNumber number = v;
-    if ((g.Settings.bHideUnknownChannels) && (number._guidename == "Unknown"))
+    if ((g.Settings.hideUnknownChannels) && (number._guidename == "Unknown"))
     {
         return;
     }
@@ -816,15 +816,15 @@ PVR_ERROR Lineup::PvrGetChannels(ADDON_HANDLE handle, bool radio)
         pvrChannel.iSubChannelNumber = number._subchannel;
 
         const std::string* name;
-        if (g.Settings.eChannelName == SettingsType::AFFILIATE) {
+        if (g.Settings.channelName == SettingsType::AFFILIATE) {
             name = &guide._affiliate;
         }
-        if (!name || !name->length() || (g.Settings.eChannelName == SettingsType::GUIDE_NAME))
+        if (!name || !name->length() || (g.Settings.channelName == SettingsType::GUIDE_NAME))
         {
             // Lineup name from guide
             name = &guide._guidename;
         }
-        if (!name || !name->length() || (g.Settings.eChannelName == SettingsType::TUNER_NAME))
+        if (!name || !name->length() || (g.Settings.channelName == SettingsType::TUNER_NAME))
         {
             // Lineup name from tuner
             name = &info._guidename;

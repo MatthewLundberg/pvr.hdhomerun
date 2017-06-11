@@ -90,26 +90,26 @@ void SetChannelName(const char* name)
 
     if (strcmp(name, "Tuner Name") == 0)
     {
-        g.Settings.eChannelName = SettingsType::TUNER_NAME;
+        g.Settings.channelName = SettingsType::TUNER_NAME;
     }
     else if (strcmp(name, "Guide Name") == 0)
     {
-        g.Settings.eChannelName = SettingsType::GUIDE_NAME;
+        g.Settings.channelName = SettingsType::GUIDE_NAME;
     }
     else if (strcmp(name, "Affiliate") == 0)
     {
-        g.Settings.eChannelName = SettingsType::AFFILIATE;
+        g.Settings.channelName = SettingsType::AFFILIATE;
     }
 }
 void SetProtocol(const char* proto)
 {
     if (strcmp(proto, "TCP") == 0)
     {
-        g.Settings.eProtocol = SettingsType::TCP;
+        g.Settings.protocol = SettingsType::TCP;
     }
     else if (strcmp(proto, "UDP") == 0)
     {
-        g.Settings.eProtocol = SettingsType::UDP;
+        g.Settings.protocol = SettingsType::UDP;
     }
 }
 
@@ -121,12 +121,11 @@ void ADDON_ReadSettings(void)
     if (g.XBMC == nullptr)
         return;
 
-    g.XBMC->GetSetting("hide_protected", &g.Settings.bHideProtected);
-    g.XBMC->GetSetting("hide_duplicate", &g.Settings.bHideDuplicateChannels);
-    g.XBMC->GetSetting("mark_new",       &g.Settings.bMarkNew);
-    g.XBMC->GetSetting("debug",          &g.Settings.bDebug);
-    g.XBMC->GetSetting("hide_unknown",   &g.Settings.bHideUnknownChannels);
-    g.XBMC->GetSetting("use_legacy",     &g.Settings.bUseLegacy);
+    g.XBMC->GetSetting("hide_protected", &g.Settings.hideProtectedChannels);
+    g.XBMC->GetSetting("mark_new",       &g.Settings.markNewProgram);
+    g.XBMC->GetSetting("debug",          &g.Settings.debugLog);
+    g.XBMC->GetSetting("hide_unknown",   &g.Settings.hideUnknownChannels);
+    g.XBMC->GetSetting("use_legacy",     &g.Settings.useLegacyTuners);
     g.XBMC->GetSetting("extended",       &g.Settings.extendedGuide);
 
     char channel_name[64] = "Guide Name";
@@ -164,8 +163,8 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
             __FUNCTION__);
 
     g.currentStatus = ADDON_STATUS_UNKNOWN;
-    g.strUserPath = pvrprops->strUserPath;
-    g.strClientPath = pvrprops->strClientPath;
+    g.userPath = pvrprops->strUserPath;
+    g.clientPath = pvrprops->strClientPath;
 
     ADDON_ReadSettings();
 
@@ -182,7 +181,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
     }
 
     g.currentStatus = ADDON_STATUS_OK;
-    g.bCreated = true;
+    g.isCreated = true;
 
     return ADDON_STATUS_OK;
 }
@@ -200,7 +199,7 @@ void ADDON_Destroy()
     SAFE_DELETE(g.PVR);
     SAFE_DELETE(g.XBMC);
 
-    g.bCreated = false;
+    g.isCreated = false;
     g.currentStatus = ADDON_STATUS_UNKNOWN;
 }
 
@@ -216,26 +215,21 @@ ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
 
     if (strcmp(settingName, "hide_protected") == 0)
     {
-        g.Settings.bHideProtected = *(bool*) settingValue;
-        return ADDON_STATUS_NEED_RESTART;
-    }
-    else if (strcmp(settingName, "hide_duplicate") == 0)
-    {
-        g.Settings.bHideDuplicateChannels = *(bool*) settingValue;
+        g.Settings.hideProtectedChannels = *(bool*) settingValue;
         return ADDON_STATUS_NEED_RESTART;
     }
     else if (strcmp(settingName, "mark_new") == 0)
-        g.Settings.bMarkNew = *(bool*) settingValue;
+        g.Settings.markNewProgram = *(bool*) settingValue;
     else if (strcmp(settingName, "debug") == 0)
-        g.Settings.bDebug = *(bool*) settingValue;
+        g.Settings.debugLog = *(bool*) settingValue;
     else if (strcmp(settingName, "use_legacy") == 0)
     {
-        g.Settings.bUseLegacy = *(bool*) settingValue;
+        g.Settings.useLegacyTuners = *(bool*) settingValue;
         return ADDON_STATUS_NEED_RESTART;
     }
     else if (strcmp(settingName, "hide_unknown") == 0)
     {
-        g.Settings.bHideUnknownChannels = *(bool*) settingValue;
+        g.Settings.hideUnknownChannels = *(bool*) settingValue;
         return ADDON_STATUS_NEED_RESTART;
     }
     else if (strcmp(settingName, "channel_name") == 0)
