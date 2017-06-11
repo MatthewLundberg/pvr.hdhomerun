@@ -208,47 +208,47 @@ bool ADDON_HasSettings()
     return true;
 }
 
-ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
+ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
 {
     if (g.lineup == nullptr)
         return ADDON_STATUS_OK;
 
-    if (strcmp(settingName, "hide_protected") == 0)
+    if (strcmp(name, "hide_protected") == 0)
     {
-        g.Settings.hideProtectedChannels = *(bool*) settingValue;
+        g.Settings.hideProtectedChannels = *(bool*) value;
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(settingName, "mark_new") == 0)
+    else if (strcmp(name, "mark_new") == 0)
     {
-        g.Settings.markNewProgram = *(bool*) settingValue;
+        g.Settings.markNewProgram = *(bool*) value;
     }
-    else if (strcmp(settingName, "debug") == 0)
+    else if (strcmp(name, "debug") == 0)
     {
-        g.Settings.debugLog = *(bool*) settingValue;
+        g.Settings.debugLog = *(bool*) value;
     }
-    else if (strcmp(settingName, "use_legacy") == 0)
+    else if (strcmp(name, "use_legacy") == 0)
     {
-        g.Settings.useLegacyTuners = *(bool*) settingValue;
+        g.Settings.useLegacyTuners = *(bool*) value;
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(settingName, "hide_unknown") == 0)
+    else if (strcmp(name, "hide_unknown") == 0)
     {
-        g.Settings.hideUnknownChannels = *(bool*) settingValue;
+        g.Settings.hideUnknownChannels = *(bool*) value;
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(settingName, "channel_name") == 0)
+    else if (strcmp(name, "channel_name") == 0)
     {
-        SetChannelName((char*) settingValue);
+        SetChannelName((char*) value);
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(settingName, "protocol") == 0)
+    else if (strcmp(name, "protocol") == 0)
     {
-        SetProtocol((char*) settingValue);
+        SetProtocol((char*) value);
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(settingName, "extended") == 0)
+    else if (strcmp(name, "extended") == 0)
     {
-        g.Settings.extendedGuide = *(bool*) settingValue;
+        g.Settings.extendedGuide = *(bool*) value;
     }
 
     return ADDON_STATUS_OK;
