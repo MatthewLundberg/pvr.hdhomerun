@@ -771,7 +771,7 @@ bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, tim
         auto tuner = info.GetFirstTuner();
 
         if (!tuner)
-            continue;
+            break;
 
         time_t last_end = _insert_guide_data(&number, tuner, start);
 
