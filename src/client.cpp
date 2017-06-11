@@ -294,20 +294,17 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 
 const char *GetBackendName(void)
 {
-    static const char *strBackendName = "HDHomeRun PVR add-on";
-    return strBackendName;
+    return "otherkids PVR";
 }
 
 const char *GetBackendVersion(void)
 {
-    static const char *strBackendVersion = "0.2";
-    return strBackendVersion;
+    return "4.0.0";
 }
 
 const char *GetConnectionString(void)
 {
-    static const char *strConnectionString = "connected";
-    return strConnectionString;
+    return "connected";
 }
 
 const char *GetBackendHostname(void)
@@ -317,6 +314,7 @@ const char *GetBackendHostname(void)
 
 PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 {
+    // TODO - fix this
     *iTotal = 1024 * 1024 * 1024;
     *iUsed = 0;
     return PVR_ERROR_NO_ERROR;
@@ -384,7 +382,7 @@ bool SwitchChannel(const PVR_CHANNEL &channel)
 
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 {
-    PVR_STRCPY(signalStatus.strAdapterName, "PVR HDHomeRun Adapter 1");
+    PVR_STRCPY(signalStatus.strAdapterName, "otherkids PVR");
     PVR_STRCPY(signalStatus.strAdapterStatus, "OK");
 
     return PVR_ERROR_NO_ERROR;
