@@ -977,6 +977,7 @@ std::string Lineup::DlnaURL(const PVR_CHANNEL& channel)
 bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
 {
     Lock lock(this);
+    Lock strlock(_stream_lock);
 
     if (_filehandle)
     {
@@ -1003,13 +1004,14 @@ bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
 void Lineup::CloseLiveStream(void)
 {
     Lock lock(this);
+    Lock strlock(_stream_lock);
 
     g.XBMC->CloseFile(_filehandle);
     _filehandle = nullptr;
 }
 int Lineup::ReadLiveStream(unsigned char* buffer, unsigned int size)
 {
-    Lock lock(this);
+    Lock strlock(_stream_lock);
 
     if (_filehandle)
     {

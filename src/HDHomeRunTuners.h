@@ -33,6 +33,7 @@
 #include <set>
 #include <memory>
 #include <string>
+#include <mutex>
 
 namespace PVRHDHomeRun {
 
@@ -55,6 +56,8 @@ public:
         {
             _obj->LockObject();
         }
+    Lock(Lockable& obj) : Lock(&obj)
+    {}
     ~Lock()
     {
         _obj->UnlockObject();
@@ -367,7 +370,7 @@ private:
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
 
-
+    Lockable _stream_lock;
     void* _filehandle;
 };
 
