@@ -219,9 +219,13 @@ ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
         return ADDON_STATUS_NEED_RESTART;
     }
     else if (strcmp(settingName, "mark_new") == 0)
+    {
         g.Settings.markNewProgram = *(bool*) settingValue;
+    }
     else if (strcmp(settingName, "debug") == 0)
+    {
         g.Settings.debugLog = *(bool*) settingValue;
+    }
     else if (strcmp(settingName, "use_legacy") == 0)
     {
         g.Settings.useLegacyTuners = *(bool*) settingValue;
