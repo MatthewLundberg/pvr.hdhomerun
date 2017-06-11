@@ -144,13 +144,13 @@ public:
     Guide(const Json::Value&);
     Guide() = default;
 
-    bool InsertEntry(Json::Value& v) {
+    time_t InsertEntry(Json::Value& v) {
         auto ins = _entries.insert(v);
-        if (ins.second) {
+        //if (ins.second) {
             auto& entry = const_cast<GuideEntry&>(*(ins.first));
             entry._id = _nextidx ++;
-        }
-        return ins.second;
+            return entry._endtime;
+        //}
     }
 
     std::string          _guidename;
@@ -167,7 +167,7 @@ public:
     Tuner(const Tuner&) = delete;
     Tuner(Tuner&&) = default;
     ~Tuner();
-    void RefreshLineup();
+    void Refresh();
 
     // Accessors
     unsigned int TunerCount() const
@@ -321,14 +321,15 @@ public:
 
     bool DiscoverTuners();
     bool UpdateLineup();
-    bool UpdateGuide(bool extended);
-    bool Update(bool extended = false)
+    void UpdateGuide();
+
+    bool Update()
     {
         bool newTuner  = DiscoverTuners();
         bool newLineup = UpdateLineup();
-        bool newGuide  = UpdateGuide(extended);
+        UpdateGuide();
 
-        return newTuner || newLineup || newGuide;
+        return newTuner || newLineup;
     }
     void AddLineupEntry(const Json::Value&, Tuner*);
 
@@ -355,17 +356,17 @@ public:
 private:
     std::vector<Tuner*> _minimal_covering(void);
     bool                _age_out(void);
-    bool                _insert_json_guide_data(const Json::Value&, const Tuner*);
-    bool                _insert_guide_data(const GuideNumber*, const Tuner*);
+    time_t              _insert_json_guide_data(const Json::Value&, const Tuner*);
+    time_t              _insert_guide_data(const GuideNumber*, const Tuner*, time_t start=0);
     bool                _update_guide_basic();
-    bool                _update_guide_extended();
+    bool                _update_guide_extended(const GuideNumber&, time_t, time_t);
 
     std::set<Tuner*>          _tuners;
     std::set<uint32_t>        _device_ids;
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
-    bool                      _updating_guide;
+
 
     void* _filehandle;
 };

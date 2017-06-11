@@ -67,7 +67,6 @@ struct SettingsType
     int tunerDiscoverInterval   = 300;
     int lineupUpdateInterval    = 300;
     int guideUpdateInterval     = 1800;
-    int guideExtendedOffset     = 60;
     int guideAgeOut             = 86400;
 };
 

@@ -43,8 +43,6 @@ class UpdateThread: public P8PLATFORM::CThread
 public:
     void *Process()
     {
-        int basic_guide_time = 0;
-
         for (int counter=0;counter++;)
         {
             P8PLATFORM::CThread::Sleep(1000);
@@ -65,17 +63,9 @@ public:
                     if (g.lineup->UpdateLineup())
                         changed = true;
                 }
-                if (changed || !(counter & g.Settings.guideUpdateInterval))
+                if (changed || (!(counter & g.Settings.guideUpdateInterval)))
                 {
-                    if (g.lineup->UpdateGuide(false)) {
-                        changed = true;
-                        basic_guide_time = counter;
-                    }
-                }
-                if (g.Settings.extendedGuide && (counter - basic_guide_time == g.Settings.guideExtendedOffset))
-                {
-                    if (g.lineup->UpdateGuide(true))
-                        changed = true;
+                    g.lineup->UpdateGuide();
                 }
                 if (changed)
                 {

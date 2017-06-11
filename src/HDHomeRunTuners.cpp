@@ -332,13 +332,10 @@ void Tuner::_get_discover_data()
     }
 }
 
-void Tuner::RefreshLineup()
+void Tuner::Refresh()
 {
-    if (_legacy)
-    {
-        // Lineup URL for legacy devices expires, retrieve it again.
-        _get_discover_data();
-    }
+    // Retrieve current auth string, lineup for legacy tuner.
+    _get_discover_data();
 }
 
 uint32_t Tuner::LocalIP() const
@@ -402,7 +399,7 @@ bool Lineup::DiscoverTuners()
         }
     }
 
-    // Iterate through tuners, determine if there are stale entries.
+    // Iterate through tuners, Refresh and determine if there are stale entries.
     for (auto tuner : _tuners)
     {
         uint32_t id = tuner->DeviceID();
@@ -435,6 +432,10 @@ bool Lineup::DiscoverTuners()
             _tuners.erase(tuner);
             _device_ids.erase(id);
             delete(tuner);
+        }
+        else
+        {
+            tuner->Refresh();
         }
     }
 
@@ -521,7 +522,10 @@ bool Lineup::UpdateLineup()
             added = true;
     }
     if (added)
+    {
+        _update_guide_basic();
         return true;
+    }
 
     bool removed = false;
     for (const auto& number: prior)
@@ -651,7 +655,8 @@ bool Lineup::_age_out()
 
     return changed;
 }
-bool Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tuner* tuner)
+
+time_t Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tuner* tuner)
 {
     if (jsontunerguide.type() != Json::arrayValue)
     {
@@ -659,7 +664,7 @@ bool Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tu
         return false;
     }
 
-    bool added;
+    time_t end = 0;
 
     for (auto& jsonchannelguide : jsontunerguide)
     {
@@ -681,24 +686,29 @@ bool Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tu
         }
         for (auto& jsonentry: jsonguidenetries)
         {
-            if (channelguide.InsertEntry(jsonentry))
-                added = true;
+            end = channelguide.InsertEntry(jsonentry);
         }
     }
-
-    return added;
+    return end;
 }
-bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner)
-{
-    bool added = false;
 
+time_t Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner, time_t start)
+{
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
     URL.append(EncodeURL(tuner->Auth()));
 
     if (number)
     {
-        URL.append("?Channel=");
+        URL.append("&Channel=");
         URL.append(number->toString());
+
+        if (start)
+        {
+            char start_s[64];
+            sprintf(start_s, "%d", start);
+            URL.append("&Start=");
+            URL.append(start_s);
+        }
     }
     KODI_LOG(LOG_DEBUG, "Requesting HDHomeRun guide for %08x: %s",
             tuner->DeviceID(), URL.c_str());
@@ -710,6 +720,8 @@ bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner)
                 tuner->DeviceID(), URL.c_str());
         return false;
     }
+    if (guidedata.substr(0,4) == "null")
+        return false;
 
     Json::Reader jsonreader;
     Json::Value  jsontunerguide;
@@ -718,10 +730,7 @@ bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner)
         KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %08x", tuner->DeviceID());
         return false;
     }
-    if (_insert_json_guide_data(jsontunerguide, tuner))
-        added = true;
-
-    return added;
+    return _insert_json_guide_data(jsontunerguide, tuner);
 }
 bool Lineup::_update_guide_basic()
 {
@@ -741,21 +750,20 @@ bool Lineup::_update_guide_basic()
 
     return added;
 }
-bool Lineup::_update_guide_extended()
+void Lineup::UpdateGuide()
+{
+    if (!g.Settings.extendedGuide)
+    {
+        _update_guide_basic();
+    }
+}
+bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, time_t end)
 {
     bool added = false;
-    std::set<GuideNumber> lineup;
-    {
-        Lock lock(this);
-        if (_updating_guide)
-            return false;
 
-        _updating_guide = true;
-        std::copy(_lineup.begin(), _lineup.end(), std::inserter(lineup, lineup.begin()));
-    }
-    for (const auto& number: lineup)
+    for (;;)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         Lock lock(this);
 
@@ -765,35 +773,27 @@ bool Lineup::_update_guide_extended()
         if (!tuner)
             continue;
 
-        if (_insert_guide_data(&number, tuner))
+        time_t last_end = _insert_guide_data(&number, tuner, start);
+
+        if (last_end)
         {
             added = true;
         }
-    }
-    {
-        Lock lock(this);
-        _updating_guide = false;
+        else
+        {
+            break;
+        }
+
+        if (last_end > end)
+            break;
+
+        start = last_end;
+
     }
 
     return added;
 }
 
-bool Lineup::UpdateGuide(bool extended)
-{
-    bool added;
-    if (extended)
-    {
-        added = _update_guide_extended();
-    }
-    else
-    {
-        added = _update_guide_basic();
-    }
-
-    bool aged_out = _age_out();
-
-    return added || aged_out;
-}
 
 int Lineup::PvrGetChannelsAmount()
 {
@@ -849,13 +849,27 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
             channel.iSubChannelNumber,
             start,
             end
-            );
+    );
+
+    _age_out();
+
+    time_t now = time(nullptr);
+    if (start < now - g.Settings.guideAgeOut)
+    {
+        start = now - g.Settings.guideAgeOut;
+    }
+
+    if (g.Settings.extendedGuide)
+    {
+        _update_guide_extended(channel.iUniqueId, start, end);
+    }
 
     Lock lock(this);
 
-
     auto& info  = _info[channel.iUniqueId];
     auto& guide = _guide[channel.iUniqueId];
+
+
     for (auto& ge: guide._entries)
     {
         if (ge._endtime < start)
