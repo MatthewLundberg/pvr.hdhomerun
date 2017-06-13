@@ -165,11 +165,13 @@ void GuideEntry::Create(uint32_t number) const
 {
     auto tag = Epg_Tag(number);
     g.PVR->EpgEventStateChange(&tag, number, EPG_EVENT_CREATED);
+    _transferred = true;
 }
 void GuideEntry::Delete(uint32_t number) const
 {
     auto tag = Epg_Tag(number);
     g.PVR->EpgEventStateChange(&tag, number, EPG_EVENT_DELETED);
+    _transferred = false;
 }
 
 Guide::Guide(const Json::Value& v)
@@ -599,7 +601,6 @@ bool Lineup::UpdateLineup()
     }
     if (added)
     {
-        _update_guide_basic();
         return true;
     }
 
@@ -818,13 +819,7 @@ bool Lineup::_update_guide_basic()
 
     return status.NewEntry();
 }
-void Lineup::UpdateGuide()
-{
-    if (!g.Settings.extendedGuide)
-    {
-        _update_guide_basic();
-    }
-}
+
 bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, time_t end)
 {
     GuideEntryStatus status;
@@ -856,6 +851,54 @@ bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, tim
     return status.NewEntry();
 }
 
+void Lineup::UpdateGuide()
+{
+    std::cout << "Lineup::UpdateGuide()\n";
+
+    _age_out();
+    // See if we have current data
+    time_t now = time(nullptr);
+    bool   havestart = false;
+    bool   haveend   = false;
+    bool   stale     = true;
+
+    for (auto& ng: _guide)
+    {
+        uint32_t number = ng.first;
+        auto&    guide = ng.second;
+
+        if (guide._start < now)
+            havestart = true;
+        if (guide._start > now + g.Settings.guideBasicInterval)
+            haveend = true;
+
+        if (havestart && haveend)
+        {
+            stale = false;
+            break;
+        }
+    }
+
+    if (stale)
+    {
+        // Runs on startup, or usually every 1/2 hour if the advanced guide is not active.
+        _update_guide_basic();
+    }
+
+    for (auto& ng: _guide)
+    {
+        uint32_t number = ng.first;
+        auto&    guide  = ng.second;
+
+        for (auto& entry : guide._entries)
+        {
+            if (!entry._transferred)
+            {
+                entry.Create(number);
+            }
+        }
+    }
+}
 
 int Lineup::PvrGetChannelsAmount()
 {

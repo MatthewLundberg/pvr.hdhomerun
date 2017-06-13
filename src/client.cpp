@@ -43,27 +43,33 @@ class UpdateThread: public P8PLATFORM::CThread
 public:
     void *Process()
     {
-        for (int counter=0;counter++;)
+        for (int counter=0;;counter++)
         {
             P8PLATFORM::CThread::Sleep(1000);
 
             if (IsStopped())
+            {
                 break;
+            }
 
             if (g.lineup)
             {
-                bool changed;
-                if (!(counter & g.Settings.tunerDiscoverInterval))
+                bool changed = false;
+                if (!(counter % g.Settings.tunerDiscoverInterval))
                 {
                     if (g.lineup->DiscoverTuners())
+                    {
                         changed = true;
+                    }
                 }
-                if (changed || !(counter & g.Settings.lineupUpdateInterval))
+                if (changed || !(counter % g.Settings.lineupUpdateInterval))
                 {
                     if (g.lineup->UpdateLineup())
+                    {
                         changed = true;
+                    }
                 }
-                if (changed || (!(counter & g.Settings.guideUpdateInterval)))
+                if (changed || !(counter % g.Settings.guideUpdateInterval))
                 {
                     g.lineup->UpdateGuide();
                 }
