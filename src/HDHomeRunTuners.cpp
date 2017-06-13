@@ -122,7 +122,6 @@ unsigned int GetGenreType(const T& arr)
     return nGenreType;
 }
 
-
 GuideEntry::GuideEntry(const Json::Value& v)
 {
     _starttime       = v["StartTime"].asUInt();
@@ -137,11 +136,88 @@ GuideEntry::GuideEntry(const Json::Value& v)
     _genre           = GetGenreType(v["Filter"]);
 }
 
+
+EPG_TAG GuideEntry::Epg_Tag(uint32_t number) const
+{
+    EPG_TAG tag = {0};
+
+    tag.iChannelNumber     = number;
+
+    tag.iUniqueBroadcastId = _id;
+    tag.strTitle           = _title.c_str();
+    tag.strEpisodeName     = _episodetitle.c_str();
+    tag.startTime          = _starttime;
+    tag.endTime            = _endtime;
+    tag.firstAired         = _originalairdate;
+    tag.strPlot            = _synopsis.c_str();
+    tag.strIconPath        = _imageURL.c_str();
+    tag.iGenreType         = _genre;
+
+    // SD doesn't provide integers for these, so we ignore them for now.
+    //tag.iSeriesNumber
+    //tag.iEpisodeNumber
+
+    return tag;
+}
+
+
+void GuideEntry::Create(uint32_t number) const
+{
+    auto tag = Epg_Tag(number);
+    g.PVR->EpgEventStateChange(&tag, number, EPG_EVENT_CREATED);
+}
+void GuideEntry::Delete(uint32_t number) const
+{
+    auto tag = Epg_Tag(number);
+    g.PVR->EpgEventStateChange(&tag, number, EPG_EVENT_DELETED);
+}
+
 Guide::Guide(const Json::Value& v)
 {
     _guidename = v["GuideName"].asString();
     _affiliate = v["Affiliate"].asString();
     _imageURL  = v["ImageURL"].asString();
+}
+GuideEntryStatus Guide::InsertEntry(Json::Value& v)
+{
+    auto ins = _entries.insert(v);
+    auto& entry = const_cast<GuideEntry&>(*(ins.first));
+    if (ins.second) {
+        entry._id = _nextidx ++;
+
+        _start = _entries.begin()->_starttime;
+        _end   = _entries.rbegin()->_endtime;
+    }
+
+    return {ins.second, entry._starttime, entry._endtime};
+}
+
+bool Guide::_age_out(uint32_t number)
+{
+    bool changed = false;
+
+    uint32_t max_age = g.Settings.guideAgeOut;
+    time_t   now = time(nullptr);
+
+    for (auto& entry : _entries)
+    {
+        time_t end = entry._endtime;
+        if ((now > end) && ((now - end) > max_age))
+        {
+            KODI_LOG(LOG_DEBUG, "Deleting guide entry for age %u: %s - %s", (now-end), entry._title.c_str(), entry._episodetitle.c_str());
+
+            entry.Delete(number);
+            _entries.erase(entry);
+            changed = true;
+        }
+    }
+    if (changed && _entries.size())
+    {
+        _start = _entries.begin()->_starttime;
+        _end   = _entries.rbegin()->_endtime;
+    }
+
+    return changed;
 }
 
 Info::Info(const Json::Value& v)
@@ -633,38 +709,27 @@ bool Lineup::_age_out()
     Lock lock(this);
 
     bool changed = false;
-    // Age-out old entries
-    uint32_t max_age = g.Settings.guideAgeOut;
-    time_t   now = time(nullptr);
+
     for (auto& mapentry : _guide)
     {
+        uint32_t id = mapentry.first;
         auto& guide = mapentry.second;
 
-        for (auto& entry : guide._entries)
-        {
-            time_t end = entry._endtime;
-            if ((now > end) && ((now - end) > max_age))
-            {
-                KODI_LOG(LOG_DEBUG, "Deleting guide entry for age %u: %s - %s", (now-end), entry._title.c_str(), entry._episodetitle.c_str());
-
-                guide._entries.erase(entry);
-                changed = true;
-            }
-        }
+        changed |= guide._age_out(id);
     }
 
     return changed;
 }
 
-time_t Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tuner* tuner)
+GuideEntryStatus Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tuner* tuner)
 {
     if (jsontunerguide.type() != Json::arrayValue)
     {
         KODI_LOG(LOG_ERROR, "Top-level JSON guide data is not an array for %08x", tuner->DeviceID());
-        return false;
+        return {};
     }
 
-    time_t end = 0;
+    GuideEntryStatus status;
 
     for (auto& jsonchannelguide : jsontunerguide)
     {
@@ -686,13 +751,14 @@ time_t Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const 
         }
         for (auto& jsonentry: jsonguidenetries)
         {
-            end = channelguide.InsertEntry(jsonentry);
+            auto s = channelguide.InsertEntry(jsonentry);
+            status.Merge(s);
         }
     }
-    return end;
+    return status;
 }
 
-time_t Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner, time_t start)
+GuideEntryStatus Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner, time_t start)
 {
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
     URL.append(EncodeURL(tuner->Auth()));
@@ -718,20 +784,21 @@ time_t Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner,
     {
         KODI_LOG(LOG_ERROR, "Error requesting guide for %08x from %s",
                 tuner->DeviceID(), URL.c_str());
-        return false;
+        return {};
     }
     if (guidedata.substr(0,4) == "null")
-        return false;
+        return {};
 
     Json::Reader jsonreader;
     Json::Value  jsontunerguide;
     if (!jsonreader.parse(guidedata, jsontunerguide))
     {
         KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %08x", tuner->DeviceID());
-        return false;
+        return {};
     }
     return _insert_json_guide_data(jsontunerguide, tuner);
 }
+
 bool Lineup::_update_guide_basic()
 {
     // Find a minimal covering of the lineup, to avoid duplicate guide requests.
@@ -742,13 +809,14 @@ bool Lineup::_update_guide_basic()
         return false;
 
     bool added = false;
+    GuideEntryStatus status;
 
     for (auto tuner: tuners) {
-        if (_insert_guide_data(nullptr, tuner))
-            added = true;
+        auto s = _insert_guide_data(nullptr, tuner);
+        status.Merge(s);
     }
 
-    return added;
+    return status.NewEntry();
 }
 void Lineup::UpdateGuide()
 {
@@ -759,7 +827,7 @@ void Lineup::UpdateGuide()
 }
 bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, time_t end)
 {
-    bool added = false;
+    GuideEntryStatus status;
 
     for (;;)
     {
@@ -773,25 +841,19 @@ bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, tim
         if (!tuner)
             break;
 
-        time_t last_end = _insert_guide_data(&number, tuner, start);
+        auto s = _insert_guide_data(&number, tuner, start);
 
-        if (last_end)
-        {
-            added = true;
-        }
-        else
-        {
-            break;
-        }
-
-        if (last_end > end)
+        if (!s.NewEntry())
             break;
 
-        start = last_end;
+        if (s.End() > end)
+            break;
 
+        status.Merge(s);
+        start = s.End();
     }
 
-    return added;
+    return status.NewEntry();
 }
 
 
@@ -837,6 +899,8 @@ PVR_ERROR Lineup::PvrGetChannels(ADDON_HANDLE handle, bool radio)
     return PVR_ERROR_NO_ERROR;
 }
 
+
+
 PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
         const PVR_CHANNEL& channel, time_t start, time_t end
         )
@@ -850,25 +914,21 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
             start,
             end
     );
-
-    _age_out();
-
-    time_t now = time(nullptr);
-    if (start < now - g.Settings.guideAgeOut)
-    {
-        start = now - g.Settings.guideAgeOut;
-    }
-
-    if (g.Settings.extendedGuide)
-    {
-        _update_guide_extended(channel.iUniqueId, start, end);
-    }
+    auto interval = g.Settings.guideBasicInterval;
+    auto maxend   = g.Settings.guideBasicMax;
 
     Lock lock(this);
 
     auto& info  = _info[channel.iUniqueId];
     auto& guide = _guide[channel.iUniqueId];
 
+    // Narrow window, don't push entire guide if already known.
+    time_t now = time(nullptr);
+
+    if (start < now - interval)
+        start = now - interval;
+    if (end > now + maxend)
+        end = now + maxend;
 
     for (auto& ge: guide._entries)
     {
@@ -876,23 +936,13 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
             continue;
         if (ge._starttime > end)
             break;
+        if (ge._transferred)
+            continue;
 
-        EPG_TAG tag = {0};
-
-        tag.iUniqueBroadcastId = ge._id;
-        tag.strTitle           = ge._title.c_str();
-        tag.strEpisodeName     = ge._episodetitle.c_str();
-        tag.iChannelNumber     = channel.iUniqueId;
-        tag.startTime          = ge._starttime;
-        tag.endTime            = ge._endtime;
-        tag.firstAired         = ge._originalairdate;
-        tag.strPlot            = ge._synopsis.c_str();
-        tag.strIconPath        = ge._imageURL.c_str();
-        //tag.iSeriesNumber
-        //tag.iEpisodeNumber
-        tag.iGenreType         = ge._genre;
-
+        EPG_TAG tag = ge.Epg_Tag(channel.iUniqueId);
         g.PVR->TransferEpgEntry(handle, &tag);
+
+        ge._transferred = true;
     }
 
     return PVR_ERROR_NO_ERROR;

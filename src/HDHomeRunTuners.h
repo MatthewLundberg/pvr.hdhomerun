@@ -34,6 +34,7 @@
 #include <memory>
 #include <string>
 #include <mutex>
+#include <tuple>
 
 namespace PVRHDHomeRun {
 
@@ -121,6 +122,8 @@ public:
     uint32_t    _genre;
     uint32_t    _id;
 
+    mutable bool _transferred = false;
+
     bool operator<(const GuideEntry& rhs) const
     {
         return _starttime < rhs._starttime;
@@ -138,8 +141,52 @@ public:
                && _seriesID        == rhs._seriesID
                 ;
     }
+
+public:
+    EPG_TAG Epg_Tag(uint32_t number) const;
+    // Send EpgEventStateChange
+    void Create(uint32_t number) const;
+    void Delete(uint32_t number) const;
 };
 
+class GuideEntryStatus
+{
+public:
+    GuideEntryStatus(bool n, time_t s, time_t e)
+        : _new(n)
+        , _start(s)
+        , _end(e)
+    {}
+    GuideEntryStatus()
+        : _new(false)
+        , _start(0)
+        , _end(0)
+    {}
+
+    // Widen time interval, check for any new values
+    void Merge(const GuideEntryStatus& o)
+    {
+        if (o._new)
+            _new = true;
+        if (o._start && (o._start < _start))
+            _start = o._start;
+        if (o._end && (o._end > _end))
+            _end = o._end;
+    }
+    bool NewEntry() {
+        return _new;
+    }
+    time_t Start() {
+        return _start;
+    }
+    time_t End() {
+        return _end;
+    }
+private:
+    bool    _new;
+    time_t _start;
+    time_t _end;
+};
 
 class Guide
 {
@@ -147,20 +194,18 @@ public:
     Guide(const Json::Value&);
     Guide() = default;
 
-    time_t InsertEntry(Json::Value& v) {
-        auto ins = _entries.insert(v);
-        //if (ins.second) {
-            auto& entry = const_cast<GuideEntry&>(*(ins.first));
-            entry._id = _nextidx ++;
-            return entry._endtime;
-        //}
-    }
+    GuideEntryStatus InsertEntry(Json::Value& v);
 
     std::string          _guidename;
     std::string          _affiliate;
     std::string          _imageURL;
     std::set<GuideEntry> _entries;
     uint32_t             _nextidx = 1;
+
+    time_t               _start;
+    time_t               _end;
+
+    bool _age_out(uint32_t number);
 };
 
 class Tuner
@@ -359,8 +404,8 @@ public:
 private:
     std::vector<Tuner*> _minimal_covering(void);
     bool                _age_out(void);
-    time_t              _insert_json_guide_data(const Json::Value&, const Tuner*);
-    time_t              _insert_guide_data(const GuideNumber*, const Tuner*, time_t start=0);
+    GuideEntryStatus    _insert_json_guide_data(const Json::Value&, const Tuner*);
+    GuideEntryStatus    _insert_guide_data(const GuideNumber*, const Tuner*, time_t start=0);
     bool                _update_guide_basic();
     bool                _update_guide_extended(const GuideNumber&, time_t, time_t);
 
