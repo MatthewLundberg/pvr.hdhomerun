@@ -174,13 +174,8 @@ void GuideEntry::Delete(uint32_t number) const
     _transferred = false;
 }
 
-void IntervalSet::Add(const IntervalSet& set)
+void IntervalSet::_rebalance()
 {
-    for (auto& o : set._intervals)
-    {
-        _intervals.insert(o);
-    }
-
     auto it = _intervals.begin();
     auto prev = it;
 
@@ -198,36 +193,52 @@ void IntervalSet::Add(const IntervalSet& set)
             it ++;
         }
     }
-
 }
+void IntervalSet::Add(const Interval& o, bool rebalance)
+{
+    _intervals.insert(o);
+    if (rebalance)
+        _rebalance();
+}
+void IntervalSet::Add(const IntervalSet& set)
+{
+    for (auto& o : set._intervals)
+    {
+        Add(o, false);
+    }
+    _rebalance();
+}
+void IntervalSet::Remove(const Interval& o)
+{
+    auto it = _intervals.begin();
 
+    while (it != _intervals.end())
+    {
+        auto& i = const_cast<Interval&>(*it);
+        if (it->Contains(o._end))
+        {
+            i._start = o._end;
+        }
+        if (it->Contains(o._start))
+        {
+            i._end = o._start;
+        }
+
+        if (it->_start <= it->_end)
+        {
+            it = _intervals.erase(it);
+        }
+        else
+        {
+            it ++;
+        }
+    }
+}
 void IntervalSet::Remove(const IntervalSet& set)
 {
     for (auto& o: set._intervals)
     {
-        auto it = _intervals.begin();
-
-        while (it != _intervals.end())
-        {
-            auto& i = const_cast<Interval&>(*it);
-            if (it->Contains(o._end))
-            {
-                i._start = o._end;
-            }
-            if (it->Contains(o._start))
-            {
-                i._end = o._start;
-            }
-
-            if (it->_start <= it->_end)
-            {
-                it = _intervals.erase(it);
-            }
-            else
-            {
-                it ++;
-            }
-        }
+        Remove(o);
     }
 }
 
@@ -237,6 +248,7 @@ Guide::Guide(const Json::Value& v)
     _affiliate = v["Affiliate"].asString();
     _imageURL  = v["ImageURL"].asString();
 }
+
 GuideEntryStatus Guide::InsertEntry(Json::Value& v)
 {
     auto ins = _entries.insert(v);
@@ -244,11 +256,10 @@ GuideEntryStatus Guide::InsertEntry(Json::Value& v)
     if (ins.second) {
         entry._id = _nextidx ++;
 
-        _start = _entries.begin()->_starttime;
-        _end   = _entries.rbegin()->_endtime;
+        _times.Add(entry);
     }
 
-    return {ins.second, entry._starttime, entry._endtime};
+    return {ins.second, entry};
 }
 
 bool Guide::_age_out(uint32_t number)
@@ -265,15 +276,13 @@ bool Guide::_age_out(uint32_t number)
         {
             KODI_LOG(LOG_DEBUG, "Deleting guide entry for age %u: %s - %s", (now-end), entry._title.c_str(), entry._episodetitle.c_str());
 
+            _times.Remove(entry);
+            _requests.Remove(entry);
+
             entry.Delete(number);
             _entries.erase(entry);
             changed = true;
         }
-    }
-    if (changed && _entries.size())
-    {
-        _start = _entries.begin()->_starttime;
-        _end   = _entries.rbegin()->_endtime;
     }
 
     return changed;
@@ -898,11 +907,12 @@ bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, tim
         if (!s.NewEntry())
             break;
 
-        if (s.End() > end)
-            break;
+        //if (s.End() > end)
+        //    break;
 
         status.Merge(s);
-        start = s.End();
+        //start = s.End();
+        break;
     }
 
     return status.NewEntry();
@@ -918,16 +928,23 @@ void Lineup::UpdateGuide()
     bool   havestart = false;
     bool   haveend   = false;
     bool   stale     = true;
+    time_t endcheck  = now + g.Settings.guideBasicInterval;
 
     for (auto& ng: _guide)
     {
         uint32_t number = ng.first;
         auto&    guide = ng.second;
 
-        if (guide._start < now)
-            havestart = true;
-        if (guide._start > now + g.Settings.guideBasicInterval)
-            haveend = true;
+        for (auto& interval : guide._times._intervals)
+        {
+            if (interval._start < now)
+                havestart = true;
+            if (interval._start > endcheck)
+                haveend = true;
+
+            if (havestart && haveend)
+                break;
+        }
 
         if (havestart && haveend)
         {
