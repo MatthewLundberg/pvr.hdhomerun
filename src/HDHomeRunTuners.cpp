@@ -36,6 +36,74 @@ using namespace ADDON;
 
 namespace PVRHDHomeRun {
 
+void IntervalSet::_rebalance()
+{
+    auto it = _intervals.begin();
+    auto prev = it;
+
+    while (it != _intervals.end())
+    {
+        if (it->_start >= prev->_end)
+        {
+            auto& p = const_cast<Interval&>(*prev);
+            p._end = it->_end;
+            it = _intervals.erase(it);
+        }
+        else
+        {
+            prev = it;
+            it ++;
+        }
+    }
+}
+void IntervalSet::Add(const Interval& o, bool rebalance)
+{
+    _intervals.insert(o);
+    if (rebalance)
+        _rebalance();
+}
+void IntervalSet::Add(const IntervalSet& set)
+{
+    for (auto& o : set._intervals)
+    {
+        Add(o, false);
+    }
+    _rebalance();
+}
+void IntervalSet::Remove(const Interval& o)
+{
+    auto it = _intervals.begin();
+
+    while (it != _intervals.end())
+    {
+        auto& i = const_cast<Interval&>(*it);
+        if (it->Contains(o._end))
+        {
+            i._start = o._end;
+        }
+        if (it->Contains(o._start))
+        {
+            i._end = o._start;
+        }
+
+        if (it->_start <= it->_end)
+        {
+            it = _intervals.erase(it);
+        }
+        else
+        {
+            it ++;
+        }
+    }
+}
+void IntervalSet::Remove(const IntervalSet& set)
+{
+    for (auto& o: set._intervals)
+    {
+        Remove(o);
+    }
+}
+
 GuideNumber::GuideNumber(const Json::Value& v)
 {
     _guidenumber = v["GuideNumber"].asString();
@@ -172,74 +240,6 @@ void GuideEntry::Delete(uint32_t number) const
     auto tag = Epg_Tag(number);
     g.PVR->EpgEventStateChange(&tag, number, EPG_EVENT_DELETED);
     _transferred = false;
-}
-
-void IntervalSet::_rebalance()
-{
-    auto it = _intervals.begin();
-    auto prev = it;
-
-    while (it != _intervals.end())
-    {
-        if (it->_start >= prev->_end)
-        {
-            auto& p = const_cast<Interval&>(*prev);
-            p._end = it->_end;
-            it = _intervals.erase(it);
-        }
-        else
-        {
-            prev = it;
-            it ++;
-        }
-    }
-}
-void IntervalSet::Add(const Interval& o, bool rebalance)
-{
-    _intervals.insert(o);
-    if (rebalance)
-        _rebalance();
-}
-void IntervalSet::Add(const IntervalSet& set)
-{
-    for (auto& o : set._intervals)
-    {
-        Add(o, false);
-    }
-    _rebalance();
-}
-void IntervalSet::Remove(const Interval& o)
-{
-    auto it = _intervals.begin();
-
-    while (it != _intervals.end())
-    {
-        auto& i = const_cast<Interval&>(*it);
-        if (it->Contains(o._end))
-        {
-            i._start = o._end;
-        }
-        if (it->Contains(o._start))
-        {
-            i._end = o._start;
-        }
-
-        if (it->_start <= it->_end)
-        {
-            it = _intervals.erase(it);
-        }
-        else
-        {
-            it ++;
-        }
-    }
-}
-void IntervalSet::Remove(const IntervalSet& set)
-{
-    for (auto& o: set._intervals)
-    {
-        Remove(o);
-    }
 }
 
 Guide::Guide(const Json::Value& v)
