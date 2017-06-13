@@ -174,6 +174,63 @@ void GuideEntry::Delete(uint32_t number) const
     _transferred = false;
 }
 
+void IntervalSet::Add(const IntervalSet& set)
+{
+    for (auto& o : set._intervals)
+    {
+        _intervals.insert(o);
+    }
+
+    auto it = _intervals.begin();
+    auto prev = it;
+
+    while (it != _intervals.end())
+    {
+        if (it->_start >= prev->_end)
+        {
+            auto& p = const_cast<Interval&>(*prev);
+            p._end = it->_end;
+            it = _intervals.erase(it);
+        }
+        else
+        {
+            prev = it;
+            it ++;
+        }
+    }
+
+}
+
+void IntervalSet::Remove(const IntervalSet& set)
+{
+    for (auto& o: set._intervals)
+    {
+        auto it = _intervals.begin();
+
+        while (it != _intervals.end())
+        {
+            auto& i = const_cast<Interval&>(*it);
+            if (it->Contains(o._end))
+            {
+                i._start = o._end;
+            }
+            if (it->Contains(o._start))
+            {
+                i._end = o._start;
+            }
+
+            if (it->_start <= it->_end)
+            {
+                it = _intervals.erase(it);
+            }
+            else
+            {
+                it ++;
+            }
+        }
+    }
+}
+
 Guide::Guide(const Json::Value& v)
 {
     _guidename = v["GuideName"].asString();
@@ -962,7 +1019,6 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
 
     Lock lock(this);
 
-    auto& info  = _info[channel.iUniqueId];
     auto& guide = _guide[channel.iUniqueId];
 
     // Narrow window, don't push entire guide if already known.

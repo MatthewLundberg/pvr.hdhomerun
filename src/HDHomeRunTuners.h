@@ -149,6 +149,42 @@ public:
     void Delete(uint32_t number) const;
 };
 
+class Interval
+{
+public:
+    Interval(time_t s, time_t e)
+        : _start(s)
+        , _end(e)
+    {}
+    Interval(const Interval&) = default;
+
+    bool Contains(time_t t) const
+    {
+        return (t >= _start) && (t < _end);
+    }
+    bool operator<(const Interval& rhs) const
+    {
+        return _start < rhs._start;
+    }
+
+    time_t _start;
+    time_t _end;
+};
+class IntervalSet
+{
+public:
+    IntervalSet() = default;
+    IntervalSet(const Interval& i)
+    {
+        _intervals.insert(i);
+    }
+
+    void Add(const IntervalSet&);
+    void Remove(const IntervalSet&);
+
+    void _recompute();
+    std::set<Interval> _intervals;
+};
 class GuideEntryStatus
 {
 public:
