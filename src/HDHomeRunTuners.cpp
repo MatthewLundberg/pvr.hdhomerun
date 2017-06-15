@@ -31,10 +31,37 @@
 #include <algorithm>
 #include <iterator>
 #include <string>
+#include <sstream>
+#include <iterator>
 
 using namespace ADDON;
 
+namespace {
+std::string format_time(time_t t)
+{
+    auto tm = localtime(&t);
+    char buf[64];
+    strftime(buf, sizeof buf, "%Y-%m-%d %H:%M:%S", tm);
+    return buf;
+}
+}
+
 namespace PVRHDHomeRun {
+
+std::string Interval::toString() const
+{
+    std::stringstream ss;
+    ss << '[' << format_time(_start) << ',' << format_time(_end) << ')';
+    return ss.str();
+}
+
+std::string IntervalSet::toString() const
+{
+    std::stringstream ss;
+    std::ostream_iterator<std::string> it(ss, ",");
+    std::copy(_intervals.begin(), _intervals.end(), it);
+    return ss.str();
+}
 
 void IntervalSet::_rebalance()
 {
@@ -228,20 +255,6 @@ EPG_TAG GuideEntry::Epg_Tag(uint32_t number) const
     return tag;
 }
 
-
-void GuideEntry::Create(uint32_t number) const
-{
-    auto tag = Epg_Tag(number);
-    g.PVR->EpgEventStateChange(&tag, number, EPG_EVENT_CREATED);
-    _transferred = true;
-}
-void GuideEntry::Delete(uint32_t number) const
-{
-    auto tag = Epg_Tag(number);
-    g.PVR->EpgEventStateChange(&tag, number, EPG_EVENT_DELETED);
-    _transferred = false;
-}
-
 Guide::Guide(const Json::Value& v)
 {
     _guidename = v["GuideName"].asString();
@@ -279,7 +292,6 @@ bool Guide::_age_out(uint32_t number)
             _times.Remove(entry);
             _requests.Remove(entry);
 
-            entry.Delete(number);
             _entries.erase(entry);
             changed = true;
         }
@@ -775,17 +787,22 @@ bool Lineup::_age_out()
 {
     Lock lock(this);
 
-    bool changed = false;
+    bool any_changed = false;
 
     for (auto& mapentry : _guide)
     {
         uint32_t id = mapentry.first;
         auto& guide = mapentry.second;
 
-        changed |= guide._age_out(id);
+        bool changed = guide._age_out(id);
+        if (changed)
+        {
+            any_changed = true;
+            g.PVR->TriggerEpgUpdate(id);
+        }
     }
 
-    return changed;
+    return any_changed;
 }
 
 GuideEntryStatus Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tuner* tuner)
@@ -819,6 +836,10 @@ GuideEntryStatus Lineup::_insert_json_guide_data(const Json::Value& jsontunergui
         for (auto& jsonentry: jsonguidenetries)
         {
             auto s = channelguide.InsertEntry(jsonentry);
+
+            if (s.NewEntry()) {
+                g.PVR->TriggerEpgUpdate(number);
+            }
             status.Merge(s);
         }
     }
@@ -920,8 +941,6 @@ bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, tim
 
 void Lineup::UpdateGuide()
 {
-    std::cout << "Lineup::UpdateGuide()\n";
-
     _age_out();
     // See if we have current data
     time_t now = time(nullptr);
@@ -959,19 +978,7 @@ void Lineup::UpdateGuide()
         _update_guide_basic();
     }
 
-    for (auto& ng: _guide)
-    {
-        uint32_t number = ng.first;
-        auto&    guide  = ng.second;
-
-        for (auto& entry : guide._entries)
-        {
-            if (!entry._transferred)
-            {
-                entry.Create(number);
-            }
-        }
-    }
+    // Check for extended guide
 }
 
 int Lineup::PvrGetChannelsAmount()
@@ -1031,20 +1038,10 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
             start,
             end
     );
-    auto interval = g.Settings.guideBasicInterval;
-    auto maxend   = g.Settings.guideBasicMax;
 
     Lock lock(this);
 
     auto& guide = _guide[channel.iUniqueId];
-
-    // Narrow window, don't push entire guide if already known.
-    time_t now = time(nullptr);
-
-    if (start < now - interval)
-        start = now - interval;
-    if (end > now + maxend)
-        end = now + maxend;
 
     for (auto& ge: guide._entries)
     {

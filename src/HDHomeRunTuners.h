@@ -85,6 +85,12 @@ public:
         return _start < rhs._start;
     }
 
+    std::string toString() const;
+    operator std::string() const
+    {
+        return toString();
+    }
+
     time_t _start;
     time_t _end;
 };
@@ -102,6 +108,12 @@ public:
 
     void Remove(const Interval&);
     void Remove(const IntervalSet&);
+
+    std::string toString() const;
+    operator std::string() const
+    {
+        return toString();
+    }
 
     //bool Contains(const Interval&);
 
@@ -190,9 +202,6 @@ public:
         return {_starttime, _endtime};
     }
     EPG_TAG Epg_Tag(uint32_t number) const;
-    // Send EpgEventStateChange
-    void Create(uint32_t number) const;
-    void Delete(uint32_t number) const;
 };
 
 class GuideEntryStatus
