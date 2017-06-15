@@ -65,10 +65,10 @@ struct SettingsType
 
     int tunerDiscoverInterval   = 300;
     int lineupUpdateInterval    = 300;
-    int guideUpdateInterval     = 300; //60;
-    int guideBasicInterval      = 14300; // 7200;
-    int guideBasicMax           = 14400;
-    int guideExtendedLength     = 28800; // 8 hours are supplied at a time
+    int guideUpdateInterval     = 300;   // 5 mins  Check guide for the need to update
+//    int guideBasicInterval      = 10800; // 3 hours Refresh basic guide if it does not go this far into the future
+    int guideBasicInterval      = 13500; // 3.75 hours Refresh basic guide if it does not go this far into the future
+    int guideExtendedLength     = 28800; // 8 hours How much is supplied at a time
     int guideAgeOut             = 86400;
 };
 

@@ -84,6 +84,10 @@ public:
     {
         return _start < rhs._start;
     }
+    time_t Length() const
+    {
+        return _end - _start;
+    }
 
     std::string toString() const;
     operator std::string() const
@@ -115,7 +119,28 @@ public:
         return toString();
     }
 
-    //bool Contains(const Interval&);
+    bool Contains(time_t t) const
+    {
+        for (auto& i : _intervals)
+        {
+            if (i.Contains(t))
+                return true;
+        }
+        return false;
+    }
+    time_t Length() const;
+    bool Empty() const
+    {
+        return _intervals.size() == 0;
+    }
+    time_t Start() const
+    {
+        return _intervals.begin()->_start;
+    }
+    time_t End() const
+    {
+        return _intervals.rbegin()->_end;
+    }
 
     void _rebalance();
     std::set<Interval> _intervals;
@@ -462,6 +487,7 @@ private:
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
 
+    Lockable _guide_lock;
     Lockable _stream_lock;
     void* _filehandle;
 };

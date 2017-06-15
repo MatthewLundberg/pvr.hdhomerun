@@ -33,6 +33,7 @@
 #include <string>
 #include <sstream>
 #include <iterator>
+#include <numeric>
 
 using namespace ADDON;
 
@@ -130,6 +131,18 @@ void IntervalSet::Remove(const IntervalSet& set)
         Remove(o);
     }
 }
+time_t IntervalSet::Length() const
+{
+    return std::accumulate(
+            _intervals.begin(),
+            _intervals.end(),
+            0,
+            [](time_t l, const Interval& i) {
+        return l + i.Length();
+    }
+    );
+}
+
 
 GuideNumber::GuideNumber(const Json::Value& v)
 {
@@ -941,44 +954,60 @@ bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, tim
 
 void Lineup::UpdateGuide()
 {
-    _age_out();
-    // See if we have current data
-    time_t now = time(nullptr);
-    bool   havestart = false;
-    bool   haveend   = false;
-    bool   stale     = true;
-    time_t endcheck  = now + g.Settings.guideBasicInterval;
+    Lock guidelock(_guide_lock);
 
+    _age_out();
+
+
+    bool   haveany   = false;
+    time_t end;
+    time_t start;
+
+     // See if we have current data
     for (auto& ng: _guide)
     {
         uint32_t number = ng.first;
         auto&    guide = ng.second;
 
-        for (auto& interval : guide._times._intervals)
-        {
-            if (interval._start < now)
-                havestart = true;
-            if (interval._start > endcheck)
-                haveend = true;
+        if (guide._times.Empty())
+            continue;
 
-            if (havestart && haveend)
-                break;
+        if (haveany)
+        {
+            if (end > guide._times.End())
+                end = guide._times.End();
+            if (start < guide._times.Start())
+                start = guide._times.Start();
+        }
+        else
+        {
+            end = guide._times.End();
+            start = guide._times.Start();
         }
 
-        if (havestart && haveend)
-        {
-            stale = false;
-            break;
-        }
+        haveany = true;
     }
+
+    time_t now     = time(nullptr);
+    time_t target = now + g.Settings.guideBasicInterval;
+
+    bool stale = (!haveany) || (start > now) || (end < target);
 
     if (stale)
     {
-        // Runs on startup, or usually every 1/2 hour if the advanced guide is not active.
         _update_guide_basic();
     }
 
-    // Check for extended guide
+    if (g.Settings.extendedGuide)
+    {
+        for (auto& ng: _guide)
+        {
+            uint32_t number = ng.first;
+            auto&    guide = ng.second;
+
+
+        }
+    }
 }
 
 int Lineup::PvrGetChannelsAmount()
@@ -1139,8 +1168,8 @@ std::string Lineup::DlnaURL(const PVR_CHANNEL& channel)
 
 bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
 {
-    Lock lock(this);
     Lock strlock(_stream_lock);
+    Lock lock(this);
 
     if (_filehandle)
     {
@@ -1166,8 +1195,8 @@ bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
 }
 void Lineup::CloseLiveStream(void)
 {
-    Lock lock(this);
     Lock strlock(_stream_lock);
+    Lock lock(this);
 
     g.XBMC->CloseFile(_filehandle);
     _filehandle = nullptr;
