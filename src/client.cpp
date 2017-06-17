@@ -29,7 +29,7 @@
 #include <xbmc_pvr_dll.h>
 #include <p8-platform/util/util.h>
 #include <p8-platform/threads/threads.h>
-#include "HDHomeRunTuners.h"
+#include "Lineup.h"
 #include "Utils.h"
 
 using namespace ADDON;

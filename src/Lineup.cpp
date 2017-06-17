@@ -24,7 +24,7 @@
 
 #include "client.h"
 #include "Utils.h"
-#include "HDHomeRunTuners.h"
+#include "Lineup.h"
 #include <chrono>
 #include <thread>
 #include <functional>
