@@ -115,6 +115,13 @@ std::string FormatIP(uint32_t ip)
             );
     return buf;
 }
+std::string FormatTime(time_t t)
+{
+    auto tm = localtime(&t);
+    char buf[64];
+    strftime(buf, sizeof buf, "%Y-%m-%d %H:%M:%S", tm);
+    return buf;
+}
 
 bool IPSubnetMatch(uint32_t a, uint32_t b, uint32_t subnet_mask)
 {

@@ -37,498 +37,11 @@
 
 using namespace ADDON;
 
-namespace {
-std::string format_time(time_t t)
+
+namespace PVRHDHomeRun
 {
-    auto tm = localtime(&t);
-    char buf[64];
-    strftime(buf, sizeof buf, "%Y-%m-%d %H:%M:%S", tm);
-    return buf;
-}
-}
-
-namespace PVRHDHomeRun {
-
-std::string Interval::toString() const
-{
-    std::stringstream ss;
-    ss << '[' << format_time(_start) << ',' << format_time(_end) << ')';
-    return ss.str();
-}
-
-std::string IntervalSet::toString() const
-{
-    std::stringstream ss;
-    std::ostream_iterator<std::string> it(ss, ",");
-    std::copy(_intervals.begin(), _intervals.end(), it);
-    return ss.str();
-}
-
-void IntervalSet::_rebalance()
-{
-    auto it = _intervals.begin();
-    auto prev = it;
-
-    while (it != _intervals.end())
-    {
-        if (it->_start >= prev->_end)
-        {
-            auto& p = const_cast<Interval&>(*prev);
-            p._end = it->_end;
-            it = _intervals.erase(it);
-        }
-        else
-        {
-            prev = it;
-            it ++;
-        }
-    }
-}
-void IntervalSet::Add(const Interval& o, bool rebalance)
-{
-    _intervals.insert(o);
-    if (rebalance)
-        _rebalance();
-}
-void IntervalSet::Add(const IntervalSet& set)
-{
-    for (auto& o : set._intervals)
-    {
-        Add(o, false);
-    }
-    _rebalance();
-}
-void IntervalSet::Remove(const Interval& o)
-{
-    auto it = _intervals.begin();
-
-    while (it != _intervals.end())
-    {
-        auto& i = const_cast<Interval&>(*it);
-        if (it->Contains(o._end))
-        {
-            i._start = o._end;
-        }
-        if (it->Contains(o._start))
-        {
-            i._end = o._start;
-        }
-
-        if (it->_start <= it->_end)
-        {
-            it = _intervals.erase(it);
-        }
-        else
-        {
-            it ++;
-        }
-    }
-}
-void IntervalSet::Remove(const IntervalSet& set)
-{
-    for (auto& o: set._intervals)
-    {
-        Remove(o);
-    }
-}
-time_t IntervalSet::Length() const
-{
-    return std::accumulate(
-            _intervals.begin(),
-            _intervals.end(),
-            0,
-            [](time_t l, const Interval& i) {
-        return l + i.Length();
-    }
-    );
-}
 
 
-GuideNumber::GuideNumber(const Json::Value& v)
-{
-    _guidenumber = v["GuideNumber"].asString();
-    _guidename   = v["GuideName"].asString();
-
-     _channel = atoi(_guidenumber.c_str());
-     auto dot = _guidenumber.find('.');
-     if (std::string::npos != dot)
-     {
-         _subchannel = atoi(_guidenumber.c_str() + dot + 1);
-     }
-     else
-     {
-         _subchannel = 0;
-     }
-}
-
-bool GuideNumber::operator<(const GuideNumber& rhs) const
-{
-    if (_channel < rhs._channel)
-    {
-        return true;
-    }
-    else if (_channel == rhs._channel)
-    {
-        if (_subchannel < rhs._subchannel)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-bool GuideNumber::operator==(const GuideNumber& rhs) const
-{
-    bool ret = (_channel == rhs._channel)
-            && (_subchannel == rhs._subchannel)
-            ;
-    return ret;
-}
-std::string GuideNumber::toString() const
-{
-    char channel[64];
-    if (_subchannel)
-        sprintf(channel, "%d.%d", _channel, _subchannel);
-    else
-        sprintf(channel, "%d", _channel);
-
-    return channel;
-}
-std::string GuideNumber::extendedName() const
-{
-    char channel[64];
-    sprintf(channel, "%d.%d", _channel, _subchannel);
-    return std::string("") + channel + " "
-            + "_guidename("   + _guidename   + ") ";
-}
-
-template<typename T>
-unsigned int GetGenreType(const T& arr)
-{
-    unsigned int nGenreType = 0;
-
-    for (auto& i : arr)
-    {
-        auto str = i.asString();
-
-        if (str == "News")
-            nGenreType |= EPG_EVENT_CONTENTMASK_NEWSCURRENTAFFAIRS;
-        else if (str == "Comedy")
-            nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
-        else if (str == "Movie" || str == "Drama")
-            nGenreType |= EPG_EVENT_CONTENTMASK_MOVIEDRAMA;
-        else if (str == "Food")
-            nGenreType |= EPG_EVENT_CONTENTMASK_LEISUREHOBBIES;
-        else if (str == "Talk Show")
-            nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
-        else if (str == "Game Show")
-            nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
-        else if (str == "Sport" || str == "Sports")
-            nGenreType |= EPG_EVENT_CONTENTMASK_SPORTS;
-    }
-
-    return nGenreType;
-}
-
-GuideEntry::GuideEntry(const Json::Value& v)
-{
-    _starttime       = v["StartTime"].asUInt();
-    _endtime         = v["EndTime"].asUInt();
-    _originalairdate = v["OriginalAirdate"].asUInt();
-    _title           = v["Title"].asString();
-    _episodenumber   = v["EpisodeNumber"].asString();
-    _episodetitle    = v["EpisodeTitle"].asString();
-    _synopsis        = v["Synopsis"].asString();
-    _imageURL        = v["ImageURL"].asString();
-    _seriesID        = v["SeriesID"].asString();
-    _genre           = GetGenreType(v["Filter"]);
-}
-
-
-EPG_TAG GuideEntry::Epg_Tag(uint32_t number) const
-{
-    EPG_TAG tag = {0};
-
-    tag.iChannelNumber     = number;
-
-    tag.iUniqueBroadcastId = _id;
-    tag.strTitle           = _title.c_str();
-    tag.strEpisodeName     = _episodetitle.c_str();
-    tag.startTime          = _starttime;
-    tag.endTime            = _endtime;
-    tag.firstAired         = _originalairdate;
-    tag.strPlot            = _synopsis.c_str();
-    tag.strIconPath        = _imageURL.c_str();
-    tag.iGenreType         = _genre;
-
-    // SD doesn't provide integers for these, so we ignore them for now.
-    //tag.iSeriesNumber
-    //tag.iEpisodeNumber
-
-    return tag;
-}
-
-Guide::Guide(const Json::Value& v)
-{
-    _guidename = v["GuideName"].asString();
-    _affiliate = v["Affiliate"].asString();
-    _imageURL  = v["ImageURL"].asString();
-}
-
-GuideEntryStatus Guide::InsertEntry(Json::Value& v)
-{
-    auto ins = _entries.insert(v);
-    auto& entry = const_cast<GuideEntry&>(*(ins.first));
-    if (ins.second) {
-        entry._id = _nextidx ++;
-
-        _times.Add(entry);
-    }
-
-    return {ins.second, entry};
-}
-
-bool Guide::_age_out(uint32_t number)
-{
-    bool changed = false;
-
-    uint32_t max_age = g.Settings.guideAgeOut;
-    time_t   now = time(nullptr);
-
-    for (auto& entry : _entries)
-    {
-        time_t end = entry._endtime;
-        if ((now > end) && ((now - end) > max_age))
-        {
-            KODI_LOG(LOG_DEBUG, "Deleting guide entry for age %u: %s - %s", (now-end), entry._title.c_str(), entry._episodetitle.c_str());
-
-            _times.Remove(entry);
-            _requests.Remove(entry);
-
-            _entries.erase(entry);
-            changed = true;
-        }
-    }
-
-    return changed;
-}
-
-Info::Info(const Json::Value& v)
-{
-    _guidename = v["GuideName"].asString();
-    _drm       = v["DRM"].asBool();
-    _hd        = v["HD"].asBool();
-
-     //KODI_LOG(LOG_DEBUG, "LineupEntry::LineupEntry %s", extendedName().c_str());
-}
-
-Tuner* Info::GetNextTuner()
-{
-    if (_has_next)
-    {
-        _next ++;
-        if (_next == _tuners.end())
-        {
-            _has_next = false;
-            return nullptr;
-        }
-    }
-    else
-    {
-        _has_next = true;
-        _next = _tuners.begin();
-    }
-    return *_next;
-}
-
-void Info::ResetNextTuner()
-{
-    _has_next = false;
-}
-
-bool Info::AddTuner(Tuner* t, const std::string& url)
-{
-    if (HasTuner(t))
-    {
-        return false;
-    }
-    _tuners.insert(t);
-    _url[t] = url;
-    ResetNextTuner();
-
-    return true;
-}
-
-bool Info::RemoveTuner(Tuner* t)
-{
-    if (!HasTuner(t))
-    {
-        return false;
-    }
-    _tuners.erase(t);
-    ResetNextTuner();
-
-    return true;
-}
-
-std::string Info::TunerListString() const
-{
-    std::string tuners;
-    for (auto tuner : _tuners)
-    {
-        char id[10];
-        sprintf(id, " %08x", tuner->DeviceID());
-        tuners += id;
-    }
-
-    return tuners;
-}
-
-Tuner::Tuner(const hdhomerun_discover_device_t& d)
-    : _debug(nullptr) // _debug(hdhomerun_debug_create())
-    , _device(hdhomerun_device_create(d.device_id, d.ip_addr, 0, _debug))
-    , _discover_device(d) // copy
-{
-    _get_api_data();
-    _get_discover_data();
-}
-
-Tuner::~Tuner()
-{
-    hdhomerun_device_destroy(_device);
-    //hdhomerun_debug_destroy(_debug);
-}
-
-
-void Tuner::_get_var(std::string& value, const char* name)
-{
-    char *get_val;
-    char *get_err;
-    if (hdhomerun_device_get_var(_device, name, &get_val, &get_err) < 0)
-    {
-        KODI_LOG(LOG_ERROR,
-                "communication error sending %s request to %08x",
-                name, _discover_device.device_id
-        );
-    }
-    else if (get_err)
-    {
-        KODI_LOG(LOG_ERROR, "error %s with %s request from %08x",
-                get_err, name, _discover_device.device_id
-        );
-    }
-    else
-    {
-        KODI_LOG(LOG_DEBUG, "Success getting value %s = %s from %08x",
-                name, get_val,
-                _discover_device.device_id
-        );
-
-        value.assign(get_val);
-    }
-}
-void Tuner::_set_var(const char* value, const char* name)
-{
-    char* set_err;
-    if (hdhomerun_device_set_var(_device, name, value, NULL, &set_err) < 0)
-    {
-        KODI_LOG(LOG_ERROR,
-                "communication error sending set request %s = %s to %08x",
-                name, value,
-                _discover_device.device_id
-        );
-    }
-    else if (set_err)
-    {
-        KODI_LOG(LOG_ERROR, "error %s with %s = %s request from %08x",
-                set_err,
-                name, value,
-                _discover_device.device_id
-        );
-    }
-    else
-    {
-        KODI_LOG(LOG_DEBUG, "Success setting value %s = %s from %08x",
-                name, value,
-                _discover_device.device_id
-        );
-    }
-}
-void Tuner::_get_api_data()
-{
-}
-
-void Tuner::_get_discover_data()
-{
-    std::string discoverResults;
-
-    // Ask the device for its lineup URL
-	std::string discoverURL{ _discover_device.base_url };
-	discoverURL.append("/discover.json");
-
-    if (GetFileContents(discoverURL, discoverResults))
-    {
-        Json::Reader jsonReader;
-        Json::Value discoverJson;
-        if (jsonReader.parse(discoverResults, discoverJson))
-        {
-            auto& lineupURL  = discoverJson["LineupURL"];
-            auto& tunercount = discoverJson["TunerCount"];
-            auto& legacy     = discoverJson["Legacy"];
-
-            _lineupURL  = std::move(lineupURL.asString());
-            _tunercount = std::move(tunercount.asUInt());
-            _legacy     = std::move(legacy.asBool());
-
-            KODI_LOG(LOG_DEBUG, "HDR ID %08x LineupURL %s Tuner Count %d Legacy %d",
-                    _discover_device.device_id,
-                    _lineupURL.c_str(),
-                    _tunercount,
-                    _legacy
-            );
-        }
-    }
-    else
-    {
-        // Fall back to a pattern for "modern" devices
-        KODI_LOG(LOG_DEBUG, "HDR ID %08x Fallback lineup URL %s/lineup.json",
-                _discover_device.device_id,
-                _discover_device.base_url
-        );
-
-		_lineupURL.assign(_discover_device.base_url);
-		_lineupURL.append("/lineup.json");
-    }
-}
-
-void Tuner::Refresh()
-{
-    // Retrieve current auth string, lineup for legacy tuner.
-    _get_discover_data();
-}
-
-uint32_t Tuner::LocalIP() const
-{
-    uint32_t tunerip = IP();
-
-    const size_t max = 64;
-    struct hdhomerun_local_ip_info_t ip_info[max];
-    int ip_info_count = hdhomerun_local_ip_info(ip_info, max);
-
-    for (int i=0; i<ip_info_count; i++)
-    {
-        auto& info = ip_info[i];
-        uint32_t localip = info.ip_addr;
-        uint32_t mask    = info.subnet_mask;
-
-        if (IPSubnetMatch(localip, tunerip, mask))
-        {
-            return localip;
-        }
-    }
-
-    return 0;
-}
 
 bool Lineup::DiscoverTuners()
 {
@@ -799,6 +312,7 @@ std::vector<Tuner*> Lineup::_minimal_covering()
 bool Lineup::_age_out()
 {
     Lock lock(this);
+    Lock guidelock(_guide_lock);
 
     bool any_changed = false;
 
@@ -848,11 +362,20 @@ GuideEntryStatus Lineup::_insert_json_guide_data(const Json::Value& jsontunergui
         }
         for (auto& jsonentry: jsonguidenetries)
         {
-            auto s = channelguide.InsertEntry(jsonentry);
+            GuideEntry entry{jsonentry};
+            auto s = channelguide.InsertEntry(entry);
 
-            if (s.NewEntry()) {
-                g.PVR->TriggerEpgUpdate(number);
-            }
+            EPG_TAG tag = entry.Epg_Tag(number);
+
+            std::cout << "Sending EpgEventStateChange for channel " << number
+                    << " ID " << tag.iUniqueBroadcastId
+                    << "\n";
+            g.PVR->EpgEventStateChange(&tag, number, EPG_EVENT_CREATED);
+
+
+            //if (s.Flag()) {
+            //    g.PVR->TriggerEpgUpdate(number);
+            //}
             status.Merge(s);
         }
     }
@@ -917,53 +440,40 @@ bool Lineup::_update_guide_basic()
         status.Merge(s);
     }
 
-    return status.NewEntry();
+    return status.Flag();
 }
 
-bool Lineup::_update_guide_extended(const GuideNumber& number, time_t start, time_t end)
+bool Lineup::_update_guide_extended(time_t start)
 {
     GuideEntryStatus status;
 
-    for (;;)
+    for (auto& ng: _guide)
     {
-        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        uint32_t number = ng.first;
+        auto&    guide = ng.second;
+        GuideNumber gn{number};
 
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         Lock lock(this);
 
         const auto& info = _info[number];
         auto tuner = info.GetFirstTuner();
 
         if (!tuner)
-            break;
+            continue;
 
-        auto s = _insert_guide_data(&number, tuner, start);
-
-        if (!s.NewEntry())
-            break;
-
-        //if (s.End() > end)
-        //    break;
-
+        auto s = _insert_guide_data(&gn, tuner, start);
         status.Merge(s);
-        //start = s.End();
-        break;
     }
 
-    return status.NewEntry();
+    return status.Flag();
 }
 
-void Lineup::UpdateGuide()
+bool Lineup::_guide_contains(time_t t)
 {
-    Lock guidelock(_guide_lock);
+    bool   contains = true;
+    bool   haveany  = false;
 
-    _age_out();
-
-
-    bool   haveany   = false;
-    time_t end;
-    time_t start;
-
-     // See if we have current data
     for (auto& ng: _guide)
     {
         uint32_t number = ng.first;
@@ -972,42 +482,79 @@ void Lineup::UpdateGuide()
         if (guide._times.Empty())
             continue;
 
-        if (haveany)
+        if (!guide._times.Contains(t))
         {
-            if (end > guide._times.End())
-                end = guide._times.End();
-            if (start < guide._times.Start())
-                start = guide._times.Start();
-        }
-        else
-        {
-            end = guide._times.End();
-            start = guide._times.Start();
+            return false;
         }
 
         haveany = true;
     }
 
+    return haveany;
+}
+void Lineup::UpdateGuide()
+{
+    Lock guidelock(_guide_lock);
+
+    _age_out();
+
     time_t now     = time(nullptr);
-    time_t target = now + g.Settings.guideBasicInterval;
-
-    bool stale = (!haveany) || (start > now) || (end < target);
-
-    if (stale)
+    if (!_guide_contains(now) || !_guide_contains(now + g.Settings.guideBasicInterval))
     {
+        std::cout << "Stale guide, basic update\n";
         _update_guide_basic();
+        return;
     }
 
     if (g.Settings.extendedGuide)
     {
-        for (auto& ng: _guide)
+        for (auto& ng : _guide)
         {
-            uint32_t number = ng.first;
-            auto&    guide = ng.second;
-
 
         }
     }
+    /*
+
+
+
+    bool   haveany = bounds.Flag();
+    time_t start = bounds.Times().Start();
+    time_t end   = bounds.Times().End();
+
+    time_t target = now + g.Settings.guideBasicInterval;
+
+    bool stale = (!haveany) || (start > now) || (end < target);
+    std::cout << "guide "
+            << " now: "    << format_time(now)
+            << " stale: "  << stale
+            << " haveany: "<< haveany
+            << " start: "  << format_time(start)
+            << " end: "    << format_time(end)
+            << " target: " << format_time(target)
+            << "\n";
+
+    if (stale)
+    {
+        _update_guide_basic();
+        return;
+    }
+
+    if (g.Settings.extendedGuide)
+    {
+        if (end < now + g.Settings.guideExtendedTrigger)
+        {
+            std::cout << "Extended late from " << format_time(end) << "\n";
+            _update_guide_extended(end);
+        }
+
+        if (start > now - g.Settings.guideExtendedTrigger)
+        {
+            time_t begin = start - g.Settings.guideExtendedEach;
+            std::cout << "Extended early from " << format_time(begin) << "\n";
+            _update_guide_extended(begin);
+        }
+    }
+    */
 }
 
 int Lineup::PvrGetChannelsAmount()
@@ -1058,6 +605,8 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
         const PVR_CHANNEL& channel, time_t start, time_t end
         )
 {
+    return PVR_ERROR_NOT_IMPLEMENTED;
+
     KODI_LOG(LOG_DEBUG,
             "PvrGetEPCForChannel Handle:%p Channel ID: %d Number: %u Sub: %u Start: %u End: %u",
             handle,
@@ -1069,8 +618,24 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
     );
 
     Lock lock(this);
+    Lock guidelock(_guide_lock);
 
     auto& guide = _guide[channel.iUniqueId];
+
+    auto& requests = guide._requests;
+    auto& times    = guide._times;
+    if (!times.Contains(start) && !times.Contains(end))
+    {
+        requests.Add({start, end});
+    }
+    else if (!times.Contains(start))
+    {
+        requests.Add({start, times.Start()});
+    }
+    else if (!times.Contains(end))
+    {
+        requests.Add({times.End(), end});
+    }
 
     for (auto& ge: guide._entries)
     {
