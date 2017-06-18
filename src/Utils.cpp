@@ -52,7 +52,8 @@ int DbgPrintf(const char* szFormat, ...)
 }
 #endif
 
-namespace PVRHDHomeRun {
+namespace PVRHDHomeRun
+{
 
 bool GetFileContents(const std::string& url, std::string& strContent)
 {

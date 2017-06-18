@@ -35,7 +35,8 @@
 #define DLL_EXPORT
 #endif
 
-namespace PVRHDHomeRun {
+namespace PVRHDHomeRun
+{
 
 class HDHomeRunTuners;
 class Lineup;

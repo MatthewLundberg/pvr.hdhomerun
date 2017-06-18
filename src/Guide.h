@@ -26,7 +26,8 @@
 
 using namespace ADDON;
 
-namespace PVRHDHomeRun {
+namespace PVRHDHomeRun
+{
 
 class GuideNumber
 {

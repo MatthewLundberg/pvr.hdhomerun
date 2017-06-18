@@ -41,8 +41,6 @@ using namespace ADDON;
 namespace PVRHDHomeRun
 {
 
-
-
 bool Lineup::DiscoverTuners()
 {
     struct hdhomerun_discover_device_t discover_devices[64];

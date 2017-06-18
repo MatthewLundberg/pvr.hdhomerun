@@ -34,7 +34,8 @@
 
 using namespace ADDON;
 
-namespace PVRHDHomeRun {
+namespace PVRHDHomeRun
+{
 
 GlobalsType g;
 
