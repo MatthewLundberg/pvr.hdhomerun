@@ -157,18 +157,22 @@ Guide::Guide(const Json::Value& v)
     _imageURL  = v["ImageURL"].asString();
 }
 
-GuideEntryStatus Guide::InsertEntry(const GuideEntry& v)
+GuideEntryStatus Guide::InsertEntry(GuideEntry& v)
 {
-    auto ins = _entries.insert(v);
-    auto& entry = const_cast<GuideEntry&>(*(ins.first));
-    if (ins.second) {
-        std::cout << "New entry, index " << _nextidx << "\n";
-        entry._id = _nextidx ++;
+    auto it = _entries.find(v);
+    if (it == _entries.end())
+    {
+        v._id = _nextidx ++;
+        std::cout << "New entry id: " << v._id << "\n";
+        _entries.insert(v);
 
-        _times.Add(entry);
+        _times.Add(v);
+        return {true, v};
     }
 
-    return {ins.second, entry};
+
+    std::cout << "Existing entry id: " << it->_id << "\n";
+    return {false, *it};
 }
 
 bool Guide::_age_out(uint32_t number)
