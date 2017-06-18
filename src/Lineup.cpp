@@ -214,6 +214,8 @@ bool Lineup::UpdateLineup()
     }
 }
 
+namespace
+{
 // Increment the first element until max is reached, then increment further indices.
 // Recursive function used in Lineup::UpdateGuide to find the minimal covering
 bool increment_index(
@@ -237,6 +239,7 @@ bool increment_index(
     }
     return false;
 }
+} // namespace
 
 std::vector<Tuner*> Lineup::_minimal_covering()
 {
