@@ -369,7 +369,7 @@ bool Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tu
             static uint32_t counter = 1;
 
             GuideEntry entry{jsonentry};
-            bool n = channelguide.InsertEntry(entry);
+            bool n = channelguide.AddEntry(entry);
 
             if (n) {
                 new_channel_entries = true;

@@ -118,7 +118,7 @@ public:
     Guide(const Json::Value&);
     Guide() = default;
 
-    bool InsertEntry(GuideEntry&);
+    bool AddEntry(GuideEntry&);
 
     std::string          _guidename;
     std::string          _affiliate;

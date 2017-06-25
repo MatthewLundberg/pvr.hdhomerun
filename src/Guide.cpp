@@ -157,7 +157,7 @@ Guide::Guide(const Json::Value& v)
     _imageURL  = v["ImageURL"].asString();
 }
 
-bool Guide::InsertEntry(GuideEntry& v)
+bool Guide::AddEntry(GuideEntry& v)
 {
     auto it = _entries.find(v);
     if (it == _entries.end())
