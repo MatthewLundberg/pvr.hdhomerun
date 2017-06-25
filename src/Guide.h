@@ -112,44 +112,13 @@ public:
     EPG_TAG Epg_Tag(uint32_t number) const;
 };
 
-class GuideEntryStatus
-{
-public:
-    GuideEntryStatus(bool n, const Interval& e)
-        : _flag(n)
-        , _times(e)
-    {}
-    GuideEntryStatus()
-        : _flag(false)
-    {}
-
-    // Widen time interval, check for any new values
-    void Merge(const GuideEntryStatus& o)
-    {
-        if (o._flag)
-            _flag = true;
-        _times.Add(o._times);
-    }
-    bool Flag() {
-        return _flag;
-    }
-    const IntervalSet& Times() const
-    {
-        return _times;
-    }
-
-private:
-    bool        _flag;
-    IntervalSet _times;
-};
-
 class Guide
 {
 public:
     Guide(const Json::Value&);
     Guide() = default;
 
-    GuideEntryStatus InsertEntry(GuideEntry&);
+    bool InsertEntry(GuideEntry&);
 
     std::string          _guidename;
     std::string          _affiliate;

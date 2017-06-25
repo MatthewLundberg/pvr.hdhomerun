@@ -333,7 +333,7 @@ bool Lineup::_age_out()
     return any_changed;
 }
 
-GuideEntryStatus Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tuner* tuner)
+bool Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tuner* tuner)
 {
     if (jsontunerguide.type() != Json::arrayValue)
     {
@@ -341,7 +341,7 @@ GuideEntryStatus Lineup::_insert_json_guide_data(const Json::Value& jsontunergui
         return {};
     }
 
-    GuideEntryStatus status;
+    bool new_guide_entries{false};
 
     for (auto& jsonchannelguide : jsontunerguide)
     {
@@ -361,29 +361,31 @@ GuideEntryStatus Lineup::_insert_json_guide_data(const Json::Value& jsontunergui
             KODI_LOG(LOG_ERROR, "Guide entries is not an array for %08x", tuner->DeviceID());
             continue;
         }
+
+        bool new_channel_entries{false};
+
         for (auto& jsonentry: jsonguidenetries)
         {
+            static uint32_t counter = 1;
+
             GuideEntry entry{jsonentry};
-            auto s = channelguide.InsertEntry(entry);
+            bool n = channelguide.InsertEntry(entry);
 
-            EPG_TAG tag = entry.Epg_Tag(number);
+            if (n) {
+                new_channel_entries = true;
+            }
+        }
 
-            std::cout << "Sending EpgEventStateChange for channel " << number
-                    << " ID " << tag.iUniqueBroadcastId
-                    << "\n";
-            g.PVR->EpgEventStateChange(&tag, number, EPG_EVENT_CREATED);
-
-
-            //if (s.Flag()) {
-            //    g.PVR->TriggerEpgUpdate(number);
-            //}
-            status.Merge(s);
+        if (new_channel_entries)
+        {
+            new_guide_entries = true;
+            g.PVR->TriggerEpgUpdate(number);
         }
     }
-    return status;
+    return new_guide_entries;
 }
 
-GuideEntryStatus Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner, time_t start)
+bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner, time_t start)
 {
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
     URL.append(EncodeURL(tuner->Auth()));
@@ -433,20 +435,19 @@ bool Lineup::_update_guide_basic()
     if (tuners.size() == 0)
         return false;
 
-    bool added = false;
-    GuideEntryStatus status;
+    bool added{false};
 
     for (auto tuner: tuners) {
-        auto s = _insert_guide_data(nullptr, tuner);
-        status.Merge(s);
+        bool n = _insert_guide_data(nullptr, tuner);
+        added |= n;
     }
 
-    return status.Flag();
+    return added;
 }
 
 bool Lineup::_update_guide_extended(time_t start)
 {
-    GuideEntryStatus status;
+    bool added{false};
 
     for (auto& ng: _guide)
     {
@@ -463,11 +464,11 @@ bool Lineup::_update_guide_extended(time_t start)
         if (!tuner)
             continue;
 
-        auto s = _insert_guide_data(&gn, tuner, start);
-        status.Merge(s);
+        bool n = _insert_guide_data(&gn, tuner, start);
+        added |= n;
     }
 
-    return status.Flag();
+    return added;
 }
 
 bool Lineup::_guide_contains(time_t t)
@@ -606,8 +607,6 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
         const PVR_CHANNEL& channel, time_t start, time_t end
         )
 {
-    return PVR_ERROR_NOT_IMPLEMENTED;
-
     KODI_LOG(LOG_DEBUG,
             "PvrGetEPCForChannel Handle:%p Channel ID: %d Number: %u Sub: %u Start: %u End: %u",
             handle,
