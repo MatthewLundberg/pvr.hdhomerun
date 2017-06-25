@@ -35,9 +35,6 @@
 #include <iterator>
 #include <numeric>
 
-using namespace ADDON;
-
-
 namespace PVRHDHomeRun
 {
 

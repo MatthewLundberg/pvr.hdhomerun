@@ -24,8 +24,6 @@
 #include "client.h"
 #include <json/json.h>
 
-using namespace ADDON;
-
 namespace PVRHDHomeRun
 {
 

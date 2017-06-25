@@ -24,8 +24,6 @@
 #include <json/json.h>
 #include "client.h"
 
-using namespace ADDON;
-
 namespace PVRHDHomeRun
 {
 
@@ -118,6 +116,8 @@ public:
     Guide(const Json::Value&);
     Guide() = default;
 
+    // Add entry, retrive from set if it already exists.
+    // Returns true if the entry is newly inserted, false otherwise.
     bool AddEntry(GuideEntry&);
 
     std::string          _guidename;

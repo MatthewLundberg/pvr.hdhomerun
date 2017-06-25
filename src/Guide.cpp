@@ -169,6 +169,7 @@ bool Guide::AddEntry(GuideEntry& v)
         _times.Add(v);
         return true;
     }
+    v = *it;
 
     std::cout << "Existing entry id: " << it->_id << "\n";
     return false;

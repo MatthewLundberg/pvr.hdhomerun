@@ -41,12 +41,13 @@ int DbgPrintf(const char* szFormat, ...);
 
 #define KODI_LOG(level, ...)											\
     do																	\
-    {																	\
-        DbgPrintf("%-10s: ", #level);									\
+    {                                                                   \
+        using namespace ADDON;                                          \
+        DbgPrintf("%-10s: ",  #level);									\
         DbgPrintf(__VA_ARGS__);											\
         DbgPrintf("\n");												\
         if (g.XBMC && (level > ADDON::LOG_DEBUG || g.Settings.debugLog))\
-            g.XBMC->Log((ADDON::addon_log_t)level, __VA_ARGS__);		\
+            g.XBMC->Log((addon_log_t)level, __VA_ARGS__);               \
     } while (0)
 
 #define PVR_STRCPY(dest, source) do { strncpy(dest, source, sizeof(dest)-1); dest[sizeof(dest)-1] = '\0'; } while(0)

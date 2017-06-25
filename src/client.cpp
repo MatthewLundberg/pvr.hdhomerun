@@ -32,8 +32,6 @@
 #include "Lineup.h"
 #include "Utils.h"
 
-using namespace ADDON;
-
 namespace PVRHDHomeRun
 {
 
@@ -151,7 +149,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 
     PVR_PROPERTIES* pvrprops = (PVR_PROPERTIES*) props;
 
-    g.XBMC = new CHelper_libXBMC_addon;
+    g.XBMC = new ADDON::CHelper_libXBMC_addon;
     if (!g.XBMC->RegisterMe(hdl))
     {
         SAFE_DELETE(g.XBMC);
