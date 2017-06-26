@@ -134,6 +134,10 @@ void ADDON_ReadSettings(void)
     g.XBMC->GetSetting("extended",       &g.Settings.extendedGuide);
     g.XBMC->GetSetting("channel_name",   &g.Settings.channelName);
 
+    char preferred[1024];
+    g.XBMC->GetSetting("preferred",      preferred);
+    g.Settings.preferredTuner.assign(preferred);
+
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
     SetProtocol(protocol);
@@ -251,6 +255,10 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     else if (strcmp(name, "extended") == 0)
     {
         g.Settings.extendedGuide = *(bool*) value;
+    }
+    else if (strcmp(name, "preferred") == 0)
+    {
+        g.Settings.preferredTuner.assign((char*) value);
     }
 
     return ADDON_STATUS_OK;

@@ -62,6 +62,7 @@ struct SettingsType
     CHANNEL_NAME channelName    = AFFILIATE;
     PROTOCOL     protocol       = TCP;
     bool extendedGuide          = false;
+    std::string preferredTuner;
     uint16_t udpPort            = 5000;
 
     int tunerDiscoverInterval   = 300;
