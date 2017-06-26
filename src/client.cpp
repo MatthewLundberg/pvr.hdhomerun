@@ -88,22 +88,22 @@ UpdateThread g_UpdateThread;
 
 using namespace PVRHDHomeRun;
 
-void SetChannelName(const char* name)
+void SetChannelName(int name)
 {
     if (g.XBMC == nullptr)
         return;
 
-    if (strcmp(name, "Tuner Name") == 0)
+    switch(name)
     {
+    case 1:
         g.Settings.channelName = SettingsType::TUNER_NAME;
-    }
-    else if (strcmp(name, "Guide Name") == 0)
-    {
+        break;
+    case 2:
         g.Settings.channelName = SettingsType::GUIDE_NAME;
-    }
-    else if (strcmp(name, "Affiliate") == 0)
-    {
+        break;
+    case 3:
         g.Settings.channelName = SettingsType::AFFILIATE;
+        break;
     }
 }
 void SetProtocol(const char* proto)
@@ -132,10 +132,7 @@ void ADDON_ReadSettings(void)
     g.XBMC->GetSetting("hide_unknown",   &g.Settings.hideUnknownChannels);
     g.XBMC->GetSetting("use_legacy",     &g.Settings.useLegacyTuners);
     g.XBMC->GetSetting("extended",       &g.Settings.extendedGuide);
-
-    char channel_name[64] = "Guide Name";
-    g.XBMC->GetSetting("channel_name", channel_name);
-    SetChannelName(channel_name);
+    g.XBMC->GetSetting("channel_name",   &g.Settings.channelName);
 
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
@@ -243,7 +240,7 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     }
     else if (strcmp(name, "channel_name") == 0)
     {
-        SetChannelName((char*) value);
+        SetChannelName(*(int*) value);
         return ADDON_STATUS_NEED_RESTART;
     }
     else if (strcmp(name, "protocol") == 0)
