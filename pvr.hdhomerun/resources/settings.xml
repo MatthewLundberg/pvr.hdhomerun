@@ -14,6 +14,7 @@
     <setting id="protocol"       type="select" label="32021" values="TCP|UDP" default="TCP" />
     <setting id="use_legacy"     type="bool"   label="32022" default="false" />
     <setting id="preferred"      type="text"   label="32023" default="" />
+    <setting id="blacklist"      type="text"   label="32024" default="" />
   </category>
 
   <!-- General Settings -->

@@ -77,6 +77,8 @@ msgctxt "#32023"
 msgid "Preferred Tuners"
 msgstr "Preferred Tuners"
 
-
+msgctxt "#32024"
+msgid "Blacklist Tuners"
+msgstr "Blacklist Tuners"
 
 

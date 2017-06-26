@@ -63,6 +63,7 @@ struct SettingsType
     PROTOCOL     protocol       = TCP;
     bool extendedGuide          = false;
     std::string preferredTuner;
+    std::string blacklistTuner;
     uint16_t udpPort            = 5000;
 
     int tunerDiscoverInterval   = 300;

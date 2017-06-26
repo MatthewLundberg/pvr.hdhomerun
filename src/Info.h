@@ -41,6 +41,7 @@ public:
 
         return *it;
     }
+    Tuner* GetPreferredTuner();
     Tuner* GetNextTuner();
     void ResetNextTuner();
     bool AddTuner(Tuner*, const std::string& url);

@@ -138,6 +138,10 @@ void ADDON_ReadSettings(void)
     g.XBMC->GetSetting("preferred",      preferred);
     g.Settings.preferredTuner.assign(preferred);
 
+    char blacklist[1024];
+    g.XBMC->GetSetting("blacklist",      blacklist);
+    g.Settings.blacklistTuner.assign(preferred);
+
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
     SetProtocol(protocol);
@@ -259,6 +263,10 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     else if (strcmp(name, "preferred") == 0)
     {
         g.Settings.preferredTuner.assign((char*) value);
+    }
+    else if (strcmp(name, "blackist") == 0)
+    {
+        g.Settings.blacklistTuner.assign((char*) value);
     }
 
     return ADDON_STATUS_OK;

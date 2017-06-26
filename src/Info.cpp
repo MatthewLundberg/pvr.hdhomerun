@@ -34,6 +34,11 @@ Info::Info(const Json::Value& v)
      //KODI_LOG(LOG_DEBUG, "LineupEntry::LineupEntry %s", extendedName().c_str());
 }
 
+Tuner* Info::GetPreferredTuner()
+{
+    return nullptr;
+}
+
 Tuner* Info::GetNextTuner()
 {
     if (_has_next)
