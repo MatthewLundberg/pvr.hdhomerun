@@ -724,6 +724,10 @@ bool Lineup::_open_tcp_stream(const std::string& url)
         _filehandle = g.XBMC->OpenFile(url.c_str(), 0);
     }
 
+    KODI_LOG(LOG_DEBUG, "Attempt to tune TCP stream from url %s : %s",
+            url.c_str(),
+            _filehandle == nullptr ? "Fail":"Success");
+
     return _filehandle != nullptr;
 }
 
