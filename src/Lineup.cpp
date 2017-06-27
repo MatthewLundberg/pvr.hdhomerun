@@ -712,20 +712,19 @@ PVR_ERROR Lineup::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
     return PVR_ERROR_NO_ERROR;
 }
 
-std::string Lineup::DlnaURL(const PVR_CHANNEL& channel)
+bool Lineup::_open_tcp_stream(const std::string& url)
 {
-    Lock lock(this);
-
-    auto  id    = channel.iUniqueId;
-    const auto& entry = _lineup.find(id);
-    if (entry == _lineup.end())
+    if (_filehandle)
     {
-        KODI_LOG(LOG_ERROR, "Channel %d not found!", id);
-        return "";
+         CloseLiveStream();
+         // sets _filehandle = nullptr
     }
-    auto& info = _info[id];
-    Tuner* tuner =  info.GetNextTuner();
-    return info.DlnaURL(tuner);
+    if (url.size())
+    {
+        _filehandle = g.XBMC->OpenFile(url.c_str(), 0);
+    }
+
+    return _filehandle != nullptr;
 }
 
 bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
@@ -733,27 +732,31 @@ bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
     Lock strlock(_stream_lock);
     Lock lock(this);
 
-    if (_filehandle)
+    auto id = channel.iUniqueId;
+    const auto& entry = _lineup.find(id);
+    if (entry == _lineup.end())
     {
-        CloseLiveStream();
+        KODI_LOG(LOG_ERROR, "Channel %d not found!", id);
+        return false;
     }
-    int pass = 0;
-    do
-    {
-        std::string URL = DlnaURL(channel);
-        if (URL.size())
-        {
-            _filehandle = g.XBMC->OpenFile(URL.c_str(), 0);
-        }
-        else
-        {
-            pass ++;
-        }
-        if (_filehandle)
-            break;
-    } while (pass < 2);
+    auto& info = _info[id];
+    info.ResetNextTuner();
 
-    return _filehandle != nullptr;
+    Tuner* tuner;
+    while ((tuner = info.GetPreferredTuner()) != nullptr)
+    {
+        if (_open_tcp_stream(info.DlnaURL(tuner)))
+            return true;
+    }
+
+    info.ResetNextTuner();
+    while ((tuner = info.GetNextTuner()) != nullptr)
+    {
+        if (_open_tcp_stream(info.DlnaURL(tuner)))
+            return true;
+    }
+
+    return false;
 }
 void Lineup::CloseLiveStream(void)
 {

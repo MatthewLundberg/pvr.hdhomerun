@@ -3,7 +3,7 @@
 
   <!-- Guide Settings -->
   <category label="32010">
-    <setting id="channel_name"   type="enum" label="32014" lvalues="32011|32012|32013" default="3"/>
+    <setting id="channel_name"   type="enum" label="32014" lvalues="32011|32012|32013" default="2"/>
     <setting id="hide_unknown"   type="bool" label="32015" default="true" />
     <setting id="hide_protected" type="bool" label="32016" default="true" />
     <setting id="extended"       type="bool" label="32017" default="false" />

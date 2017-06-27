@@ -21,6 +21,9 @@
 
 #include "Info.h"
 #include "Tuner.h"
+#include "client.h"
+#include <sstream>
+#include <cstdlib>
 
 namespace PVRHDHomeRun
 {
@@ -30,12 +33,32 @@ Info::Info(const Json::Value& v)
     _guidename = v["GuideName"].asString();
     _drm       = v["DRM"].asBool();
     _hd        = v["HD"].asBool();
-
-     //KODI_LOG(LOG_DEBUG, "LineupEntry::LineupEntry %s", extendedName().c_str());
 }
 
 Tuner* Info::GetPreferredTuner()
 {
+    std::set<uint32_t> ids;
+
+    std::stringstream ss{g.Settings.preferredTuner};
+    while(ss.good())
+    {
+        std::string r;
+        getline(ss, r, ' ');
+        uint32_t id = std::stoul(r, 0, 16);
+
+        ids.insert(id);
+    }
+
+    for (;;) {
+        Tuner* tuner = GetNextTuner();
+
+        if (!tuner)
+            break;
+
+        if (ids.find(tuner->DeviceID()) != ids.end())
+            return tuner;
+    }
+
     return nullptr;
 }
 

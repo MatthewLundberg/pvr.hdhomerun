@@ -77,7 +77,6 @@ public:
 
     const char* GetLiveStreamURL(const PVR_CHANNEL& channel);
 
-    std::string DlnaURL(const PVR_CHANNEL& channel);
     bool OpenLiveStream(const PVR_CHANNEL& channel);
     void CloseLiveStream(void);
 
@@ -92,6 +91,7 @@ private:
     bool                _insert_guide_data(const GuideNumber*, const Tuner*, time_t start=0);
     bool                _update_guide_basic();
     bool                _update_guide_extended(time_t start);
+    bool                _open_tcp_stream(const std::string&);
 
     std::set<Tuner*>          _tuners;
     std::set<uint32_t>        _device_ids;
