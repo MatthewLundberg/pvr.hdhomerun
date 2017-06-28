@@ -90,7 +90,7 @@ private:
     bool                _insert_json_guide_data(const Json::Value&, const Tuner*);
     bool                _insert_guide_data(const GuideNumber*, const Tuner*, time_t start=0);
     bool                _update_guide_basic();
-    bool                _update_guide_extended(time_t start);
+    bool                _update_guide_extended(const GuideNumber&, time_t start);
     bool                _open_tcp_stream(const std::string&);
 
     std::set<Tuner*>          _tuners;
@@ -98,6 +98,7 @@ private:
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
+    bool                      _extended_forward_next = true;
 
     Lockable _guide_lock;
     Lockable _stream_lock;

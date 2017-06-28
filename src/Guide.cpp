@@ -163,7 +163,7 @@ bool Guide::AddEntry(GuideEntry& v)
     if (it == _entries.end())
     {
         v._id = _nextidx ++;
-        std::cout << "New entry id: " << v._id << "\n";
+        //std::cout << "New entry id: " << v._id << "\n";
         _entries.insert(v);
 
         _times.Add(v);
@@ -171,7 +171,7 @@ bool Guide::AddEntry(GuideEntry& v)
     }
     v = *it;
 
-    std::cout << "Existing entry id: " << it->_id << "\n";
+    //std::cout << "Existing entry id: " << it->_id << "\n";
     return false;
 }
 

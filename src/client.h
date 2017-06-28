@@ -68,7 +68,7 @@ struct SettingsType
 
     int tunerDiscoverInterval   = 300;
     int lineupUpdateInterval    = 300;
-    int guideUpdateInterval     = 20;    // 1 min   Check guide for the need to update
+    int guideUpdateInterval     = 60;    // 1 min   Check guide for the need to update
     int guideBasicInterval      = 7200;  // 2 hours Refresh basic guide if there is a channel without a start time this far into the future
     int guideExtendedEach       = 28800; // 8 hours How much is supplied at a time
     int guideExtendedTrigger    = 14400; // 4 hours Trigger extended guide

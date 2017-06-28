@@ -40,7 +40,7 @@ std::string Interval::toString() const
 std::string IntervalSet::toString() const
 {
     std::stringstream ss;
-    std::ostream_iterator<std::string> it(ss, ",");
+    std::ostream_iterator<std::string> it(ss);
     std::copy(_intervals.begin(), _intervals.end(), it);
     return ss.str();
 }
@@ -48,14 +48,21 @@ std::string IntervalSet::toString() const
 void IntervalSet::_rebalance()
 {
     auto it = _intervals.begin();
+    if (it == _intervals.end())
+        return;
+
     auto prev = it;
+    it ++;
 
     while (it != _intervals.end())
     {
-        if (it->_start >= prev->_end)
+        if (it->_start <= prev->_end)
         {
             auto& p = const_cast<Interval&>(*prev);
-            p._end = it->_end;
+
+            if (it->_end > p._end)
+                p._end = it->_end;
+
             it = _intervals.erase(it);
         }
         else

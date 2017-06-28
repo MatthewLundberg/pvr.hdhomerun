@@ -173,7 +173,6 @@ bool Lineup::UpdateLineup()
             continue;
         }
 
-        auto ptuner = const_cast<Tuner*>(tuner);
         for (auto& v : lineupJson)
         {
             AddLineupEntry(v, tuner);
@@ -309,8 +308,8 @@ std::vector<Tuner*> Lineup::_minimal_covering()
 
 bool Lineup::_age_out()
 {
-    Lock lock(this);
     Lock guidelock(_guide_lock);
+    Lock lock(this);
 
     bool any_changed = false;
 
@@ -442,30 +441,17 @@ bool Lineup::_update_guide_basic()
     return added;
 }
 
-bool Lineup::_update_guide_extended(time_t start)
+bool Lineup::_update_guide_extended(const GuideNumber& gn, time_t start)
 {
-    bool added{false};
+    Lock lock(this);
 
-    for (auto& ng: _guide)
-    {
-        uint32_t number = ng.first;
-        auto&    guide = ng.second;
-        GuideNumber gn{number};
+    const auto& info = _info[gn];
+    auto tuner = info.GetFirstTuner();
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        Lock lock(this);
+    if (!tuner)
+        return false;
 
-        const auto& info = _info[number];
-        auto tuner = info.GetFirstTuner();
-
-        if (!tuner)
-            continue;
-
-        bool n = _insert_guide_data(&gn, tuner, start);
-        added |= n;
-    }
-
-    return added;
+    return _insert_guide_data(&gn, tuner, start);
 }
 
 bool Lineup::_guide_contains(time_t t)
@@ -509,51 +495,29 @@ void Lineup::UpdateGuide()
     {
         for (auto& ng : _guide)
         {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        }
-    }
-    /*
+            auto& guide = ng.second;
+            if (guide._times.Empty())
+                continue;
 
+            time_t start;
+            if (_extended_forward_next)
+            {
+                start = guide._times.End();
+            }
+            else
+            {
+                start = guide._times.Start() - g.Settings.guideExtendedEach;
+            }
 
+            std::cout << "Extended update " << ng.first << " " << FormatTime(start) << " " << guide._times.toString() << "\n";
 
-    bool   haveany = bounds.Flag();
-    time_t start = bounds.Times().Start();
-    time_t end   = bounds.Times().End();
-
-    time_t target = now + g.Settings.guideBasicInterval;
-
-    bool stale = (!haveany) || (start > now) || (end < target);
-    std::cout << "guide "
-            << " now: "    << format_time(now)
-            << " stale: "  << stale
-            << " haveany: "<< haveany
-            << " start: "  << format_time(start)
-            << " end: "    << format_time(end)
-            << " target: " << format_time(target)
-            << "\n";
-
-    if (stale)
-    {
-        _update_guide_basic();
-        return;
-    }
-
-    if (g.Settings.extendedGuide)
-    {
-        if (end < now + g.Settings.guideExtendedTrigger)
-        {
-            std::cout << "Extended late from " << format_time(end) << "\n";
-            _update_guide_extended(end);
+            _update_guide_extended(ng.first, start);
         }
 
-        if (start > now - g.Settings.guideExtendedTrigger)
-        {
-            time_t begin = start - g.Settings.guideExtendedEach;
-            std::cout << "Extended early from " << format_time(begin) << "\n";
-            _update_guide_extended(begin);
-        }
+        _extended_forward_next = !_extended_forward_next;
     }
-    */
 }
 
 int Lineup::PvrGetChannelsAmount()
@@ -614,8 +578,8 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
             end
     );
 
-    Lock lock(this);
     Lock guidelock(_guide_lock);
+    Lock lock(this);
 
     auto& guide = _guide[channel.iUniqueId];
 
