@@ -481,8 +481,6 @@ void Lineup::UpdateGuide()
 {
     Lock guidelock(_guide_lock);
 
-    _age_out();
-
     time_t now     = time(nullptr);
     if (!_guide_contains(now) || !_guide_contains(now + g.Settings.guideBasicInterval))
     {
@@ -495,11 +493,17 @@ void Lineup::UpdateGuide()
     {
         for (auto& ng : _guide)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
             auto& guide = ng.second;
             if (guide._times.Empty())
                 continue;
+
+            if (guide._times.Contains(now - g.Settings.guideAgeOut))
+                continue;
+
+            if (guide._times.Contains(now + g.Settings.guideExtendedLength))
+                continue;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
             time_t start;
             if (_extended_forward_next)
@@ -518,6 +522,8 @@ void Lineup::UpdateGuide()
 
         _extended_forward_next = !_extended_forward_next;
     }
+
+    _age_out();
 }
 
 int Lineup::PvrGetChannelsAmount()
