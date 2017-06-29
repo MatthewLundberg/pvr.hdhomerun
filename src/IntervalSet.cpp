@@ -23,6 +23,7 @@
 #include "Utils.h"
 #include "IntervalSet.h"
 
+#include <iostream>
 #include <sstream>
 #include <iterator>
 #include <numeric>
@@ -86,31 +87,65 @@ void IntervalSet::Add(const IntervalSet& set)
     }
     _rebalance();
 }
+
 void IntervalSet::Remove(const Interval& o)
 {
-    auto it = _intervals.begin();
+    bool action;
+    do {
+        action = false;
 
-    while (it != _intervals.end())
-    {
-        auto& i = const_cast<Interval&>(*it);
-        if (it->Contains(o._end))
+        for (auto it = _intervals.begin(); it != _intervals.end(); it++)
         {
-            i._start = o._end;
-        }
-        if (it->Contains(o._start))
-        {
-            i._end = o._start;
-        }
+            auto& i = const_cast<Interval&>(*it);
 
-        if (it->_start <= it->_end)
-        {
-            it = _intervals.erase(it);
+            if (o._end <= i._start)
+            {
+                // current interval start after removal end, done
+                break;
+            }
+
+            if (o._start >= i._end)
+            {
+                // Current interval end before removal start
+                continue;
+            }
+
+            // o._end   > i._start
+            // o._start < i._end
+
+            if (o._start <= i._start && o._end >= i._end)
+            {
+                // Covers entire interval, remove it
+
+                _intervals.erase(it);
+                action = true;
+                break;
+            }
+            else if (o._start > i._start && o._end < i._end)
+            {
+                // Interval to be removed resides inside this interval, split current interval
+
+                _intervals.insert({o._end, i._end});
+                i._end = o._start;
+                action = true;
+                break;
+            }
+            else if (o._start <= i._start && o._end < i._end)
+            {
+                // o._end is within this interval, move start
+
+                i._start = o._end;
+                action = true;
+            }
+            else if (o._start > i._start && o._end >= i._end)
+            {
+                // o._start is within this interval, move end
+
+                i._end = o._start;
+                action = true;
+            }
         }
-        else
-        {
-            it ++;
-        }
-    }
+    } while (action);
 }
 void IntervalSet::Remove(const IntervalSet& set)
 {

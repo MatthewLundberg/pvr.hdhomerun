@@ -511,7 +511,7 @@ void Lineup::UpdateGuide()
                 start = guide._times.Start() - g.Settings.guideExtendedEach;
             }
 
-            std::cout << "Extended update " << ng.first << " " << FormatTime(start) << " " << guide._times.toString() << "\n";
+            std::cout << "Extended update " << ng.first << " " << FormatTime(start) << " Times " << guide._times.toString() << " Requests " << guide._requests.toString() << "\n";
 
             _update_guide_extended(ng.first, start);
         }
@@ -611,6 +611,7 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
         g.PVR->TransferEpgEntry(handle, &tag);
 
         ge._transferred = true;
+        requests.Remove(ge);
     }
 
     return PVR_ERROR_NO_ERROR;
