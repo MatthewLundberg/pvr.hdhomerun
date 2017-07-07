@@ -119,7 +119,51 @@ public:
     // Add entry, retrive from set if it already exists.
     // Returns true if the entry is newly inserted, false otherwise.
     bool AddEntry(GuideEntry&);
+    void AddRequest(const Interval& r)
+    {
+        _requests.Add(r);
+    }
+    bool _age_out(uint32_t number);
 
+    const IntervalSet& Times() const
+    {
+        return _times;
+    }
+    const IntervalSet& Requests() const
+    {
+        return _requests;
+    }
+    const std::string& GuideName() const
+    {
+        return _guidename;
+    }
+    const std::string& Affiliate() const
+    {
+        return _affiliate;
+    }
+    const std::string& ImageURL() const
+    {
+        return _imageURL;
+    }
+    const std::set<GuideEntry>& Entries() const
+    {
+        return _entries;
+    }
+    void Transferred(const GuideEntry& ge)
+    {
+        ge._transferred = true;
+        _requests.Remove(ge);
+    }
+    time_t LastCheck() const
+    {
+        return _lastCheck;
+    }
+    void LastCheck(time_t t)
+    {
+        _lastCheck = t;
+    }
+
+private:
     std::string          _guidename;
     std::string          _affiliate;
     std::string          _imageURL;
@@ -128,8 +172,8 @@ public:
 
     IntervalSet          _times;
     IntervalSet          _requests;
+    time_t               _lastCheck = 0;
 
-    bool _age_out(uint32_t number);
 };
 
 

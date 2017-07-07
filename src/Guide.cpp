@@ -185,17 +185,21 @@ bool Guide::_age_out(uint32_t number)
 
     _requests.Remove({0, lim});
 
-    for (auto& entry : _entries)
+    auto it = _entries.begin();
+    while (it != _entries.end())
     {
+        auto& entry = *it;
         time_t end = entry._endtime;
         if (end < lim)
         {
             KODI_LOG(LOG_DEBUG, "Deleting guide entry for age %u: %s - %s", (now-end), entry._title.c_str(), entry._episodetitle.c_str());
 
             _times.Remove(entry);
-            _entries.erase(entry);
+            it = _entries.erase(it);
             changed = true;
         }
+        else
+            it ++;
     }
 
     return changed;

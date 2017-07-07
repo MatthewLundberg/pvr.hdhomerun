@@ -116,7 +116,7 @@ void IntervalSet::Remove(const Interval& o)
             if (o._start <= i._start && o._end >= i._end)
             {
                 // Covers entire interval, remove it
-
+                // Breaking out of loop, no need to update 'it'.
                 _intervals.erase(it);
                 action = true;
                 break;

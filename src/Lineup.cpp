@@ -108,8 +108,10 @@ bool Lineup::DiscoverTuners()
     }
 
     // Iterate through tuners, Refresh and determine if there are stale entries.
-    for (auto tuner : _tuners)
+    auto tit = _tuners.begin();
+    while (tit != _tuners.end())
     {
+        auto tuner = *tit;
         uint32_t id = tuner->DeviceID();
         if (discovered_ids.find(id) == discovered_ids.end())
         {
@@ -119,9 +121,11 @@ bool Lineup::DiscoverTuners()
 
             auto ptuner = const_cast<Tuner*>(tuner);
 
-            for (auto number : _lineup)
+            auto nit = _lineup.begin();
+            while (nit != _lineup.end())
             {
-                auto info = _info[number];
+                auto& number = *nit;
+                auto& info = _info[number];
                 if (info.RemoveTuner(tuner))
                 {
                     KODI_LOG(LOG_DEBUG, "Removed tuner from GuideNumber %s", number.extendedName().c_str());
@@ -130,19 +134,22 @@ bool Lineup::DiscoverTuners()
                 {
                     // No tuners left for this lineup guide entry, remove it
                     KODI_LOG(LOG_DEBUG, "No tuners left, removing GuideNumber %s", number.extendedName().c_str());
-                    _lineup.erase(number);
-                    _info.erase(number);
+                    nit = _lineup.erase(nit);
                     _guide.erase(number);
+                    _info.erase(number);
                 }
+                else
+                    nit ++;
             }
 
             // Erase tuner from this
-            _tuners.erase(tuner);
+            tit = _tuners.erase(tit);
             _device_ids.erase(id);
             delete(tuner);
         }
         else
         {
+            tit ++;
             tuner->Refresh();
         }
     }
@@ -216,17 +223,19 @@ bool Lineup::UpdateLineup()
         auto& info = _info[number];
         std::string tuners = info.TunerListString();
 
-        KODI_LOG(LOG_DEBUG,
-                "Lineup Entry: %d.%d - %s - %s - %s",
-                number._channel,
-                number._subchannel,
-                number._guidenumber.c_str(),
-                number._guidename.c_str(),
-                tuners.c_str()
-        );
-
         if (prior.find(number) == prior.end())
+        {
             added = true;
+
+            KODI_LOG(LOG_DEBUG,
+                    "New Lineup Entry: %d.%d - %s - %s - %s",
+                    number._channel,
+                    number._subchannel,
+                    number._guidenumber.c_str(),
+                    number._guidename.c_str(),
+                    tuners.c_str()
+            );
+        }
     }
     if (added)
     {
@@ -495,10 +504,10 @@ bool Lineup::_guide_contains(time_t t)
         uint32_t number = ng.first;
         auto&    guide = ng.second;
 
-        if (guide._times.Empty())
+        if (guide.Times().Empty())
             continue;
 
-        if (!guide._times.Contains(t))
+        if (!guide.Times().Contains(t))
         {
             return false;
         }
@@ -527,17 +536,21 @@ void Lineup::UpdateGuide()
             auto& guide = ng.second;
             time_t start;
 
-            if (guide._times.Empty())
+            if (guide.Times().Empty())
             {
+                time_t again = guide.LastCheck() + g.Settings.guideZeroCheckInterval;
+                if (now < again)
+                    continue;
+
                 start = now;
             }
-            else if (!guide._times.Contains(now + g.Settings.guideExtendedLength))
+            else if (!guide.Times().Contains(now + g.Settings.guideExtendedLength))
             {
-                start = guide._times.End();
+                start = guide.Times().End();
             }
-            else if (!guide._times.Contains(now - g.Settings.guideAgeOut + 3600))
+            else if (!guide.Times().Contains(now - g.Settings.guideAgeOut + 3600))
             {
-                start = guide._times.Start() - g.Settings.guideExtendedEach;
+                start = guide.Times().Start() - g.Settings.guideExtendedEach;
             }
             else
             {
@@ -546,7 +559,7 @@ void Lineup::UpdateGuide()
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-            std::cout << "Extended update " << ng.first << " " << FormatTime(start) << " Times " << guide._times.toString() << " Requests " << guide._requests.toString() << "\n";
+            std::cout << "Extended update " << ng.first << " " << FormatTime(start) << " Times " << guide.Times().toString() << " Requests " << guide.Requests().toString() << "\n";
 
             _update_guide_extended(ng.first, start);
         }
@@ -577,20 +590,25 @@ PVR_ERROR Lineup::PvrGetChannels(ADDON_HANDLE handle, bool radio)
 
         const std::string* name;
         if (g.Settings.channelName == SettingsType::AFFILIATE) {
-            name = &guide._affiliate;
+            name = &guide.Affiliate();
         }
         if (!name || !name->length() || (g.Settings.channelName == SettingsType::GUIDE_NAME))
         {
             // Lineup name from guide
-            name = &guide._guidename;
+            name = &guide.GuideName();
         }
         if (!name || !name->length() || (g.Settings.channelName == SettingsType::TUNER_NAME))
         {
             // Lineup name from tuner
             name = &info._guidename;
         }
+        if (!name)
+        {
+            static const std::string empty{""};
+            name = &empty;
+        }
         PVR_STRCPY(pvrChannel.strChannelName, name->c_str());
-        PVR_STRCPY(pvrChannel.strIconPath, guide._imageURL.c_str());
+        PVR_STRCPY(pvrChannel.strIconPath, guide.ImageURL().c_str());
 
         g.PVR->TransferChannelEntry(handle, &pvrChannel);
     }
@@ -604,36 +622,35 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
         )
 {
     KODI_LOG(LOG_DEBUG,
-            "PvrGetEPCForChannel Handle:%p Channel ID: %d Number: %u Sub: %u Start: %u End: %u",
+            "PvrGetEPCForChannel Handle:%p Channel ID: %d Number: %u Sub: %u Start: %s End: %s",
             handle,
             channel.iUniqueId,
             channel.iChannelNumber,
             channel.iSubChannelNumber,
-            start,
-            end
+            FormatTime(start).c_str(),
+            FormatTime(end).c_str()
     );
 
     Lock guidelock(_guide_lock);
     Lock lock(this);
 
     auto& guide = _guide[channel.iUniqueId];
+    auto& times    = guide.Times();
 
-    auto& requests = guide._requests;
-    auto& times    = guide._times;
     if (!times.Contains(start) && !times.Contains(end))
     {
-        requests.Add({start, end});
+        guide.AddRequest({start, end});
     }
     else if (!times.Contains(start))
     {
-        requests.Add({start, times.Start()});
+        guide.AddRequest({start, times.Start()});
     }
     else if (!times.Contains(end))
     {
-        requests.Add({times.End(), end});
+        guide.AddRequest({times.End(), end});
     }
 
-    for (auto& ge: guide._entries)
+    for (auto& ge: guide.Entries())
     {
         if (ge._endtime < start)
             continue;
@@ -645,8 +662,7 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
         EPG_TAG tag = ge.Epg_Tag(channel.iUniqueId);
         g.PVR->TransferEpgEntry(handle, &tag);
 
-        ge._transferred = true;
-        requests.Remove(ge);
+        guide.Transferred(ge);
     }
 
     return PVR_ERROR_NO_ERROR;

@@ -73,6 +73,7 @@ struct SettingsType
     int guideExtendedEach       = 28800; // 8 hours How much is supplied at a time
     int guideExtendedTrigger    = 14400; // 4 hours Trigger extended guide
     int guideExtendedLength     = 3600 * 11; // 23;
+    int guideZeroCheckInterval  = 3600;  // 1 hours How long to wait before re-trying an empty guide channel
     int guideAgeOut             = 86400;
 };
 
