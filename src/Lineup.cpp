@@ -40,6 +40,30 @@ namespace PVRHDHomeRun
 
 bool Lineup::DiscoverTuners()
 {
+    {
+        int num_networks;
+
+        const uint32_t localhost = 127 << 24;
+        const size_t max = 64;
+        struct hdhomerun_local_ip_info_t ip_info[max];
+        int ip_info_count = hdhomerun_local_ip_info(ip_info, max);
+        for (int i=0; i<ip_info_count; i++)
+        {
+            auto& info = ip_info[i];
+            KODI_LOG(LOG_DEBUG, "Local IP: %s %s", FormatIP(info.ip_addr).c_str(), FormatIP(info.subnet_mask).c_str());
+            if (!IPSubnetMatch(localhost, info.ip_addr, info.subnet_mask))
+            {
+                num_networks ++;
+            }
+        }
+
+        if (!num_networks)
+        {
+            KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners No external networks found, exiting.");
+            return false;
+        }
+    }
+
     struct hdhomerun_discover_device_t discover_devices[64];
     size_t tuner_count = hdhomerun_discover_find_devices_custom_v2(
             0,
@@ -49,11 +73,14 @@ bool Lineup::DiscoverTuners()
             64
             );
 
+    KODI_LOG(LOG_DEBUG, "Found %d tuners", tuner_count);
+
     std::set<uint32_t> discovered_ids;
 
     bool tuner_added   = false;
     bool tuner_removed = false;
 
+    Lock guidelock(_guide_lock);
     Lock lock(this);
     for (size_t i=0; i<tuner_count; i++)
     {
@@ -73,6 +100,10 @@ bool Lineup::DiscoverTuners()
 
             _tuners.insert(new Tuner(dd));
             _device_ids.insert(id);
+        }
+        else
+        {
+            KODI_LOG(LOG_DEBUG, "Known tuner %08x", id);
         }
     }
 
@@ -494,33 +525,31 @@ void Lineup::UpdateGuide()
         for (auto& ng : _guide)
         {
             auto& guide = ng.second;
-            if (guide._times.Empty())
-                continue;
-
-            if (guide._times.Contains(now - g.Settings.guideAgeOut))
-                continue;
-
-            if (guide._times.Contains(now + g.Settings.guideExtendedLength))
-                continue;
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
             time_t start;
-            if (_extended_forward_next)
+
+            if (guide._times.Empty())
+            {
+                start = now;
+            }
+            else if (!guide._times.Contains(now + g.Settings.guideExtendedLength))
             {
                 start = guide._times.End();
             }
-            else
+            else if (!guide._times.Contains(now - g.Settings.guideAgeOut + 3600))
             {
                 start = guide._times.Start() - g.Settings.guideExtendedEach;
             }
+            else
+            {
+                continue;
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
             std::cout << "Extended update " << ng.first << " " << FormatTime(start) << " Times " << guide._times.toString() << " Requests " << guide._requests.toString() << "\n";
 
             _update_guide_extended(ng.first, start);
         }
-
-        _extended_forward_next = !_extended_forward_next;
     }
 
     _age_out();

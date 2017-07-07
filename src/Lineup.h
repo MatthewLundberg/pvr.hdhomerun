@@ -98,7 +98,6 @@ private:
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
-    bool                      _extended_forward_next = true;
 
     Lockable _guide_lock;
     Lockable _stream_lock;
