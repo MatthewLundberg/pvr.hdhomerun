@@ -159,7 +159,7 @@ time_t IntervalSet::Length() const
     return std::accumulate(
             _intervals.begin(),
             _intervals.end(),
-            0,
+            (time_t) 0,
             [](time_t l, const Interval& i) {
         return l + i.Length();
     }

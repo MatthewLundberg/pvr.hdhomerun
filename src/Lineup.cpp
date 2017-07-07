@@ -433,8 +433,7 @@ bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner, t
 
         if (start)
         {
-            char start_s[64];
-            sprintf(start_s, "%d", start);
+            std::string start_s = std::to_string(start);
             URL.append("&Start=");
             URL.append(start_s);
         }
