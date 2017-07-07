@@ -68,13 +68,14 @@ struct SettingsType
 
     int tunerDiscoverInterval   = 300;
     int lineupUpdateInterval    = 300;
-    int guideUpdateInterval     = 60;    // 1 min   Check guide for the need to update
-    int guideBasicInterval      = 7200;  // 2 hours Refresh basic guide if there is a channel without a start time this far into the future
-    int guideExtendedEach       = 28800; // 8 hours How much is supplied at a time
-    int guideExtendedTrigger    = 14400; // 4 hours Trigger extended guide
-    int guideExtendedLength     = 3600 * 11; // 23;
-    int guideZeroCheckInterval  = 3600;  // 1 hours How long to wait before re-trying an empty guide channel
-    int guideAgeOut             = 86400;
+    int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update
+    int guideBasicInterval      = 3600 * 2;  // 2 hours Refresh basic guide if there is a channel without a start time this far into the future
+    int guideExtendedEach       = 3600 * 8;  // 8 hours How much is supplied at a time
+    int guideExtendedTrigger    = 3600 * 4;  // 4 hours Trigger extended guide
+    int guideExtendedLength     = 3600 * 18;
+    int guideZeroCheckInterval  = 3600;      // 1 hours How long to wait before re-trying an empty guide channel
+    int guideAgeOut             = 3600 * 24;
+    int guideReverseLength      = 3600 * 18;
 };
 
 struct GlobalsType

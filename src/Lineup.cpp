@@ -533,7 +533,9 @@ void Lineup::UpdateGuide()
     {
         for (auto& ng : _guide)
         {
-            auto& guide = ng.second;
+            auto  number = ng.first;
+            auto& guide  = ng.second;
+
             time_t start;
 
             if (guide.Times().Empty())
@@ -548,7 +550,7 @@ void Lineup::UpdateGuide()
             {
                 start = guide.Times().End();
             }
-            else if (!guide.Times().Contains(now - g.Settings.guideAgeOut + 3600))
+            else if (!guide.Times().Contains(now - g.Settings.guideReverseLength))
             {
                 start = guide.Times().Start() - g.Settings.guideExtendedEach;
             }
@@ -559,9 +561,15 @@ void Lineup::UpdateGuide()
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-            std::cout << "Extended update " << ng.first << " " << FormatTime(start) << " Times " << guide.Times().toString() << " Requests " << guide.Requests().toString() << "\n";
+            KODI_LOG(LOG_DEBUG, "Extended Update: %d %s Times %s Requests %s",
+                    number,
+                    FormatTime(start).c_str(),
+                    guide.Times().toString().c_str(),
+                    guide.Requests().toString().c_str()
+                    );
 
-            _update_guide_extended(ng.first, start);
+            _update_guide_extended(number, start);
+            guide.LastCheck(now);
         }
     }
 
