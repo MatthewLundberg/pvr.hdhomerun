@@ -31,32 +31,43 @@
 #include <p8-platform/threads/threads.h>
 #include "Lineup.h"
 #include "Utils.h"
+#include "Lockable.h"
 
 namespace PVRHDHomeRun
 {
 
 GlobalsType g;
 
-class UpdateThread: public P8PLATFORM::CThread
+class UpdateThread: public P8PLATFORM::CThread, Lockable
 {
-    time_t lastDiscover = 0;
-    time_t lastLineup   = 0;
-    time_t lastGuide    = 0;
+    time_t _lastDiscover = 0;
+    time_t _lastLineup   = 0;
+    time_t _lastGuide    = 0;
+    bool   _running      = false;
 
 public:
+    void Wake()
+    {
+        Lock lock(this);
+
+        _lastDiscover = 0;
+        _lastLineup   = 0;
+        _lastGuide    = 0;
+        _running      = false;
+    }
     void *Process()
     {
 
         for (;;)
         {
-            P8PLATFORM::CThread::Sleep(1000);
+            P8PLATFORM::CThread::Sleep(5000);
             if (IsStopped())
             {
                 break;
             }
 
             {
-                int num_networks;
+                int num_networks = 0;
 
                 const uint32_t localhost = 127 << 24;
                 const size_t max = 64;
@@ -65,7 +76,7 @@ public:
                 for (int i=0; i<ip_info_count; i++)
                 {
                     auto& info = ip_info[i];
-                    KODI_LOG(LOG_DEBUG, "Local IP: %s %s", FormatIP(info.ip_addr).c_str(), FormatIP(info.subnet_mask).c_str());
+                    //KODI_LOG(LOG_DEBUG, "Local IP: %s %s", FormatIP(info.ip_addr).c_str(), FormatIP(info.subnet_mask).c_str());
                     if (!IPSubnetMatch(localhost, info.ip_addr, info.subnet_mask))
                     {
                         num_networks ++;
@@ -74,43 +85,61 @@ public:
 
                 if (!num_networks)
                 {
-                    KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners No external networks found, exiting.");
+                    KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners No external networks found, waiting.");
                     continue;
                 }
             }
 
+            time_t now = time(nullptr);
+            bool updateDiscover = false;
+            bool updateLineup   = false;
+            bool updateGuide    = false;
+
             if (g.lineup)
             {
-                time_t now = time(nullptr);
-
-
                 bool changed = false;
 
-                if (now + g.Settings.tunerDiscoverInterval >= lastDiscover)
+                if (now + g.Settings.tunerDiscoverInterval >= _lastDiscover)
                 {
                     if (g.lineup->DiscoverTuners())
                     {
                         changed = true;
                     }
-                    lastDiscover = now;
                 }
-                if (now + g.Settings.lineupUpdateInterval >= lastLineup)
+                if (now + g.Settings.lineupUpdateInterval >= _lastLineup)
                 {
                     if (g.lineup->UpdateLineup())
                     {
                         changed = true;
                     }
-                    lastLineup = now;
                 }
-                if (now + g.Settings.guideUpdateInterval >= lastGuide)
+                if (now + g.Settings.guideUpdateInterval >= _lastGuide)
                 {
                     g.lineup->UpdateGuide();
                 }
-                if (changed)
+                if (changed || !_running)
                 {
                     g.PVR->TriggerChannelUpdate();
                     g.PVR->TriggerChannelGroupsUpdate();
                 }
+                if (!_running)
+                {
+                    g.lineup->TriggerEpgUpdate();
+
+                    Lock lock(this);
+                    _running = true;
+                }
+            }
+            if (updateDiscover || updateLineup || updateGuide)
+            {
+                Lock lock(this);
+
+                if (updateDiscover)
+                    _lastDiscover = now;
+                if (updateLineup)
+                    _lastLineup = now;
+                if (updateGuide)
+                    _lastGuide = now;
             }
         }
         return nullptr;
@@ -316,6 +345,8 @@ void OnSystemSleep()
 
 void OnSystemWake()
 {
+    g_UpdateThread.Wake();
+
     if (g.lineup && g.PVR)
     {
         g.lineup->Update();

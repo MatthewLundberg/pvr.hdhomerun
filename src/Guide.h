@@ -154,6 +154,9 @@ public:
         ge._transferred = true;
         _requests.Remove(ge);
     }
+
+    void ResetTransferred();
+
     time_t LastCheck() const
     {
         return _lastCheck;

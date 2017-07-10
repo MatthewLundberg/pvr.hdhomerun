@@ -329,6 +329,20 @@ std::vector<Tuner*> Lineup::_minimal_covering()
     return retval;
 }
 
+void Lineup::TriggerEpgUpdate()
+{
+    Lock guidelock(_guide_lock);
+    Lock lock(this);
+
+    for (auto& channel : _lineup)
+    {
+        auto& guide = _guide[channel];
+        guide.ResetTransferred();
+
+        g.PVR->TriggerEpgUpdate(channel);
+    }
+}
+
 bool Lineup::_age_out()
 {
     Lock guidelock(_guide_lock);

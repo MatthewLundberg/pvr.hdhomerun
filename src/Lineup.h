@@ -53,6 +53,7 @@ public:
     bool DiscoverTuners();
     bool UpdateLineup();
     void UpdateGuide();
+    void TriggerEpgUpdate();
 
     bool Update()
     {

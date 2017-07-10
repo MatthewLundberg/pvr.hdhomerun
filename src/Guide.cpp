@@ -175,6 +175,13 @@ bool Guide::AddEntry(GuideEntry& v)
     return false;
 }
 
+void Guide::ResetTransferred()
+{
+    for (auto& entry : _entries)
+    {
+        entry._transferred = false;
+    }
+}
 bool Guide::_age_out(uint32_t number)
 {
     bool changed = false;
