@@ -144,9 +144,9 @@ void Tuner::_get_discover_data()
     }
 }
 
-void Tuner::Refresh()
+void Tuner::Refresh(const hdhomerun_discover_device_t& d)
 {
-    // Retrieve current auth string, lineup for legacy tuner.
+    _discover_device = d;
     _get_discover_data();
 }
 

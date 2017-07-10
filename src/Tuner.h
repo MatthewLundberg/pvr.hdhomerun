@@ -33,7 +33,7 @@ public:
     Tuner(const Tuner&) = delete;
     Tuner(Tuner&&) = default;
     ~Tuner();
-    void Refresh();
+    void Refresh(const hdhomerun_discover_device_t& d);
 
     // Accessors
     unsigned int TunerCount() const

@@ -39,36 +39,70 @@ GlobalsType g;
 
 class UpdateThread: public P8PLATFORM::CThread
 {
+    time_t lastDiscover = 0;
+    time_t lastLineup   = 0;
+    time_t lastGuide    = 0;
+
 public:
     void *Process()
     {
-        for (int counter=0;;counter++)
+
+        for (;;)
         {
             P8PLATFORM::CThread::Sleep(1000);
-
             if (IsStopped())
             {
                 break;
             }
 
+            {
+                int num_networks;
+
+                const uint32_t localhost = 127 << 24;
+                const size_t max = 64;
+                struct hdhomerun_local_ip_info_t ip_info[max];
+                int ip_info_count = hdhomerun_local_ip_info(ip_info, max);
+                for (int i=0; i<ip_info_count; i++)
+                {
+                    auto& info = ip_info[i];
+                    KODI_LOG(LOG_DEBUG, "Local IP: %s %s", FormatIP(info.ip_addr).c_str(), FormatIP(info.subnet_mask).c_str());
+                    if (!IPSubnetMatch(localhost, info.ip_addr, info.subnet_mask))
+                    {
+                        num_networks ++;
+                    }
+                }
+
+                if (!num_networks)
+                {
+                    KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners No external networks found, exiting.");
+                    continue;
+                }
+            }
+
             if (g.lineup)
             {
+                time_t now = time(nullptr);
+
+
                 bool changed = false;
-                if (!(counter % g.Settings.tunerDiscoverInterval))
+
+                if (now + g.Settings.tunerDiscoverInterval >= lastDiscover)
                 {
                     if (g.lineup->DiscoverTuners())
                     {
                         changed = true;
                     }
+                    lastDiscover = now;
                 }
-                if (changed || !(counter % g.Settings.lineupUpdateInterval))
+                if (now + g.Settings.lineupUpdateInterval >= lastLineup)
                 {
                     if (g.lineup->UpdateLineup())
                     {
                         changed = true;
                     }
+                    lastLineup = now;
                 }
-                if (changed || !(counter % g.Settings.guideUpdateInterval))
+                if (now + g.Settings.guideUpdateInterval >= lastGuide)
                 {
                     g.lineup->UpdateGuide();
                 }

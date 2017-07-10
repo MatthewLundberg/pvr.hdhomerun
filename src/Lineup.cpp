@@ -40,30 +40,6 @@ namespace PVRHDHomeRun
 
 bool Lineup::DiscoverTuners()
 {
-    {
-        int num_networks;
-
-        const uint32_t localhost = 127 << 24;
-        const size_t max = 64;
-        struct hdhomerun_local_ip_info_t ip_info[max];
-        int ip_info_count = hdhomerun_local_ip_info(ip_info, max);
-        for (int i=0; i<ip_info_count; i++)
-        {
-            auto& info = ip_info[i];
-            KODI_LOG(LOG_DEBUG, "Local IP: %s %s", FormatIP(info.ip_addr).c_str(), FormatIP(info.subnet_mask).c_str());
-            if (!IPSubnetMatch(localhost, info.ip_addr, info.subnet_mask))
-            {
-                num_networks ++;
-            }
-        }
-
-        if (!num_networks)
-        {
-            KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners No external networks found, exiting.");
-            return false;
-        }
-    }
-
     struct hdhomerun_discover_device_t discover_devices[64];
     size_t tuner_count = hdhomerun_discover_find_devices_custom_v2(
             0,
@@ -104,6 +80,14 @@ bool Lineup::DiscoverTuners()
         else
         {
             KODI_LOG(LOG_DEBUG, "Known tuner %08x", id);
+
+            for (auto t: _tuners)
+            {
+                if (t->DeviceID() == id)
+                {
+                    t->Refresh(dd);
+                }
+            }
         }
     }
 
@@ -150,7 +134,6 @@ bool Lineup::DiscoverTuners()
         else
         {
             tit ++;
-            tuner->Refresh();
         }
     }
 
