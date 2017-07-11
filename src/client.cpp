@@ -57,10 +57,14 @@ public:
     }
     void *Process()
     {
+        int state{0};
+
+        int prev_num_networks{0};
+        bool prev_discovered{false};
 
         for (;;)
         {
-            P8PLATFORM::CThread::Sleep(5000);
+            P8PLATFORM::CThread::Sleep(1000);
             if (IsStopped())
             {
                 break;
@@ -83,9 +87,26 @@ public:
                     }
                 }
 
-                if (!num_networks)
+                if (num_networks != prev_num_networks)
                 {
-                    KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners No external networks found, waiting.");
+                    if (num_networks == 0)
+                    {
+                        KODI_LOG(LOG_DEBUG, "UpdateThread::Process No external networks found, waiting.");
+                    }
+                    else
+                    {
+                        for (int i=0; i<ip_info_count; i++)
+                        {
+                            KODI_LOG(LOG_DEBUG, "UpdateThread::Process IP %s %s",
+                                    FormatIP(ip_info[i].ip_addr).c_str(),
+                                    FormatIP(ip_info[i].subnet_mask).c_str()
+                            );
+                        }
+                    }
+                    prev_num_networks = num_networks;
+                }
+                if (num_networks == 0)
+                {
                     continue;
                 }
             }
@@ -99,37 +120,53 @@ public:
             {
                 bool changed = false;
 
-                if (now + g.Settings.tunerDiscoverInterval >= _lastDiscover)
+                if (now >= _lastDiscover + g.Settings.tunerDiscoverInterval)
                 {
-                    if (g.lineup->DiscoverTuners())
+                    bool discovered = g.lineup->DiscoverTuners();
+                    if (discovered)
                     {
-                        changed = true;
+                        KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners returned true, try again");
+                        now = 0;
+                        state = 0;
                     }
+                    else
+                    {
+                        state = 1;
+                    }
+                    updateDiscover = true;
                 }
-                if (now + g.Settings.lineupUpdateInterval >= _lastLineup)
+                else if (state == 1 || now >= _lastLineup + g.Settings.lineupUpdateInterval)
                 {
                     if (g.lineup->UpdateLineup())
                     {
-                        changed = true;
+                        state = 2;
+                        g.PVR->TriggerChannelUpdate();
+                        g.PVR->TriggerChannelGroupsUpdate();
                     }
+                    else
+                    {
+                        state = 0;
+                    }
+                    updateLineup = true;
                 }
-                if (now + g.Settings.guideUpdateInterval >= _lastGuide)
+                else if (state = 2 || now >= _lastGuide + g.Settings.guideUpdateInterval)
                 {
+                    state = 0;
                     g.lineup->UpdateGuide();
+                    updateGuide = true;
                 }
-                if (changed || !_running)
+                else
                 {
-                    g.PVR->TriggerChannelUpdate();
-                    g.PVR->TriggerChannelGroupsUpdate();
+                    state = 0;
                 }
+
                 if (!_running)
                 {
                     g.lineup->TriggerEpgUpdate();
-
-                    Lock lock(this);
-                    _running = true;
+                    _running = false;
                 }
             }
+
             if (updateDiscover || updateLineup || updateGuide)
             {
                 Lock lock(this);
