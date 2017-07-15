@@ -58,9 +58,7 @@ public:
     void *Process()
     {
         int state{0};
-
         int prev_num_networks{0};
-        bool prev_discovered{false};
 
         for (;;)
         {

@@ -49,7 +49,15 @@ bool Lineup::DiscoverTuners()
             64
             );
 
-    KODI_LOG(LOG_DEBUG, "Found %d tuners", tuner_count);
+    KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners Found %d tuners", tuner_count);
+
+    if (tuner_count == 0)
+    {
+        // Sometimes no tuners are found when waking from sleep, causing a
+        // lot of unnecessary network traffic as they are rediscovered.
+        // TODO:  Handle the case where all tuners go away?
+        return true;
+    }
 
     std::set<uint32_t> discovered_ids;
 
@@ -555,7 +563,7 @@ void Lineup::UpdateGuide()
                 continue;
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            //std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
             KODI_LOG(LOG_DEBUG, "Extended Update: %d %s Times %s Requests %s",
                     number,
