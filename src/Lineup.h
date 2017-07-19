@@ -85,11 +85,10 @@ public:
 
 
 private:
-    std::vector<Tuner*> _minimal_covering(void);
     bool                _age_out(void);
     bool                _guide_contains(time_t);
     bool                _insert_json_guide_data(const Json::Value&, const Tuner*);
-    bool                _insert_guide_data(const GuideNumber*, const Tuner*, time_t start=0);
+    bool                _insert_guide_data(const GuideNumber* = nullptr, const Tuner* = nullptr, time_t start=0);
     bool                _update_guide_basic();
     bool                _update_guide_extended(const GuideNumber&, time_t start);
     bool                _open_tcp_stream(const std::string&);

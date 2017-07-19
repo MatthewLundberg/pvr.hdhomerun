@@ -241,101 +241,6 @@ bool Lineup::UpdateLineup()
     }
 }
 
-namespace
-{
-// Increment the first element until max is reached, then increment further indices.
-// Recursive function used in Lineup::UpdateGuide to find the minimal covering
-bool increment_index(
-        std::vector<size_t>::iterator index,
-        std::vector<size_t>::iterator end,
-        size_t max)
-{
-    if (index != end)
-    {
-        (*index) ++;
-        if ((*index) >= max)
-        {
-            // Hit the max value, adjust the next slot
-            if (!increment_index(index+1, end, max-1))
-            {
-                return false;
-            }
-            (*index) = (*(index+1)) + 1;
-        }
-        return true;
-    }
-    return false;
-}
-} // namespace
-
-std::vector<Tuner*> Lineup::_minimal_covering()
-{
-    // Lock must be acquired before calling this method.
-    // The _tuners std::set cannot be indexed by position, so copy to a vector.
-    std::vector<Tuner*> tuners;
-    std::copy(_tuners.begin(), _tuners.end(), std::back_inserter(tuners));
-
-    std::vector<size_t> index;
-    bool matched;
-    for (int num_tuners = 1; num_tuners <= (int)tuners.size(); num_tuners ++)
-    {
-        // The index values will be incremented starting at begin().
-        // Create index, reverse order
-        index.clear();
-        for (int i=0; i<num_tuners; i++)
-        {
-            index.insert(index.begin(), i);
-        }
-
-        matched = true;
-        do {
-            // index contains a combination of num_tuners entries.
-            // This loop is entered for each unique combination of tuners,
-            // until all channels are matched by at least one tuner in the list.
-            matched = true;
-            for (auto& number: _lineup)
-            {
-                auto& info = _info[number];
-
-                bool tunermatch = false;
-                for (auto idx: index) {
-                    auto tuner = tuners[idx];
-
-                    if (info.HasTuner(tuner))
-                    {
-                        tunermatch = true;
-                        break;
-                    }
-                }
-                if (!tunermatch)
-                {
-                    matched = false;
-                    break;
-                }
-            }
-        } while (!matched && increment_index(index.begin(), index.end(), tuners.size()));
-        if (matched)
-            break;
-    }
-    std::vector<Tuner*> retval;
-
-    if (matched)
-    {
-        std::string idx;
-        for (auto& i : index) {
-            char buf[10];
-            sprintf(buf, " %08x", tuners[i]->DeviceID());
-            idx += buf;
-            retval.push_back(tuners[i]);
-        }
-        KODI_LOG(LOG_DEBUG, "UpateGuide - Need to scan %u tuner(s) - %s", index.size(), idx.c_str());
-    }
-    else
-    {
-        KODI_LOG(LOG_INFO, "UpdateGuide - Found no tuners!");
-    }
-    return retval;
-}
 
 void Lineup::TriggerEpgUpdate()
 {
@@ -429,7 +334,17 @@ bool Lineup::_insert_json_guide_data(const Json::Value& jsontunerguide, const Tu
 bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner, time_t start)
 {
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
-    URL.append(EncodeURL(tuner->Auth()));
+    if (tuner)
+    {
+        URL.append(EncodeURL(tuner->Auth()));
+    }
+    else
+    {
+        for (const auto t : _tuners)
+        {
+            URL.append(EncodeURL(t->Auth()));
+        }
+    }
 
     if (number)
     {
@@ -444,13 +359,13 @@ bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner, t
         }
     }
     KODI_LOG(LOG_DEBUG, "Requesting HDHomeRun guide for %08x: %s",
-            tuner->DeviceID(), URL.c_str());
+            tuner ? tuner->DeviceID() : 0xffffffff, URL.c_str());
 
     std::string guidedata;
     if (!GetFileContents(URL, guidedata))
     {
         KODI_LOG(LOG_ERROR, "Error requesting guide for %08x from %s",
-                tuner->DeviceID(), URL.c_str());
+                tuner ? tuner->DeviceID() : 0xffffffff, URL.c_str());
         return {};
     }
     if (guidedata.substr(0,4) == "null")
@@ -460,7 +375,7 @@ bool Lineup::_insert_guide_data(const GuideNumber* number, const Tuner* tuner, t
     Json::Value  jsontunerguide;
     if (!jsonreader.parse(guidedata, jsontunerguide))
     {
-        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %08x", tuner->DeviceID());
+        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %08x", tuner ? tuner->DeviceID() : 0xffffffff);
         return {};
     }
     return _insert_json_guide_data(jsontunerguide, tuner);
@@ -471,18 +386,7 @@ bool Lineup::_update_guide_basic()
     // Find a minimal covering of the lineup, to avoid duplicate guide requests.
     Lock lock(this);
 
-    std::vector<Tuner*> tuners = _minimal_covering();
-    if (tuners.size() == 0)
-        return false;
-
-    bool added{false};
-
-    for (auto tuner: tuners) {
-        bool n = _insert_guide_data(nullptr, tuner);
-        added |= n;
-    }
-
-    return added;
+    return _insert_guide_data();
 }
 
 bool Lineup::_update_guide_extended(const GuideNumber& gn, time_t start)
