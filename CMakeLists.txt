@@ -26,11 +26,20 @@ set(DEPLIBS ${kodiplatform_LIBRARIES}
             ${HDHOMERUN_LIBRARIES})
 
 set(PVRHDHOMERUN_SOURCES src/client.cpp
-                         src/HDHomeRunTuners.cpp
+                         src/Tuner.cpp
+                         src/Info.cpp
+                         src/Guide.cpp
+                         src/IntervalSet.cpp
+                         src/Lineup.cpp
                          src/Utils.cpp)
 
 set(PVRHDHOMERUN_HEADERS src/client.h
-                         src/HDHomeRunTuners.h
+                         src/Tuner.h
+                         src/Info.h
+                         src/Guide.h
+                         src/Lockable.h
+                         src/IntervalSet.h
+                         src/Lineup.h
                          src/Utils.h)
 
 if(WIN32)

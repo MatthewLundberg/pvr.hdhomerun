@@ -35,7 +35,8 @@
 #define DLL_EXPORT
 #endif
 
-namespace PVRHDHomeRun {
+namespace PVRHDHomeRun
+{
 
 class HDHomeRunTuners;
 class Lineup;
@@ -48,22 +49,41 @@ struct SettingsType
         GUIDE_NAME,
         AFFILIATE
     };
+    enum PROTOCOL {
+        TCP,
+        UDP
+    };
 
-    bool bHideProtected         = true;
-    bool bHideDuplicateChannels = true;
-    bool bDebug                 = false;
-    bool bMarkNew               = false;
-    bool bUseLegacy             = false;
-    bool bHideUnknownChannels   = true;
-    CHANNEL_NAME eChannelName   = AFFILIATE;
+    bool hideProtectedChannels  = true;
+    bool debugLog               = false;
+    bool markNewProgram         = false;
+    bool useLegacyTuners        = false;
+    bool hideUnknownChannels    = true;
+    CHANNEL_NAME channelName    = AFFILIATE;
+    PROTOCOL     protocol       = TCP;
+    bool extendedGuide          = false;
+    std::string preferredTuner;
+    std::string blacklistTuner;
+    uint16_t udpPort            = 5000;
+
+    int tunerDiscoverInterval   = 300;
+    int lineupUpdateInterval    = 300;
+    int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update
+    int guideBasicInterval      = 3600 * 2;  // 2 hours Refresh basic guide if there is a channel without a start time this far into the future
+    int guideExtendedEach       = 3600 * 8;  // 8 hours How much is supplied at a time
+    int guideExtendedTrigger    = 3600 * 4;  // 4 hours Trigger extended guide
+    int guideExtendedLength     = 3600 * 18;
+    int guideZeroCheckInterval  = 3600;      // 1 hours How long to wait before re-trying an empty guide channel
+    int guideAgeOut             = 3600 * 24;
+    int guideReverseLength      = 3600 * 18;
 };
 
 struct GlobalsType
 {
-    bool         bCreated                = false;
+    bool         isCreated               = false;
     ADDON_STATUS currentStatus           = ADDON_STATUS_UNKNOWN;
-    std::string  strUserPath;
-    std::string  strClientPath;
+    std::string  userPath;
+    std::string  clientPath;
     ADDON::CHelper_libXBMC_addon* XBMC   = nullptr;
     CHelper_libXBMC_pvr*          PVR    = nullptr;
     Lineup*                       lineup = nullptr;

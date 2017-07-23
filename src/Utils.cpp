@@ -52,7 +52,8 @@ int DbgPrintf(const char* szFormat, ...)
 }
 #endif
 
-namespace PVRHDHomeRun {
+namespace PVRHDHomeRun
+{
 
 bool GetFileContents(const std::string& url, std::string& strContent)
 {
@@ -113,6 +114,13 @@ std::string FormatIP(uint32_t ip)
             (ip >> 8) & 0xff,
             (ip) & 0xff
             );
+    return buf;
+}
+std::string FormatTime(time_t t)
+{
+    auto tm = localtime(&t);
+    char buf[64];
+    strftime(buf, sizeof buf, "%Y-%m-%d %H:%M:%S", tm);
     return buf;
 }
 

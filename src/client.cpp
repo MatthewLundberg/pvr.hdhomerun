@@ -29,33 +29,152 @@
 #include <xbmc_pvr_dll.h>
 #include <p8-platform/util/util.h>
 #include <p8-platform/threads/threads.h>
-#include "HDHomeRunTuners.h"
+#include "Lineup.h"
 #include "Utils.h"
+#include "Lockable.h"
 
-using namespace ADDON;
-
-namespace PVRHDHomeRun {
+namespace PVRHDHomeRun
+{
 
 GlobalsType g;
 
-class UpdateThread: public P8PLATFORM::CThread
+class UpdateThread: public P8PLATFORM::CThread, Lockable
 {
+    time_t _lastDiscover = 0;
+    time_t _lastLineup   = 0;
+    time_t _lastGuide    = 0;
+    bool   _running      = false;
+
 public:
+    void Wake()
+    {
+        Lock lock(this);
+
+        _lastDiscover = 0;
+        _lastLineup   = 0;
+        _lastGuide    = 0;
+        _running      = false;
+    }
     void *Process()
     {
+        int state{0};
+        int prev_num_networks{0};
+
         for (;;)
         {
-            for (int i = 0; i < 60 * 60; i++)
-                if (P8PLATFORM::CThread::Sleep(1000))
-                    break;
-
+            P8PLATFORM::CThread::Sleep(1000);
             if (IsStopped())
+            {
                 break;
+            }
+
+            {
+                int num_networks = 0;
+
+                const uint32_t localhost = 127 << 24;
+                const size_t max = 64;
+                struct hdhomerun_local_ip_info_t ip_info[max];
+                int ip_info_count = hdhomerun_local_ip_info(ip_info, max);
+                for (int i=0; i<ip_info_count; i++)
+                {
+                    auto& info = ip_info[i];
+                    //KODI_LOG(LOG_DEBUG, "Local IP: %s %s", FormatIP(info.ip_addr).c_str(), FormatIP(info.subnet_mask).c_str());
+                    if (!IPSubnetMatch(localhost, info.ip_addr, info.subnet_mask))
+                    {
+                        num_networks ++;
+                    }
+                }
+
+                if (num_networks != prev_num_networks)
+                {
+                    if (num_networks == 0)
+                    {
+                        KODI_LOG(LOG_DEBUG, "UpdateThread::Process No external networks found, waiting.");
+                    }
+                    else
+                    {
+                        for (int i=0; i<ip_info_count; i++)
+                        {
+                            KODI_LOG(LOG_DEBUG, "UpdateThread::Process IP %s %s",
+                                    FormatIP(ip_info[i].ip_addr).c_str(),
+                                    FormatIP(ip_info[i].subnet_mask).c_str()
+                            );
+                        }
+                    }
+                    prev_num_networks = num_networks;
+                }
+                if (num_networks == 0)
+                {
+                    continue;
+                }
+            }
+
+            time_t now = time(nullptr);
+            bool updateDiscover = false;
+            bool updateLineup   = false;
+            bool updateGuide    = false;
 
             if (g.lineup)
             {
-                g.lineup->UpdateGuide();
-                g.PVR->TriggerChannelUpdate();
+                bool changed = false;
+
+                if (now >= _lastDiscover + g.Settings.tunerDiscoverInterval)
+                {
+                    bool discovered = g.lineup->DiscoverTuners();
+                    if (discovered)
+                    {
+                        KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners returned true, try again");
+                        now = 0;
+                        state = 0;
+                    }
+                    else
+                    {
+                        state = 1;
+                    }
+                    updateDiscover = true;
+                }
+                else if (state == 1 || now >= _lastLineup + g.Settings.lineupUpdateInterval)
+                {
+                    if (g.lineup->UpdateLineup())
+                    {
+                        state = 2;
+                        g.PVR->TriggerChannelUpdate();
+                        g.PVR->TriggerChannelGroupsUpdate();
+                    }
+                    else
+                    {
+                        state = 0;
+                    }
+                    updateLineup = true;
+                }
+                else if (state = 2 || now >= _lastGuide + g.Settings.guideUpdateInterval)
+                {
+                    state = 0;
+                    g.lineup->UpdateGuide();
+                    updateGuide = true;
+                }
+                else
+                {
+                    state = 0;
+                }
+
+                if (!_running)
+                {
+                    g.lineup->TriggerEpgUpdate();
+                    _running = false;
+                }
+            }
+
+            if (updateDiscover || updateLineup || updateGuide)
+            {
+                Lock lock(this);
+
+                if (updateDiscover)
+                    _lastDiscover = now;
+                if (updateLineup)
+                    _lastLineup = now;
+                if (updateGuide)
+                    _lastGuide = now;
             }
         }
         return nullptr;
@@ -67,22 +186,33 @@ UpdateThread g_UpdateThread;
 
 using namespace PVRHDHomeRun;
 
-void SetChannelName(const char* name)
+void SetChannelName(int name)
 {
     if (g.XBMC == nullptr)
         return;
 
-    if (strcmp(name, "Tuner Name") == 0)
+    switch(name)
     {
-        g.Settings.eChannelName = SettingsType::TUNER_NAME;
+    case 1:
+        g.Settings.channelName = SettingsType::TUNER_NAME;
+        break;
+    case 2:
+        g.Settings.channelName = SettingsType::GUIDE_NAME;
+        break;
+    case 3:
+        g.Settings.channelName = SettingsType::AFFILIATE;
+        break;
     }
-    else if (strcmp(name, "Guide Name") == 0)
+}
+void SetProtocol(const char* proto)
+{
+    if (strcmp(proto, "TCP") == 0)
     {
-        g.Settings.eChannelName = SettingsType::GUIDE_NAME;
+        g.Settings.protocol = SettingsType::TCP;
     }
-    else if (strcmp(name, "Affiliate") == 0)
+    else if (strcmp(proto, "UDP") == 0)
     {
-        g.Settings.eChannelName = SettingsType::AFFILIATE;
+        g.Settings.protocol = SettingsType::UDP;
     }
 }
 
@@ -94,16 +224,25 @@ void ADDON_ReadSettings(void)
     if (g.XBMC == nullptr)
         return;
 
-    g.XBMC->GetSetting("hide_protected", &g.Settings.bHideProtected);
-    g.XBMC->GetSetting("hide_duplicate", &g.Settings.bHideDuplicateChannels);
-    g.XBMC->GetSetting("mark_new",       &g.Settings.bMarkNew);
-    g.XBMC->GetSetting("debug",          &g.Settings.bDebug);
-    g.XBMC->GetSetting("hide_unknown",   &g.Settings.bHideUnknownChannels);
-    g.XBMC->GetSetting("use_legacy",     &g.Settings.bUseLegacy);
+    g.XBMC->GetSetting("hide_protected", &g.Settings.hideProtectedChannels);
+    g.XBMC->GetSetting("mark_new",       &g.Settings.markNewProgram);
+    g.XBMC->GetSetting("debug",          &g.Settings.debugLog);
+    g.XBMC->GetSetting("hide_unknown",   &g.Settings.hideUnknownChannels);
+    g.XBMC->GetSetting("use_legacy",     &g.Settings.useLegacyTuners);
+    g.XBMC->GetSetting("extended",       &g.Settings.extendedGuide);
+    g.XBMC->GetSetting("channel_name",   &g.Settings.channelName);
 
-    char channel_name[64] = "Guide Name";
-    g.XBMC->GetSetting("channel_name", channel_name);
-    SetChannelName(channel_name);
+    char preferred[1024];
+    g.XBMC->GetSetting("preferred",      preferred);
+    g.Settings.preferredTuner.assign(preferred);
+
+    char blacklist[1024];
+    g.XBMC->GetSetting("blacklist",      blacklist);
+    g.Settings.blacklistTuner.assign(preferred);
+
+    char protocol[64] = "TCP";
+    g.XBMC->GetSetting("protocol", protocol);
+    SetProtocol(protocol);
 }
 
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
@@ -113,7 +252,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 
     PVR_PROPERTIES* pvrprops = (PVR_PROPERTIES*) props;
 
-    g.XBMC = new CHelper_libXBMC_addon;
+    g.XBMC = new ADDON::CHelper_libXBMC_addon;
     if (!g.XBMC->RegisterMe(hdl))
     {
         SAFE_DELETE(g.XBMC);
@@ -132,8 +271,8 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
             __FUNCTION__);
 
     g.currentStatus = ADDON_STATUS_UNKNOWN;
-    g.strUserPath = pvrprops->strUserPath;
-    g.strClientPath = pvrprops->strClientPath;
+    g.userPath = pvrprops->strUserPath;
+    g.clientPath = pvrprops->strClientPath;
 
     ADDON_ReadSettings();
 
@@ -150,7 +289,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
     }
 
     g.currentStatus = ADDON_STATUS_OK;
-    g.bCreated = true;
+    g.isCreated = true;
 
     return ADDON_STATUS_OK;
 }
@@ -168,7 +307,7 @@ void ADDON_Destroy()
     SAFE_DELETE(g.PVR);
     SAFE_DELETE(g.XBMC);
 
-    g.bCreated = false;
+    g.isCreated = false;
     g.currentStatus = ADDON_STATUS_UNKNOWN;
 }
 
@@ -177,39 +316,55 @@ bool ADDON_HasSettings()
     return true;
 }
 
-ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
+ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
 {
     if (g.lineup == nullptr)
         return ADDON_STATUS_OK;
 
-    if (strcmp(settingName, "hide_protected") == 0)
+    if (strcmp(name, "hide_protected") == 0)
     {
-        g.Settings.bHideProtected = *(bool*) settingValue;
+        g.Settings.hideProtectedChannels = *(bool*) value;
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(settingName, "hide_duplicate") == 0)
+    else if (strcmp(name, "mark_new") == 0)
     {
-        g.Settings.bHideDuplicateChannels = *(bool*) settingValue;
+        g.Settings.markNewProgram = *(bool*) value;
+    }
+    else if (strcmp(name, "debug") == 0)
+    {
+        g.Settings.debugLog = *(bool*) value;
+    }
+    else if (strcmp(name, "use_legacy") == 0)
+    {
+        g.Settings.useLegacyTuners = *(bool*) value;
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(settingName, "mark_new") == 0)
-        g.Settings.bMarkNew = *(bool*) settingValue;
-    else if (strcmp(settingName, "debug") == 0)
-        g.Settings.bDebug = *(bool*) settingValue;
-    else if (strcmp(settingName, "use_legacy") == 0)
+    else if (strcmp(name, "hide_unknown") == 0)
     {
-        g.Settings.bUseLegacy = *(bool*) settingValue;
+        g.Settings.hideUnknownChannels = *(bool*) value;
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(settingName, "hide_unknown") == 0)
+    else if (strcmp(name, "channel_name") == 0)
     {
-        g.Settings.bHideUnknownChannels = *(bool*) settingValue;
+        SetChannelName(*(int*) value);
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(settingName, "channel_name") == 0)
+    else if (strcmp(name, "protocol") == 0)
     {
-        SetChannelName((char*) settingValue);
+        SetProtocol((char*) value);
         return ADDON_STATUS_NEED_RESTART;
+    }
+    else if (strcmp(name, "extended") == 0)
+    {
+        g.Settings.extendedGuide = *(bool*) value;
+    }
+    else if (strcmp(name, "preferred") == 0)
+    {
+        g.Settings.preferredTuner.assign((char*) value);
+    }
+    else if (strcmp(name, "blackist") == 0)
+    {
+        g.Settings.blacklistTuner.assign((char*) value);
     }
 
     return ADDON_STATUS_OK;
@@ -225,6 +380,8 @@ void OnSystemSleep()
 
 void OnSystemWake()
 {
+    g_UpdateThread.Wake();
+
     if (g.lineup && g.PVR)
     {
         g.lineup->Update();
@@ -255,20 +412,17 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 
 const char *GetBackendName(void)
 {
-    static const char *strBackendName = "HDHomeRun PVR add-on";
-    return strBackendName;
+    return "otherkids PVR";
 }
 
 const char *GetBackendVersion(void)
 {
-    static const char *strBackendVersion = "0.2";
-    return strBackendVersion;
+    return "4.0.0";
 }
 
 const char *GetConnectionString(void)
 {
-    static const char *strConnectionString = "connected";
-    return strConnectionString;
+    return "connected";
 }
 
 const char *GetBackendHostname(void)
@@ -278,6 +432,7 @@ const char *GetBackendHostname(void)
 
 PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 {
+    // TODO - fix this
     *iTotal = 1024 * 1024 * 1024;
     *iUsed = 0;
     return PVR_ERROR_NO_ERROR;
@@ -325,11 +480,15 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle,
 
 bool OpenLiveStream(const PVR_CHANNEL &channel)
 {
-    return false;
+    return g.lineup ?
+            g.lineup->OpenLiveStream(channel) :
+            false;
 }
 
 void CloseLiveStream(void)
 {
+    if (g.lineup)
+        g.lineup->CloseLiveStream();
 }
 
 bool SwitchChannel(const PVR_CHANNEL &channel)
@@ -341,7 +500,7 @@ bool SwitchChannel(const PVR_CHANNEL &channel)
 
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 {
-    PVR_STRCPY(signalStatus.strAdapterName, "PVR HDHomeRun Adapter 1");
+    PVR_STRCPY(signalStatus.strAdapterName, "otherkids PVR");
     PVR_STRCPY(signalStatus.strAdapterStatus, "OK");
 
     return PVR_ERROR_NO_ERROR;
@@ -438,7 +597,7 @@ void DemuxFlush(void)
 }
 int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
 {
-    return 0;
+    return g.lineup ? g.lineup->ReadLiveStream(pBuffer, iBufferSize) : 0;
 }
 long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */)
 {
@@ -454,8 +613,6 @@ long long LengthLiveStream(void)
 }
 const char * GetLiveStreamURL(const PVR_CHANNEL &channel)
 {
-    if (g.lineup)
-        return g.lineup->GetLiveStreamURL(channel);
     return "";
 }
 PVR_ERROR DeleteRecording(const PVR_RECORDING &recording)

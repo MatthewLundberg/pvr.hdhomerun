@@ -1,7 +1,7 @@
 # Kodi Media Center language file
 # Addon Name: PVR HDHomeRun Client
 # Addon id: pvr.hdhomerun
-# Addon Provider: Matthew Lundberg (matthew.k.lundberg@gmail.com) and Zoltan Csizmadia (zcsizmadia@gmail.com)
+# Addon Provider: Matthew Lundberg (matthew.k.lundberg@gmail.com)
 msgid ""
 msgstr ""
 "Project-Id-Version: KODI Main\n"
@@ -16,35 +16,69 @@ msgstr ""
 "Language: en_US\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgctxt "#32001"
-msgid "General"
-msgstr "General"
 
-msgctxt "#32002"
-msgid "Hide protected channels"
-msgstr "Hide protected channels"
+msgctxt "#32000"
+msgid "General Settings"
+msgstr "General Settings"
 
-msgctxt "#32003"
+msgctxt "#32009"
 msgid "Enable debug logging"
 msgstr "Enable debug logging"
 
-msgctxt "#32004"
-msgid "Hide duplicate channels"
-msgstr "Hide duplicate channels"
 
-msgctxt "#32005"
-msgid "Mark new show"
-msgstr "Mark new show"
-
-msgctxt "#32006"
-msgid "Use legacy hardware"
-msgstr "Use legacy hardware"
 
 msgctxt "#32010"
+msgid "Guide Settings"
+msgstr "Guide Settings"
+
+msgctxt "#32011"
+msgid "Tuner Name"
+msgstr "Tuner Name"
+
+msgctxt "#32012"
+msgid "Guide Name"
+msgstr "Guide Name"
+
+msgctxt "#32013"
+msgid "Affiliate"
+msgstr "Affiliate"
+
+msgctxt "#32014"
+msgid "Name to display"
+msgstr "Name to display"
+
+msgctxt "#32015"
 msgid "Hide unknown channels"
 msgstr "Hide unknown channels"
 
-msgctxt "#32007"
-msgid "Name to display"
-msgstr "Name to display"
+msgctxt "#32016"
+msgid "Hide protected channels"
+msgstr "Hide protected channels"
+
+msgctxt "#32017"
+msgid "Use Extended Guide"
+msgstr "Use Extended Guide"
+
+
+
+msgctxt "#32020"
+msgid "Network Settings"
+msgstr "Network Settings"
+
+msgctxt "#32021"
+msgid "Network Protocol"
+msgstr "Network Protocol"
+
+msgctxt "#32022"
+msgid "Use legacy hardware (Requires UDP protocol)"
+msgstr "Use legacy hardware (Requires UDP protocol)"
+
+msgctxt "#32023"
+msgid "Preferred Tuners"
+msgstr "Preferred Tuners"
+
+msgctxt "#32024"
+msgid "Blacklist Tuners"
+msgstr "Blacklist Tuners"
+
 
