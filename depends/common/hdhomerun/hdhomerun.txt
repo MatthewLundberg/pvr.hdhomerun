@@ -1,1 +1,1 @@
-hdhomerun https://github.com/Silicondust/libhdhomerun 1efbcb2b87b17a82f2b3d873d1c9cc1c6a3a9b77
+hdhomerun https://github.com/MatthewLundberg/libhdhomerun 2017.07.23
