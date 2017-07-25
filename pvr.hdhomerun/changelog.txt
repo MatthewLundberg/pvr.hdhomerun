@@ -1,6 +1,9 @@
 v4.0.0
 - Use lineup-based channels, to show every channel exactly once while allowing multiple for reception
 
+v3.1.0
+- Update to PVR addon API v5.3.0
+
 v3.0.7
 - Remove of never used addon interface function
 

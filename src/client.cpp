@@ -406,6 +406,9 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
     pCapabilities->bSupportsRecordings = false;
     pCapabilities->bSupportsRecordingsUndelete = false;
     pCapabilities->bSupportsTimers = false;
+    pCapabilities->bSupportsRecordingsRename = false;
+    pCapabilities->bSupportsRecordingsLifetimeChange = false;
+    pCapabilities->bSupportsDescrambleInfo = false;
 
     return PVR_ERROR_NO_ERROR;
 }
@@ -516,199 +519,61 @@ bool CanSeekStream(void)
     return true;
 }
 
-/* UNUSED API FUNCTIONS */
-PVR_ERROR CallMenuHook(const PVR_MENUHOOK &menuhook,
-        const PVR_MENUHOOK_DATA &item)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES* pProperties)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-int GetRecordingsAmount(bool deleted)
-{
-    return -1;
-}
-PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-int GetTimersAmount(void)
-{
-    return -1;
-}
-PVR_ERROR GetTimers(ADDON_HANDLE handle)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR OpenDialogChannelScan(void)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR DeleteChannel(const PVR_CHANNEL &channel)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR RenameChannel(const PVR_CHANNEL &channel)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR MoveChannel(const PVR_CHANNEL &channel)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR OpenDialogChannelSettings(const PVR_CHANNEL &channel)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR OpenDialogChannelAdd(const PVR_CHANNEL &channel)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-bool OpenRecordedStream(const PVR_RECORDING &recording)
-{
-    return false;
-}
-void CloseRecordedStream(void)
-{
-}
-int ReadRecordedStream(unsigned char *pBuffer, unsigned int iBufferSize)
-{
-    return 0;
-}
-long long SeekRecordedStream(long long iPosition, int iWhence /* = SEEK_SET */)
-{
-    return 0;
-}
-long long PositionRecordedStream(void)
-{
-    return -1;
-}
-long long LengthRecordedStream(void)
-{
-    return 0;
-}
-void DemuxReset(void)
-{
-}
-void DemuxFlush(void)
-{
-}
 int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
 {
     return g.lineup ? g.lineup->ReadLiveStream(pBuffer, iBufferSize) : 0;
 }
-long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */)
-{
-    return -1;
-}
-long long PositionLiveStream(void)
-{
-    return -1;
-}
-long long LengthLiveStream(void)
-{
-    return -1;
-}
-const char * GetLiveStreamURL(const PVR_CHANNEL &channel)
-{
-    return "";
-}
-PVR_ERROR DeleteRecording(const PVR_RECORDING &recording)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR RenameRecording(const PVR_RECORDING &recording)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING &recording,
-        int lastplayedposition)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-int GetRecordingLastPlayedPosition(const PVR_RECORDING &recording)
-{
-    return -1;
-}
-PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int*)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-;
-PVR_ERROR AddTimer(const PVR_TIMER &timer)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR UpdateTimer(const PVR_TIMER &timer)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-void DemuxAbort(void)
-{
-}
-DemuxPacket* DemuxRead(void)
-{
-    return nullptr;
-}
-unsigned int GetChannelSwitchDelay(void)
-{
-    return 0;
-}
-void PauseStream(bool bPaused)
-{
-}
-bool SeekTime(double, bool, double*)
-{
-    return false;
-}
-void SetSpeed(int)
-{
-}
-;
-time_t GetPlayingTime()
-{
-    return 0;
-}
-time_t GetBufferTimeStart()
-{
-    return 0;
-}
-time_t GetBufferTimeEnd()
-{
-    return 0;
-}
-PVR_ERROR UndeleteRecording(const PVR_RECORDING& recording)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR DeleteAllRecordingsFromTrash()
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
-}
-bool IsTimeshifting(void)
-{
-    return false;
-}
-bool IsRealTimeStream(void)
-{
-    return true;
-}
-PVR_ERROR SetEPGTimeFrame(int)
-{
-    return PVR_ERROR_NOT_IMPLEMENTED;
+
+/* UNUSED API FUNCTIONS */
+PVR_ERROR CallMenuHook(const PVR_MENUHOOK &menuhook, const PVR_MENUHOOK_DATA &item) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES* pProperties) { return PVR_ERROR_NOT_IMPLEMENTED; }
+int GetRecordingsAmount(bool deleted) { return -1; }
+PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted) { return PVR_ERROR_NOT_IMPLEMENTED; }
+int GetTimersAmount(void) { return -1; }
+PVR_ERROR GetTimers(ADDON_HANDLE handle) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR OpenDialogChannelScan(void) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR DeleteChannel(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR RenameChannel(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR MoveChannel(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR OpenDialogChannelSettings(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR OpenDialogChannelAdd(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
+bool OpenRecordedStream(const PVR_RECORDING &recording) { return false; }
+void CloseRecordedStream(void) {}
+int ReadRecordedStream(unsigned char *pBuffer, unsigned int iBufferSize) { return 0; }
+long long SeekRecordedStream(long long iPosition, int iWhence /* = SEEK_SET */) { return 0; }
+long long PositionRecordedStream(void) { return -1; }
+long long LengthRecordedStream(void) { return 0; }
+void DemuxReset(void) {}
+void DemuxFlush(void) {}
+long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */) { return -1; }
+long long PositionLiveStream(void) { return -1; }
+long long LengthLiveStream(void) { return -1; }
+const char * GetLiveStreamURL(const PVR_CHANNEL &channel) { return ""; }
+PVR_ERROR DeleteRecording(const PVR_RECORDING &recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR RenameRecording(const PVR_RECORDING &recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING &recording, int lastplayedposition) { return PVR_ERROR_NOT_IMPLEMENTED; }
+int GetRecordingLastPlayedPosition(const PVR_RECORDING &recording) { return -1; }
+PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int*) { return PVR_ERROR_NOT_IMPLEMENTED; };
+PVR_ERROR AddTimer(const PVR_TIMER &timer) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR UpdateTimer(const PVR_TIMER &timer) { return PVR_ERROR_NOT_IMPLEMENTED; }
+void DemuxAbort(void) {}
+DemuxPacket* DemuxRead(void) { return nullptr; }
+unsigned int GetChannelSwitchDelay(void) { return 0; }
+void PauseStream(bool bPaused) {}
+bool SeekTime(double,bool,double*) { return false; }
+void SetSpeed(int) {};
+time_t GetPlayingTime() { return 0; }
+time_t GetBufferTimeStart() { return 0; }
+time_t GetBufferTimeEnd() { return 0; }
+PVR_ERROR UndeleteRecording(const PVR_RECORDING& recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR DeleteAllRecordingsFromTrash() { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size) { return PVR_ERROR_NOT_IMPLEMENTED; }
+bool IsTimeshifting(void) { return false; }
+bool IsRealTimeStream(void) { return true; }
+PVR_ERROR SetEPGTimeFrame(int) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 }
 } // extern "C"
