@@ -76,8 +76,6 @@ public:
     PVR_ERROR PvrGetChannelGroupMembers(ADDON_HANDLE handle,
             const PVR_CHANNEL_GROUP &group);
 
-    const char* GetLiveStreamURL(const PVR_CHANNEL& channel);
-
     bool OpenLiveStream(const PVR_CHANNEL& channel);
     void CloseLiveStream(void);
 
