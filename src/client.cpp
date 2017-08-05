@@ -147,7 +147,7 @@ public:
                     }
                     updateLineup = true;
                 }
-                else if (state = 2 || now >= _lastGuide + g.Settings.guideUpdateInterval)
+                else if (state == 2 || now >= _lastGuide + g.Settings.guideUpdateInterval)
                 {
                     state = 0;
                     g.lineup->UpdateGuide();
