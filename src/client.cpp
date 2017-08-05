@@ -494,13 +494,6 @@ void CloseLiveStream(void)
         g.lineup->CloseLiveStream();
 }
 
-bool SwitchChannel(const PVR_CHANNEL &channel)
-{
-    CloseLiveStream();
-
-    return OpenLiveStream(channel);
-}
-
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 {
     PVR_STRCPY(signalStatus.strAdapterName, "otherkids PVR");
@@ -560,7 +553,6 @@ PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete) { return PVR_ER
 PVR_ERROR UpdateTimer(const PVR_TIMER &timer) { return PVR_ERROR_NOT_IMPLEMENTED; }
 void DemuxAbort(void) {}
 DemuxPacket* DemuxRead(void) { return nullptr; }
-unsigned int GetChannelSwitchDelay(void) { return 0; }
 void PauseStream(bool bPaused) {}
 bool SeekTime(double,bool,double*) { return false; }
 void SetSpeed(int) {};
@@ -575,4 +567,5 @@ bool IsRealTimeStream(void) { return true; }
 PVR_ERROR SetEPGTimeFrame(int) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times) { return PVR_ERROR_NOT_IMPLEMENTED; }
 } // extern "C"
