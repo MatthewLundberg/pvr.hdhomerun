@@ -40,15 +40,20 @@ Tuner* Info::GetPreferredTuner()
     std::set<uint32_t> ids;
 
     std::stringstream ss{g.Settings.preferredTuner};
-    while(ss.good())
+    if (ss.rdbuf()->in_avail() == 0) 
     {
-        std::string r;
-        getline(ss, r, ' ');
-        uint32_t id = std::stoul(r, 0, 16);
+        // No preferred tuner set
+    } else {    
+        while(ss.good())
+        {
+            std::string r;
+            getline(ss, r, ' ');
+            uint32_t id = std::stoul(r, 0, 16);
 
-        ids.insert(id);
+            ids.insert(id);
+        }
     }
-
+    
     for (;;) {
         Tuner* tuner = GetNextTuner();
 
