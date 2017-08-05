@@ -123,7 +123,6 @@ extern "C"
 		const PVR_CHANNEL_GROUP &group);
 	extern DLL_EXPORT bool OpenLiveStream(const PVR_CHANNEL &channel);
 	extern DLL_EXPORT void CloseLiveStream(void);
-	extern DLL_EXPORT bool SwitchChannel(const PVR_CHANNEL &channel);
 	extern DLL_EXPORT PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus);
 	extern DLL_EXPORT bool CanPauseStream(void);
 	extern DLL_EXPORT bool CanSeekStream(void);
@@ -162,9 +161,9 @@ extern "C"
 	extern DLL_EXPORT PVR_ERROR AddTimer(const PVR_TIMER &timer);
 	extern DLL_EXPORT PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete);
 	extern DLL_EXPORT PVR_ERROR UpdateTimer(const PVR_TIMER &timer);
+	extern DLL_EXPORT PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times);
 	extern DLL_EXPORT void DemuxAbort(void);
 	extern DLL_EXPORT DemuxPacket* DemuxRead(void);
-	extern DLL_EXPORT unsigned int GetChannelSwitchDelay(void);
 	extern DLL_EXPORT void PauseStream(bool bPaused);
 	extern DLL_EXPORT bool SeekTime(double, bool, double*);
 	extern DLL_EXPORT void SetSpeed(int);
