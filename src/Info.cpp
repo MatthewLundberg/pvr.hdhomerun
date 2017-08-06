@@ -37,10 +37,16 @@ Info::Info(const Json::Value& v)
 
 Tuner* Info::GetPreferredTuner()
 {
+    if (!g.Settings.preferredTuner.size())
+    {
+        // No preferred tuner set
+        return nullptr;
+    }
+
     std::set<uint32_t> ids;
 
     std::stringstream ss{g.Settings.preferredTuner};
-    while(ss.good())
+    while(ss.good() && !ss.eof())
     {
         std::string r;
         getline(ss, r, ' ');
@@ -49,7 +55,8 @@ Tuner* Info::GetPreferredTuner()
         ids.insert(id);
     }
 
-    for (;;) {
+    for (;;)
+    {
         Tuner* tuner = GetNextTuner();
 
         if (!tuner)
