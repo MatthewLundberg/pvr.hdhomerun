@@ -39,19 +39,18 @@ Tuner* Info::GetPreferredTuner()
 {
     std::set<uint32_t> ids;
 
-    std::stringstream ss{g.Settings.preferredTuner};
+    std::stringstream ss{g.Settings.preferredTuner};   
     if (ss.rdbuf()->in_avail() == 0) 
     {
-        // No preferred tuner set
-    } else {    
-        while(ss.good())
-        {
-            std::string r;
-            getline(ss, r, ' ');
-            uint32_t id = std::stoul(r, 0, 16);
+        return nullptr;
+    }
+    while(ss.good() && !ss.eof())
+    {
+        std::string r;
+        getline(ss, r, ' ');
+        uint32_t id = std::stoul(r, 0, 16);
 
-            ids.insert(id);
-        }
+        ids.insert(id);
     }
     
     for (;;) {
