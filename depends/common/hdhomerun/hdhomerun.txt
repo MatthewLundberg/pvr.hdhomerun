@@ -1,1 +1,1 @@
-hdhomerun https://github.com/MatthewLundberg/libhdhomerun/archive/master.zip
+hdhomerun https://github.com/MatthewLundberg/libhdhomerun/archive/2017.08.08.zip
