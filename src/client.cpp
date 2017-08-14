@@ -516,11 +516,13 @@ int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
 {
     return g.lineup ? g.lineup->ReadLiveStream(pBuffer, iBufferSize) : 0;
 }
-  
-const char * GetLiveStreamURL(const PVR_CHANNEL &channel) 
-{ 
-    return "";
-}
+
+PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
+{
+  *iPropertiesCount = 0;
+
+  return PVR_ERROR_NO_ERROR;
+} 
   
 /* UNUSED API FUNCTIONS */
 PVR_ERROR CallMenuHook(const PVR_MENUHOOK &menuhook, const PVR_MENUHOOK_DATA &item) { return PVR_ERROR_NOT_IMPLEMENTED; }
@@ -572,4 +574,5 @@ PVR_ERROR SetEPGTimeFrame(int) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount) { return PVR_ERROR_NOT_IMPLEMENTED; }
 } // extern "C"
