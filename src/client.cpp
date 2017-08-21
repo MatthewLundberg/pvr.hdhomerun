@@ -32,6 +32,9 @@
 #include "Lineup.h"
 #include "Utils.h"
 #include "Lockable.h"
+#include <iterator>
+#include <sstream>
+#include <algorithm>
 
 namespace PVRHDHomeRun
 {
@@ -43,6 +46,7 @@ class UpdateThread: public P8PLATFORM::CThread, Lockable
     time_t _lastDiscover = 0;
     time_t _lastLineup   = 0;
     time_t _lastGuide    = 0;
+
     bool   _running      = false;
 
 public:
@@ -216,6 +220,27 @@ void SetProtocol(const char* proto)
     }
 }
 
+namespace {
+
+std::vector<uint32_t> split_vec(const std::string& s) {
+	std::stringstream ss(s);
+	std::istream_iterator<std::string> begin(ss);
+	std::istream_iterator<std::string> end;
+	std::vector<std::string> svec(begin, end);
+	std::vector<uint32_t> ivec;
+	std::transform(svec.begin(), svec.end(), std::back_inserter(ivec),
+			[](const std::string& s) {return std::stoul(s, 0, 16);}
+	);
+	return ivec;
+}
+std::set<uint32_t> split_set(const std::string& s) {
+	auto vec = split_vec(s);
+	std::set<uint32_t> sset(vec.begin(), vec.end());
+	return sset;
+}
+
+}
+
 extern "C"
 {
 
@@ -234,11 +259,11 @@ void ADDON_ReadSettings(void)
 
     char preferred[1024];
     g.XBMC->GetSetting("preferred",      preferred);
-    g.Settings.preferredTuner.assign(preferred);
+    g.Settings.preferredTuner = split_vec(preferred);
 
     char blacklist[1024];
     g.XBMC->GetSetting("blacklist",      blacklist);
-    g.Settings.blacklistTuner.assign(preferred);
+    g.Settings.blacklistTuner = split_set(blacklist);
 
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
@@ -360,11 +385,11 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     }
     else if (strcmp(name, "preferred") == 0)
     {
-        g.Settings.preferredTuner.assign((char*) value);
+        g.Settings.preferredTuner = split_vec((char*) value);
     }
     else if (strcmp(name, "blackist") == 0)
     {
-        g.Settings.blacklistTuner.assign((char*) value);
+        g.Settings.blacklistTuner = split_set((char*) value);
     }
 
     return ADDON_STATUS_OK;

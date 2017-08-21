@@ -37,36 +37,15 @@ Info::Info(const Json::Value& v)
 
 Tuner* Info::GetPreferredTuner()
 {
-    if (!g.Settings.preferredTuner.size())
-    {
-        // No preferred tuner set
-        return nullptr;
-    }
-
-    std::set<uint32_t> ids;
-
-    std::stringstream ss{g.Settings.preferredTuner};
-    while(ss.good() && !ss.eof())
-    {
-        std::string r;
-        getline(ss, r, ' ');
-        uint32_t id = std::stoul(r, 0, 16);
-
-        ids.insert(id);
-    }
-
-    for (;;)
-    {
-        Tuner* tuner = GetNextTuner();
-
-        if (!tuner)
-            break;
-
-        if (ids.find(tuner->DeviceID()) != ids.end())
-            return tuner;
-    }
-
-    return nullptr;
+	for (const auto id: g.Settings.preferredTuner)
+	{
+		for (const auto tuner: _tuners)
+		{
+			if (id == tuner->DeviceID())
+				return tuner;
+		}
+	}
+	return nullptr;
 }
 
 Tuner* Info::GetNextTuner()

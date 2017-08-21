@@ -71,8 +71,17 @@ bool Lineup::DiscoverTuners()
         auto& dd = discover_devices[i];
         auto  id = dd.device_id;
 
+        if (g.Settings.blacklistTuner.find(id) != g.Settings.blacklistTuner.end())
+        {
+        	KODI_LOG(LOG_INFO, "Ignoring blacklisted tuner %08x", id);
+        	continue;
+        }
+
         if (dd.is_legacy && !g.Settings.useLegacyTuners)
+        {
+        	KODI_LOG(LOG_INFO, "Ignoring legacy tuner %08x", id);
             continue;
+        }
 
         discovered_ids.insert(id);
 

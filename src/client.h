@@ -28,6 +28,8 @@
 
 #include <libXBMC_addon.h>
 #include <libXBMC_pvr.h>
+#include <vector>
+#include <set>
 
 #if defined(_WIN32)
 #define DLL_EXPORT __declspec(dllexport)
@@ -62,8 +64,8 @@ struct SettingsType
     CHANNEL_NAME channelName    = AFFILIATE;
     PROTOCOL     protocol       = TCP;
     bool extendedGuide          = false;
-    std::string preferredTuner;
-    std::string blacklistTuner;
+    std::vector<uint32_t> preferredTuner;
+    std::set<uint32_t>    blacklistTuner;
     uint16_t udpPort            = 5000;
 
     int tunerDiscoverInterval   = 300;
