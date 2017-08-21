@@ -29,7 +29,7 @@ namespace PVRHDHomeRun
 class Tuner
 {
 public:
-    Tuner(const hdhomerun_discover_device_t& d);
+    Tuner(const hdhomerun_discover_device_t& d, unsigned int tuner=0);
     Tuner(const Tuner&) = delete;
     Tuner(Tuner&&) = default;
     ~Tuner();

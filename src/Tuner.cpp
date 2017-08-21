@@ -27,9 +27,9 @@
 namespace PVRHDHomeRun
 {
 
-Tuner::Tuner(const hdhomerun_discover_device_t& d)
+Tuner::Tuner(const hdhomerun_discover_device_t& d, unsigned int tuner)
     : _debug(nullptr) // _debug(hdhomerun_debug_create())
-    , _device(hdhomerun_device_create(d.device_id, d.ip_addr, 0, _debug))
+    , _device(hdhomerun_device_create(d.device_id, d.ip_addr, tuner, _debug))
     , _discover_device(d) // copy
 {
     _get_api_data();
