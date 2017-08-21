@@ -441,7 +441,6 @@ void Lineup::UpdateGuide()
     time_t now     = time(nullptr);
     if (!_guide_contains(now) || !_guide_contains(now + g.Settings.guideBasicInterval))
     {
-        std::cout << "Stale guide, basic update\n";
         _update_guide_basic();
         return;
     }
