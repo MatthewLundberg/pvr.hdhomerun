@@ -35,25 +35,25 @@ Info::Info(const Json::Value& v)
     _hd        = v["HD"].asBool();
 }
 
-Tuner* Info::GetPreferredTuner()
+Device* Info::GetPreferredDevice()
 {
-	for (const auto id: g.Settings.preferredTuner)
-	{
-		for (const auto tuner: _tuners)
-		{
-			if (id == tuner->DeviceID())
-				return tuner;
-		}
-	}
-	return nullptr;
+    for (const auto id: g.Settings.preferredDevice)
+    {
+        for (const auto device: _devices)
+        {
+            if (id == device->DeviceID())
+                return device;
+        }
+    }
+    return nullptr;
 }
 
-Tuner* Info::GetNextTuner()
+Device* Info::GetNextDevice()
 {
     if (_has_next)
     {
         _next ++;
-        if (_next == _tuners.end())
+        if (_next == _devices.end())
         {
             _has_next = false;
             return nullptr;
@@ -62,52 +62,52 @@ Tuner* Info::GetNextTuner()
     else
     {
         _has_next = true;
-        _next = _tuners.begin();
+        _next = _devices.begin();
     }
     return *_next;
 }
 
-void Info::ResetNextTuner()
+void Info::ResetNextDevice()
 {
     _has_next = false;
 }
 
-bool Info::AddTuner(Tuner* t, const std::string& url)
+bool Info::AddDevice(Device* t, const std::string& url)
 {
-    if (HasTuner(t))
+    if (HasDevice(t))
     {
         return false;
     }
-    _tuners.insert(t);
+    _devices.insert(t);
     _url[t] = url;
-    ResetNextTuner();
+    ResetNextDevice();
 
     return true;
 }
 
-bool Info::RemoveTuner(Tuner* t)
+bool Info::RemoveDevice(Device* t)
 {
-    if (!HasTuner(t))
+    if (!HasDevice(t))
     {
         return false;
     }
-    _tuners.erase(t);
-    ResetNextTuner();
+    _devices.erase(t);
+    ResetNextDevice();
 
     return true;
 }
 
-std::string Info::TunerListString() const
+std::string Info::DeviceListString() const
 {
-    std::string tuners;
-    for (auto tuner : _tuners)
+    std::string devices;
+    for (auto device : _devices)
     {
         char id[10];
-        sprintf(id, " %08x", tuner->DeviceID());
-        tuners += id;
+        sprintf(id, " %08x", device->DeviceID());
+        devices += id;
     }
 
-    return tuners;
+    return devices;
 }
 
 

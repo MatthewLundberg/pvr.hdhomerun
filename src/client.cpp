@@ -122,12 +122,12 @@ public:
             {
                 bool changed = false;
 
-                if (now >= _lastDiscover + g.Settings.tunerDiscoverInterval)
+                if (now >= _lastDiscover + g.Settings.deviceDiscoverInterval)
                 {
-                    bool discovered = g.lineup->DiscoverTuners();
+                    bool discovered = g.lineup->DiscoverDevices();
                     if (discovered)
                     {
-                        KODI_LOG(LOG_DEBUG, "Lineup::DiscoverTuners returned true, try again");
+                        KODI_LOG(LOG_DEBUG, "Lineup::DiscoverDevices returned true, try again");
                         now = 0;
                         state = 0;
                     }
@@ -253,17 +253,17 @@ void ADDON_ReadSettings(void)
     g.XBMC->GetSetting("mark_new",       &g.Settings.markNewProgram);
     g.XBMC->GetSetting("debug",          &g.Settings.debugLog);
     g.XBMC->GetSetting("hide_unknown",   &g.Settings.hideUnknownChannels);
-    g.XBMC->GetSetting("use_legacy",     &g.Settings.useLegacyTuners);
+    g.XBMC->GetSetting("use_legacy",     &g.Settings.useLegacyDevices);
     g.XBMC->GetSetting("extended",       &g.Settings.extendedGuide);
     g.XBMC->GetSetting("channel_name",   &g.Settings.channelName);
 
     char preferred[1024];
     g.XBMC->GetSetting("preferred",      preferred);
-    g.Settings.preferredTuner = split_vec(preferred);
+    g.Settings.preferredDevice = split_vec(preferred);
 
     char blacklist[1024];
     g.XBMC->GetSetting("blacklist",      blacklist);
-    g.Settings.blacklistTuner = split_set(blacklist);
+    g.Settings.blacklistDevice = split_set(blacklist);
 
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
@@ -361,7 +361,7 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     }
     else if (strcmp(name, "use_legacy") == 0)
     {
-        g.Settings.useLegacyTuners = *(bool*) value;
+        g.Settings.useLegacyDevices = *(bool*) value;
         return ADDON_STATUS_NEED_RESTART;
     }
     else if (strcmp(name, "hide_unknown") == 0)
@@ -385,11 +385,11 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     }
     else if (strcmp(name, "preferred") == 0)
     {
-        g.Settings.preferredTuner = split_vec((char*) value);
+        g.Settings.preferredDevice = split_vec((char*) value);
     }
     else if (strcmp(name, "blackist") == 0)
     {
-        g.Settings.blacklistTuner = split_set((char*) value);
+        g.Settings.blacklistDevice = split_set((char*) value);
     }
 
     return ADDON_STATUS_OK;

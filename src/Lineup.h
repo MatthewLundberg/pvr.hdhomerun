@@ -44,26 +44,26 @@ public:
     Lineup() = default;
     ~Lineup()
     {
-        for (auto tuner: _tuners)
+        for (auto device: _devices)
         {
-            delete tuner;
+            delete device;
         }
     }
 
-    bool DiscoverTuners();
+    bool DiscoverDevices();
     bool UpdateLineup();
     void UpdateGuide();
     void TriggerEpgUpdate();
 
     bool Update()
     {
-        bool newTuner  = DiscoverTuners();
+        bool newDevice  = DiscoverDevices();
         bool newLineup = UpdateLineup();
         UpdateGuide();
 
-        return newTuner || newLineup;
+        return newDevice || newLineup;
     }
-    void AddLineupEntry(const Json::Value&, Tuner*);
+    void AddLineupEntry(const Json::Value&, Device*);
 
     PVR_ERROR PvrGetChannels(ADDON_HANDLE handle, bool bRadio);
     int PvrGetChannelsAmount();
@@ -85,13 +85,13 @@ public:
 private:
     bool                _age_out(void);
     bool                _guide_contains(time_t);
-    bool                _insert_json_guide_data(const Json::Value&, const Tuner*);
-    bool                _insert_guide_data(const GuideNumber* = nullptr, const Tuner* = nullptr, time_t start=0);
+    bool                _insert_json_guide_data(const Json::Value&, const Device*);
+    bool                _insert_guide_data(const GuideNumber* = nullptr, const Device* = nullptr, time_t start=0);
     bool                _update_guide_basic();
     bool                _update_guide_extended(const GuideNumber&, time_t start);
     bool                _open_tcp_stream(const std::string&);
 
-    std::set<Tuner*>          _tuners;
+    std::set<Device*>         _devices;
     std::set<uint32_t>        _device_ids;
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;

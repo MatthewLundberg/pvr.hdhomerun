@@ -24,16 +24,17 @@
 #include "client.h"
 #include <json/json.h>
 
+
 namespace PVRHDHomeRun
 {
 
-Tuner::Tuner(const hdhomerun_discover_device_t& d, unsigned int tuner)
-    : _debug(nullptr) // _debug(hdhomerun_debug_create())
-    , _device(hdhomerun_device_create(d.device_id, d.ip_addr, tuner, _debug))
-    , _discover_device(d) // copy
+
+Tuner::Tuner(Device* box, unsigned int index)
+    : _box(box)
+    , _index(index)
+	, _debug(nullptr) // _debug(hdhomerun_debug_create())
+    , _device(hdhomerun_device_create(box->DeviceID(), box->IP(), index, _debug))
 {
-    _get_api_data();
-    _get_discover_data();
 }
 
 Tuner::~Tuner()
@@ -41,6 +42,26 @@ Tuner::~Tuner()
     hdhomerun_device_destroy(_device);
     //hdhomerun_debug_destroy(_debug);
 }
+
+Device::Device(const hdhomerun_discover_device_t& d)
+	: _discover_device(d) // copy
+{
+    _get_api_data();
+    _get_discover_data();
+
+    // We only need the device-level info for TCP
+    if (g.Settings.protocol == SettingsType::TCP)
+        return;
+
+    for (unsigned int index=0; index<_tunercount; index++)
+    {
+        _tuners.push_back(std::unique_ptr<Tuner>(new Tuner(this, index)));
+
+    }
+}
+
+Device::~Device()
+{}
 
 
 void Tuner::_get_var(std::string& value, const char* name)
@@ -50,21 +71,21 @@ void Tuner::_get_var(std::string& value, const char* name)
     if (hdhomerun_device_get_var(_device, name, &get_val, &get_err) < 0)
     {
         KODI_LOG(LOG_ERROR,
-                "communication error sending %s request to %08x",
-                name, _discover_device.device_id
+                "communication error sending %s request to %08x-%u",
+                name, _box->DeviceID(), _index
         );
     }
     else if (get_err)
     {
-        KODI_LOG(LOG_ERROR, "error %s with %s request from %08x",
-                get_err, name, _discover_device.device_id
+        KODI_LOG(LOG_ERROR, "error %s with %s request from %08x-%u",
+                get_err, name, _box->DeviceID(), _index
         );
     }
     else
     {
-        KODI_LOG(LOG_DEBUG, "Success getting value %s = %s from %08x",
+        KODI_LOG(LOG_DEBUG, "Success getting value %s = %s from %08x-%u",
                 name, get_val,
-                _discover_device.device_id
+                _box->DeviceID(), _index
         );
 
         value.assign(get_val);
@@ -76,32 +97,32 @@ void Tuner::_set_var(const char* value, const char* name)
     if (hdhomerun_device_set_var(_device, name, value, NULL, &set_err) < 0)
     {
         KODI_LOG(LOG_ERROR,
-                "communication error sending set request %s = %s to %08x",
+                "communication error sending set request %s = %s to %08x-%u",
                 name, value,
-                _discover_device.device_id
+                _box->DeviceID(), _index
         );
     }
     else if (set_err)
     {
-        KODI_LOG(LOG_ERROR, "error %s with %s = %s request from %08x",
+        KODI_LOG(LOG_ERROR, "error %s with %s = %s request from %08x-%u",
                 set_err,
                 name, value,
-                _discover_device.device_id
+                _box->DeviceID(), _index
         );
     }
     else
     {
         KODI_LOG(LOG_DEBUG, "Success setting value %s = %s from %08x",
                 name, value,
-                _discover_device.device_id
+                _box->DeviceID(), _index
         );
     }
 }
-void Tuner::_get_api_data()
+void Device::_get_api_data()
 {
 }
 
-void Tuner::_get_discover_data()
+void Device::_get_discover_data()
 {
     std::string discoverResults;
 
@@ -144,13 +165,13 @@ void Tuner::_get_discover_data()
     }
 }
 
-void Tuner::Refresh(const hdhomerun_discover_device_t& d)
+void Device::Refresh(const hdhomerun_discover_device_t& d)
 {
     _discover_device = d;
     _get_discover_data();
 }
 
-uint32_t Tuner::LocalIP() const
+uint32_t Device::LocalIP() const
 {
     uint32_t tunerip = IP();
 

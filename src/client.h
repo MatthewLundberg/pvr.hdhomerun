@@ -40,7 +40,7 @@
 namespace PVRHDHomeRun
 {
 
-class HDHomeRunTuners;
+class HDHomeRunDevices;
 class Lineup;
 
 
@@ -59,16 +59,16 @@ struct SettingsType
     bool hideProtectedChannels  = true;
     bool debugLog               = false;
     bool markNewProgram         = false;
-    bool useLegacyTuners        = false;
+    bool useLegacyDevices       = false;
     bool hideUnknownChannels    = true;
     CHANNEL_NAME channelName    = AFFILIATE;
     PROTOCOL     protocol       = TCP;
     bool extendedGuide          = false;
-    std::vector<uint32_t> preferredTuner;
-    std::set<uint32_t>    blacklistTuner;
+    std::vector<uint32_t> preferredDevice;
+    std::set<uint32_t>    blacklistDevice;
     uint16_t udpPort            = 5000;
 
-    int tunerDiscoverInterval   = 300;
+    int deviceDiscoverInterval  = 300;
     int lineupUpdateInterval    = 300;
     int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update
     int guideBasicInterval      = 3600 * 2;  // 2 hours Refresh basic guide if there is a channel without a start time this far into the future

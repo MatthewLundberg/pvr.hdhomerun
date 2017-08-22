@@ -26,42 +26,42 @@
 namespace PVRHDHomeRun
 {
 
-class Tuner;
+class Device;
 
 class Info
 {
 public:
     Info(const Json::Value&);
     Info() = default;
-    const Tuner* GetFirstTuner() const
+    const Device* GetFirstDevice() const
     {
-        auto it = _tuners.begin();
-        if (it == _tuners.end())
+        auto it = _devices.begin();
+        if (it == _devices.end())
             return nullptr;
 
         return *it;
     }
-    Tuner* GetPreferredTuner();
-    Tuner* GetNextTuner();
-    void ResetNextTuner();
-    bool AddTuner(Tuner*, const std::string& url);
-    bool RemoveTuner(Tuner*);
-    bool HasTuner(Tuner* t) const
+    Device* GetPreferredDevice();
+    Device* GetNextDevice();
+    void ResetNextDevice();
+    bool AddDevice(Device*, const std::string& url);
+    bool RemoveDevice(Device*);
+    bool HasDevice(Device* t) const
     {
-        return _tuners.find(t) != _tuners.end();
+        return _devices.find(t) != _devices.end();
     }
-    std::string DlnaURL(Tuner* t) const
+    std::string DlnaURL(Device* t) const
     {
         auto it = _url.find(t);
         if (it != _url.end())
             return it->second;
         return "";
     }
-    size_t TunerCount() const
+    size_t DeviceCount() const
     {
-        return _tuners.size();
+        return _devices.size();
     }
-    std::string TunerListString() const;
+    std::string DeviceListString() const;
 
     std::string _guidename;
     bool        _hd       = false;
@@ -69,12 +69,12 @@ public:
     bool        _favorite = false;
 
 private:
-    // Tuners which can receive this channel.
-    // Tuner pointers are owned by Lineup
-    bool                          _has_next = false;
-    std::set<Tuner*>              _tuners;
-    std::set<Tuner*>::iterator    _next;
-    std::map<Tuner*, std::string> _url;
+    // Devices which can receive this channel.
+    // Device pointers are owned by Lineup
+    bool                           _has_next = false;
+    std::set<Device*>              _devices;
+    std::set<Device*>::iterator    _next;
+    std::map<Device*, std::string> _url;
 };
 
 } // namespace PVRHDHomeRun

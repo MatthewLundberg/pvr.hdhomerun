@@ -22,20 +22,23 @@
 
 #include <hdhomerun.h>
 #include <string>
+#include <memory>
+#include <vector>
 
 namespace PVRHDHomeRun
 {
 
-class Tuner
+class Tuner;
+
+// The tuner box has an ID, lineup, guide, and one or more tuners.
+class Device
 {
 public:
-    Tuner(const hdhomerun_discover_device_t& d, unsigned int tuner=0);
-    Tuner(const Tuner&) = delete;
-    Tuner(Tuner&&) = default;
-    ~Tuner();
+    Device(const hdhomerun_discover_device_t& d);
+    ~Device();
+
     void Refresh(const hdhomerun_discover_device_t& d);
 
-    // Accessors
     unsigned int TunerCount() const
     {
         return _tunercount;
@@ -52,15 +55,52 @@ public:
     {
         return _discover_device.device_auth;
     }
-    const char* BaseURL() const
-    {
-        return _discover_device.base_url;
-    }
     uint32_t IP() const
     {
         return _discover_device.ip_addr;
     }
     uint32_t LocalIP() const;
+
+private:
+    // Called once
+    void _get_api_data();
+    // Called multiple times for legacy devices
+    void _get_discover_data();
+
+    hdhomerun_discover_device_t _discover_device;
+
+    // Discover Data
+    std::string                 _lineupURL;
+    unsigned int                _tunercount;
+    bool                        _legacy;
+
+    std::vector<std::unique_ptr<Tuner>> _tuners;
+public:
+    bool operator<(const Device& rhs) const
+    {
+        return DeviceID() < rhs.DeviceID();
+    }
+    bool operator==(const Device& rhs) const
+    {
+    	return DeviceID() == rhs.DeviceID();
+    }
+    friend class Lineup;
+    friend class Tuner;
+};
+
+class Tuner
+{
+public:
+    Tuner(Device* box, unsigned int index=0);
+    Tuner(const Tuner&) = delete;
+    Tuner(Tuner&&) = default;
+    ~Tuner();
+
+    //hdhomerun_device_t* Device()
+    //{
+    //    return _device;
+    //}
+
     std::string GetVar(const std::string& name)
     {
         std::string retval;
@@ -71,31 +111,24 @@ public:
     {
         _set_var(value.c_str(), name.c_str());
     }
+    Device* GetDevice() const
+    {
+        return _box;
+    }
 
 private:
     void _get_var(std::string& value, const char* name);
     void _set_var(const char*value, const char* name);
-    // Called once
-    void _get_api_data();
-    // Called multiple times for legacy devices
-    void _get_discover_data();
 
     // The hdhomerun_... objects depend on the order listed here for proper instantiation.
-    hdhomerun_debug_t*          _debug;
-    hdhomerun_device_t*         _device;
-    hdhomerun_discover_device_t _discover_device;
-    // Discover Data
-    std::string                 _lineupURL;
-    unsigned int                _tunercount;
-    bool                        _legacy;
-public:
-    bool operator<(const Tuner& rhs) const
-    {
-        return DeviceID() < rhs.DeviceID();
-    }
-    friend class Lineup;
+    Device*             _box;
+    unsigned int        _index;
+    hdhomerun_debug_t*  _debug;
+    hdhomerun_device_t* _device;
+
     friend class TunerLock;
 };
+
 
 class TunerLock
 {
