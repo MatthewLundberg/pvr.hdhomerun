@@ -40,8 +40,7 @@
 namespace PVRHDHomeRun
 {
 
-class HDHomeRunDevices;
-class Lineup;
+class PVR_HDHR;
 
 
 struct SettingsType
@@ -86,9 +85,9 @@ struct GlobalsType
     ADDON_STATUS currentStatus           = ADDON_STATUS_UNKNOWN;
     std::string  userPath;
     std::string  clientPath;
-    ADDON::CHelper_libXBMC_addon* XBMC   = nullptr;
-    CHelper_libXBMC_pvr*          PVR    = nullptr;
-    Lineup*                       lineup = nullptr;
+    ADDON::CHelper_libXBMC_addon* XBMC    = nullptr;
+    CHelper_libXBMC_pvr*          PVR     = nullptr;
+    PVR_HDHR*                     pvr_hdhr = nullptr;
 
     SettingsType Settings;
 };

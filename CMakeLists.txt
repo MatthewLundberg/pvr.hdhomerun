@@ -30,7 +30,7 @@ set(PVRHDHOMERUN_SOURCES src/client.cpp
                          src/Info.cpp
                          src/Guide.cpp
                          src/IntervalSet.cpp
-                         src/Lineup.cpp
+                         src/PVR_HDHR.cpp
                          src/Utils.cpp)
 
 set(PVRHDHOMERUN_HEADERS src/client.h
@@ -39,7 +39,7 @@ set(PVRHDHOMERUN_HEADERS src/client.h
                          src/Guide.h
                          src/Lockable.h
                          src/IntervalSet.h
-                         src/Lineup.h
+                         src/PVR_HDHR.h
                          src/Utils.h)
 
 if(WIN32)

@@ -60,6 +60,10 @@ public:
         return _discover_device.ip_addr;
     }
     uint32_t LocalIP() const;
+    const std::string& LineupURL()
+    {
+        return _lineupURL;
+    }
 
 private:
     // Called once

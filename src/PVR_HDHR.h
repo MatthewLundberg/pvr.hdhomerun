@@ -38,11 +38,11 @@
 
 namespace PVRHDHomeRun {
 
-class Lineup : public Lockable
+class PVR_HDHR : public Lockable
 {
 public:
-    Lineup() = default;
-    ~Lineup()
+    PVR_HDHR() = default;
+    virtual ~PVR_HDHR()
     {
         for (auto device: _devices)
         {
@@ -78,19 +78,20 @@ public:
 
     bool OpenLiveStream(const PVR_CHANNEL& channel);
     void CloseLiveStream(void);
-
     int ReadLiveStream(unsigned char* buffer, unsigned int size);
 
 
 private:
-    bool                _age_out(void);
-    bool                _guide_contains(time_t);
-    bool                _insert_json_guide_data(const Json::Value&, const Device*);
-    bool                _insert_guide_data(const GuideNumber* = nullptr, const Device* = nullptr, time_t start=0);
-    bool                _update_guide_basic();
-    bool                _update_guide_extended(const GuideNumber&, time_t start);
-    bool                _open_tcp_stream(const std::string&);
+    bool  _age_out(void);
+    bool  _guide_contains(time_t);
+    bool  _insert_json_guide_data(const Json::Value&, const Device*);
+    bool  _insert_guide_data(const GuideNumber* = nullptr, const Device* = nullptr, time_t start=0);
+    bool  _update_guide_basic();
+    bool  _update_guide_extended(const GuideNumber&, time_t start);
 
+    virtual bool _open_live_stream(const PVR_CHANNEL& channel) = 0;
+
+protected:
     std::set<Device*>         _devices;
     std::set<uint32_t>        _device_ids;
     std::set<GuideNumber>     _lineup;
@@ -102,5 +103,16 @@ private:
     void* _filehandle;
 };
 
+class PVR_HDHR_TCP : public PVR_HDHR {
+private:
+    bool  _open_live_stream(const PVR_CHANNEL& channel) override;
+    bool  _open_tcp_stream(const std::string&);
+};
+class PVR_HDHR_UDP : public PVR_HDHR {
+private:
+    bool  _open_live_stream(const PVR_CHANNEL& channel) override;
+};
+
+PVR_HDHR* PVR_HDHR_Factory(int protocol);
 
 }; // namespace PVRHDHomeRun

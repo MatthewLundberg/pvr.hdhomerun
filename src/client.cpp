@@ -29,7 +29,7 @@
 #include <xbmc_pvr_dll.h>
 #include <p8-platform/util/util.h>
 #include <p8-platform/threads/threads.h>
-#include "Lineup.h"
+#include "PVR_HDHR.h"
 #include "Utils.h"
 #include "Lockable.h"
 #include <iterator>
@@ -118,16 +118,16 @@ public:
             bool updateLineup   = false;
             bool updateGuide    = false;
 
-            if (g.lineup)
+            if (g.pvr_hdhr)
             {
                 bool changed = false;
 
                 if (now >= _lastDiscover + g.Settings.deviceDiscoverInterval)
                 {
-                    bool discovered = g.lineup->DiscoverDevices();
+                    bool discovered = g.pvr_hdhr->DiscoverDevices();
                     if (discovered)
                     {
-                        KODI_LOG(LOG_DEBUG, "Lineup::DiscoverDevices returned true, try again");
+                        KODI_LOG(LOG_DEBUG, "PVR::DiscoverDevices returned true, try again");
                         now = 0;
                         state = 0;
                     }
@@ -139,7 +139,7 @@ public:
                 }
                 else if (state == 1 || now >= _lastLineup + g.Settings.lineupUpdateInterval)
                 {
-                    if (g.lineup->UpdateLineup())
+                    if (g.pvr_hdhr->UpdateLineup())
                     {
                         state = 2;
                         g.PVR->TriggerChannelUpdate();
@@ -154,7 +154,7 @@ public:
                 else if (state == 2 || now >= _lastGuide + g.Settings.guideUpdateInterval)
                 {
                     state = 0;
-                    g.lineup->UpdateGuide();
+                    g.pvr_hdhr->UpdateGuide();
                     updateGuide = true;
                 }
                 else
@@ -164,7 +164,7 @@ public:
 
                 if (!_running)
                 {
-                    g.lineup->TriggerEpgUpdate();
+                    g.pvr_hdhr->TriggerEpgUpdate();
                     _running = false;
                 }
             }
@@ -302,14 +302,15 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
     ADDON_ReadSettings();
 
     KODI_LOG(LOG_DEBUG, "Creating new-style Lineup");
-    g.lineup = new Lineup();
-    if (g.lineup == nullptr)
+    g.pvr_hdhr = PVR_HDHR_Factory(g.Settings.protocol);
+
+    if (g.pvr_hdhr == nullptr)
         return ADDON_STATUS_PERMANENT_FAILURE;
     KODI_LOG(LOG_DEBUG, "Done with new-style Lineup");
 
-    if (g.lineup)
+    if (g.pvr_hdhr)
     {
-        g.lineup->Update();
+        g.pvr_hdhr->Update();
         g_UpdateThread.CreateThread(false);
     }
 
@@ -328,7 +329,7 @@ void ADDON_Destroy()
 {
     g_UpdateThread.StopThread();
 
-    SAFE_DELETE(g.lineup);
+    SAFE_DELETE(g.pvr_hdhr);
     SAFE_DELETE(g.PVR);
     SAFE_DELETE(g.XBMC);
 
@@ -343,7 +344,7 @@ bool ADDON_HasSettings()
 
 ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
 {
-    if (g.lineup == nullptr)
+    if (g.pvr_hdhr == nullptr)
         return ADDON_STATUS_OK;
 
     if (strcmp(name, "hide_protected") == 0)
@@ -407,9 +408,9 @@ void OnSystemWake()
 {
     g_UpdateThread.Wake();
 
-    if (g.lineup && g.PVR)
+    if (g.pvr_hdhr && g.PVR)
     {
-        g.lineup->Update();
+        g.pvr_hdhr->Update();
         g.PVR->TriggerChannelUpdate();
     }
 }
@@ -469,54 +470,54 @@ PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL& channel,
         time_t iStart, time_t iEnd)
 {
-    return g.lineup ?
-            g.lineup->PvrGetEPGForChannel(handle, channel, iStart, iEnd) :
+    return g.pvr_hdhr ?
+            g.pvr_hdhr->PvrGetEPGForChannel(handle, channel, iStart, iEnd) :
             PVR_ERROR_SERVER_ERROR;
 }
 
 int GetChannelsAmount(void)
 {
-    return g.lineup ? g.lineup->PvrGetChannelsAmount() : PVR_ERROR_SERVER_ERROR;
+    return g.pvr_hdhr ? g.pvr_hdhr->PvrGetChannelsAmount() : PVR_ERROR_SERVER_ERROR;
 }
 
 PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
 {
-    return g.lineup ?
-            g.lineup->PvrGetChannels(handle, bRadio) : PVR_ERROR_SERVER_ERROR;
+    return g.pvr_hdhr ?
+            g.pvr_hdhr->PvrGetChannels(handle, bRadio) : PVR_ERROR_SERVER_ERROR;
 }
 
 int GetChannelGroupsAmount(void)
 {
-    return g.lineup ?
-            g.lineup->PvrGetChannelGroupsAmount() : PVR_ERROR_SERVER_ERROR;
+    return g.pvr_hdhr ?
+            g.pvr_hdhr->PvrGetChannelGroupsAmount() : PVR_ERROR_SERVER_ERROR;
 }
 
 PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 {
-    return g.lineup ?
-            g.lineup->PvrGetChannelGroups(handle, bRadio) :
+    return g.pvr_hdhr ?
+            g.pvr_hdhr->PvrGetChannelGroups(handle, bRadio) :
             PVR_ERROR_SERVER_ERROR;
 }
 
 PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle,
         const PVR_CHANNEL_GROUP &group)
 {
-    return g.lineup ?
-            g.lineup->PvrGetChannelGroupMembers(handle, group) :
+    return g.pvr_hdhr ?
+            g.pvr_hdhr->PvrGetChannelGroupMembers(handle, group) :
             PVR_ERROR_SERVER_ERROR;
 }
 
 bool OpenLiveStream(const PVR_CHANNEL &channel)
 {
-    return g.lineup ?
-            g.lineup->OpenLiveStream(channel) :
+    return g.pvr_hdhr ?
+            g.pvr_hdhr->OpenLiveStream(channel) :
             false;
 }
 
 void CloseLiveStream(void)
 {
-    if (g.lineup)
-        g.lineup->CloseLiveStream();
+    if (g.pvr_hdhr)
+        g.pvr_hdhr->CloseLiveStream();
 }
 
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
@@ -539,7 +540,7 @@ bool CanSeekStream(void)
 
 int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
 {
-    return g.lineup ? g.lineup->ReadLiveStream(pBuffer, iBufferSize) : 0;
+    return g.pvr_hdhr ? g.pvr_hdhr->ReadLiveStream(pBuffer, iBufferSize) : 0;
 }
 
 PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)

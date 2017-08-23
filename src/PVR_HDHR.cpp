@@ -24,7 +24,7 @@
 
 #include "client.h"
 #include "Utils.h"
-#include "Lineup.h"
+#include "PVR_HDHR.h"
 #include <chrono>
 #include <thread>
 #include <functional>
@@ -37,8 +37,18 @@
 
 namespace PVRHDHomeRun
 {
+PVR_HDHR* PVR_HDHR_Factory(int protocol) {
+    switch (protocol)
+    {
+    case SettingsType::TCP:
+        return new PVR_HDHR_TCP();
+    case SettingsType::UDP:
+        return new PVR_HDHR_UDP();
+    }
+    return nullptr;
+}
 
-bool Lineup::DiscoverDevices()
+bool PVR_HDHR::DiscoverDevices()
 {
     struct hdhomerun_discover_device_t discover_devices[64];
     size_t device_count = hdhomerun_discover_find_devices_custom_v2(
@@ -49,7 +59,7 @@ bool Lineup::DiscoverDevices()
             64
             );
 
-    KODI_LOG(LOG_DEBUG, "Lineup::DiscoverDevices Found %d devices", device_count);
+    KODI_LOG(LOG_DEBUG, "PVR_HDHR::DiscoverDevices Found %d devices", device_count);
 
     if (device_count == 0)
     {
@@ -157,7 +167,7 @@ bool Lineup::DiscoverDevices()
     return device_added || device_removed;
 }
 
-void Lineup::AddLineupEntry(const Json::Value& v, Device* device)
+void PVR_HDHR::AddLineupEntry(const Json::Value& v, Device* device)
 {
     GuideNumber number = v;
     if ((g.Settings.hideUnknownChannels) && (number._guidename == "Unknown"))
@@ -173,9 +183,9 @@ void Lineup::AddLineupEntry(const Json::Value& v, Device* device)
     _info[number].AddDevice(device, v["URL"].asString());
 }
 
-bool Lineup::UpdateLineup()
+bool PVR_HDHR::UpdateLineup()
 {
-    KODI_LOG(LOG_DEBUG, "Lineup::UpdateLineup");
+    KODI_LOG(LOG_DEBUG, "PVR_HDHR::UpdateLineup");
 
     Lock lock(this);
     std::set<GuideNumber> prior;
@@ -187,13 +197,13 @@ bool Lineup::UpdateLineup()
     {
 
         KODI_LOG(LOG_DEBUG, "Requesting HDHomeRun channel lineup for %08x: %s",
-                device->_discover_device.device_id, device->_lineupURL.c_str()
+                device->DeviceID(), device->LineupURL().c_str()
         );
 
         std::string lineupStr;
-        if (!GetFileContents(device->_lineupURL, lineupStr))
+        if (!GetFileContents(device->LineupURL(), lineupStr))
         {
-            KODI_LOG(LOG_ERROR, "Cannot get lineup from %s", device->_lineupURL.c_str());
+            KODI_LOG(LOG_ERROR, "Cannot get lineup from %s", device->LineupURL().c_str());
             continue;
         }
 
@@ -201,13 +211,13 @@ bool Lineup::UpdateLineup()
         Json::Reader jsonReader;
         if (!jsonReader.parse(lineupStr, lineupJson))
         {
-            KODI_LOG(LOG_ERROR, "Cannot parse JSON value returned from %s", device->_lineupURL.c_str());
+            KODI_LOG(LOG_ERROR, "Cannot parse JSON value returned from %s", device->LineupURL().c_str());
             continue;
         }
 
         if (lineupJson.type() != Json::arrayValue)
         {
-            KODI_LOG(LOG_ERROR, "Lineup is not a JSON array, returned from %s", device->_lineupURL.c_str());
+            KODI_LOG(LOG_ERROR, "Lineup is not a JSON array, returned from %s", device->LineupURL().c_str());
             continue;
         }
 
@@ -251,7 +261,7 @@ bool Lineup::UpdateLineup()
 }
 
 
-void Lineup::TriggerEpgUpdate()
+void PVR_HDHR::TriggerEpgUpdate()
 {
     Lock guidelock(_guide_lock);
     Lock lock(this);
@@ -265,7 +275,7 @@ void Lineup::TriggerEpgUpdate()
     }
 }
 
-bool Lineup::_age_out()
+bool PVR_HDHR::_age_out()
 {
     Lock guidelock(_guide_lock);
     Lock lock(this);
@@ -288,7 +298,7 @@ bool Lineup::_age_out()
     return any_changed;
 }
 
-bool Lineup::_insert_json_guide_data(const Json::Value& jsondeviceguide, const Device* device)
+bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const Device* device)
 {
     if (jsondeviceguide.type() != Json::arrayValue)
     {
@@ -340,7 +350,7 @@ bool Lineup::_insert_json_guide_data(const Json::Value& jsondeviceguide, const D
     return new_guide_entries;
 }
 
-bool Lineup::_insert_guide_data(const GuideNumber* number, const Device* device, time_t start)
+bool PVR_HDHR::_insert_guide_data(const GuideNumber* number, const Device* device, time_t start)
 {
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
     if (device)
@@ -390,7 +400,7 @@ bool Lineup::_insert_guide_data(const GuideNumber* number, const Device* device,
     return _insert_json_guide_data(jsondeviceguide, device);
 }
 
-bool Lineup::_update_guide_basic()
+bool PVR_HDHR::_update_guide_basic()
 {
     // Find a minimal covering of the lineup, to avoid duplicate guide requests.
     Lock lock(this);
@@ -398,7 +408,7 @@ bool Lineup::_update_guide_basic()
     return _insert_guide_data();
 }
 
-bool Lineup::_update_guide_extended(const GuideNumber& gn, time_t start)
+bool PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
 {
     Lock lock(this);
 
@@ -411,7 +421,7 @@ bool Lineup::_update_guide_extended(const GuideNumber& gn, time_t start)
     return _insert_guide_data(&gn, device, start);
 }
 
-bool Lineup::_guide_contains(time_t t)
+bool PVR_HDHR::_guide_contains(time_t t)
 {
     bool   contains = true;
     bool   haveany  = false;
@@ -434,7 +444,7 @@ bool Lineup::_guide_contains(time_t t)
 
     return haveany;
 }
-void Lineup::UpdateGuide()
+void PVR_HDHR::UpdateGuide()
 {
     Lock guidelock(_guide_lock);
 
@@ -492,11 +502,11 @@ void Lineup::UpdateGuide()
     _age_out();
 }
 
-int Lineup::PvrGetChannelsAmount()
+int PVR_HDHR::PvrGetChannelsAmount()
 {
     return _lineup.size();
 }
-PVR_ERROR Lineup::PvrGetChannels(ADDON_HANDLE handle, bool radio)
+PVR_ERROR PVR_HDHR::PvrGetChannels(ADDON_HANDLE handle, bool radio)
 {
     if (radio)
         return PVR_ERROR_NO_ERROR;
@@ -541,7 +551,7 @@ PVR_ERROR Lineup::PvrGetChannels(ADDON_HANDLE handle, bool radio)
 
 
 
-PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
+PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
         const PVR_CHANNEL& channel, time_t start, time_t end
         )
 {
@@ -592,7 +602,7 @@ PVR_ERROR Lineup::PvrGetEPGForChannel(ADDON_HANDLE handle,
     return PVR_ERROR_NO_ERROR;
 }
 
-int Lineup::PvrGetChannelGroupsAmount()
+int PVR_HDHR::PvrGetChannelGroupsAmount()
 {
     return 3;
 }
@@ -602,7 +612,7 @@ static const std::string HDChannels       = "HD channels";
 static const std::string SDChannels       = "SD channels";
 
 
-PVR_ERROR Lineup::PvrGetChannelGroups(ADDON_HANDLE handle, bool bRadio)
+PVR_ERROR PVR_HDHR::PvrGetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 {
     PVR_CHANNEL_GROUP channelGroup;
 
@@ -626,7 +636,7 @@ PVR_ERROR Lineup::PvrGetChannelGroups(ADDON_HANDLE handle, bool bRadio)
     return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR Lineup::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
+PVR_ERROR PVR_HDHR::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
         const PVR_CHANNEL_GROUP &group)
 {
     Lock lock(this);
@@ -652,7 +662,32 @@ PVR_ERROR Lineup::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
     return PVR_ERROR_NO_ERROR;
 }
 
-bool Lineup::_open_tcp_stream(const std::string& url)
+bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
+{
+    return _open_live_stream(channel);
+}
+
+void PVR_HDHR::CloseLiveStream(void)
+{
+    Lock strlock(_stream_lock);
+    Lock lock(this);
+
+    g.XBMC->CloseFile(_filehandle);
+    _filehandle = nullptr;
+}
+int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
+{
+    Lock strlock(_stream_lock);
+
+    if (_filehandle)
+    {
+        return g.XBMC->ReadFile(_filehandle, buffer, size);
+    }
+    return 0;
+}
+
+
+bool PVR_HDHR_TCP::_open_tcp_stream(const std::string& url)
 {
     if (_filehandle)
     {
@@ -671,7 +706,7 @@ bool Lineup::_open_tcp_stream(const std::string& url)
     return _filehandle != nullptr;
 }
 
-bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
+bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 {
     Lock strlock(_stream_lock);
     Lock lock(this);
@@ -702,23 +737,10 @@ bool Lineup::OpenLiveStream(const PVR_CHANNEL& channel)
 
     return false;
 }
-void Lineup::CloseLiveStream(void)
-{
-    Lock strlock(_stream_lock);
-    Lock lock(this);
 
-    g.XBMC->CloseFile(_filehandle);
-    _filehandle = nullptr;
-}
-int Lineup::ReadLiveStream(unsigned char* buffer, unsigned int size)
+bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 {
-    Lock strlock(_stream_lock);
-
-    if (_filehandle)
-    {
-        return g.XBMC->ReadFile(_filehandle, buffer, size);
-    }
-    return 0;
+    return false;
 }
 
 }; // namespace PVRHDHomeRun
