@@ -91,6 +91,39 @@ private:
 
     virtual bool _open_live_stream(const PVR_CHANNEL& channel) = 0;
 
+    class ReaderThread : public P8PLATFORM::CThread
+    {
+        ReaderThread(void *fh)
+                : _buffer(new uint8_t[_reserve])
+                , _filehandle(fh)
+                {}
+
+        void *Process()
+        {
+            for (;;) {
+                size_t readsize = 4096;
+                if ((_reserve - _tail) < readsize)
+                    readsize = _reserve - _tail;
+
+
+            }
+        }
+        size_t read(uint8_t* buf, size_t len)
+        {
+
+        }
+
+        size_t size()
+        {
+            return (_tail - _head) % _reserve;
+        }
+        const size_t _reserve = 1024*4096;
+        size_t   _head = 0;
+        size_t   _tail = 0;
+        uint8_t* _buffer;
+        void*    _filehandle;
+    };
+
 protected:
     std::set<Device*>         _devices;
     std::set<uint32_t>        _device_ids;

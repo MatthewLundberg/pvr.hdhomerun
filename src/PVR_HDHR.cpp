@@ -681,7 +681,12 @@ int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 
     if (_filehandle)
     {
-        return g.XBMC->ReadFile(_filehandle, buffer, size);
+        auto bytes = g.XBMC->ReadFile(_filehandle, buffer, size);
+
+        static size_t count=0;
+        std::cout << "ReadLiveStream "<< count++ << " requested: " << size << " got: " << bytes << "\n";
+
+        return bytes;
     }
     return 0;
 }
