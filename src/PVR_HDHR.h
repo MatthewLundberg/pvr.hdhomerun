@@ -27,6 +27,7 @@
 #include "Utils.h"
 #include "Tuner.h"
 #include "Info.h"
+#include <p8-platform/threads/threads.h>
 #include <json/json.h>
 #include <cstring>
 #include <vector>
