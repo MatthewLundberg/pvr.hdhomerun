@@ -2,7 +2,6 @@
 <addon
   id="pvr.hdhomerun"
   version="4.0.0"
-  version="3.1.5"
   name="PVR HDHomeRun Client"
   provider-name="Matthew Lundberg">
   <requires>@ADDON_DEPENDS@</requires>
