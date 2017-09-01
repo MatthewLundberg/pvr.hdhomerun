@@ -131,7 +131,7 @@ EPG_TAG GuideEntry::Epg_Tag(uint32_t number) const
 {
     EPG_TAG tag = {0};
 
-    tag.iChannelNumber     = number;
+    tag.iUniqueChannelId   = number;
 
     tag.iUniqueBroadcastId = _id;
     tag.strTitle           = _title.c_str();
