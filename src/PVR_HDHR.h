@@ -28,6 +28,7 @@
 #include "Tuner.h"
 #include "Info.h"
 #include <p8-platform/threads/threads.h>
+#include <p8-platform/threads/mutex.h>
 #include <json/json.h>
 #include <cstring>
 #include <vector>
@@ -91,36 +92,25 @@ private:
     bool  _update_guide_extended(const GuideNumber&, time_t start);
 
     virtual bool _open_live_stream(const PVR_CHANNEL& channel) = 0;
-
-    class ReaderThread : public P8PLATFORM::CThread
+public:
+    class ReaderThread : public P8PLATFORM::CThread, Lockable
     {
+    public:
         ReaderThread(void *fh)
                 : _buffer(new uint8_t[_reserve])
                 , _filehandle(fh)
                 {}
 
-        void *Process()
-        {
-            for (;;) {
-                size_t readsize = 4096;
-                if ((_reserve - _tail) < readsize)
-                    readsize = _reserve - _tail;
+        void *Process();
+        int read(uint8_t* buf, size_t len);
+        size_t size();
+        void Close();
 
-
-            }
-        }
-        size_t read(uint8_t* buf, size_t len)
-        {
-
-        }
-
-        size_t size()
-        {
-            return (_tail - _head) % _reserve;
-        }
+        const size_t _readsize = 4096;
         const size_t _reserve = 1024*4096;
         size_t   _head = 0;
         size_t   _tail = 0;
+        P8PLATFORM::CEvent _event;
         uint8_t* _buffer;
         void*    _filehandle;
     };
@@ -134,7 +124,7 @@ protected:
 
     Lockable _guide_lock;
     Lockable _stream_lock;
-    void* _filehandle;
+    ReaderThread* _reader;
 };
 
 class PVR_HDHR_TCP : public PVR_HDHR {

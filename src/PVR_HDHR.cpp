@@ -664,6 +664,7 @@ PVR_ERROR PVR_HDHR::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
 
 bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
 {
+    CloseLiveStream();
     return _open_live_stream(channel);
 }
 
@@ -672,20 +673,22 @@ void PVR_HDHR::CloseLiveStream(void)
     Lock strlock(_stream_lock);
     Lock lock(this);
 
-    g.XBMC->CloseFile(_filehandle);
-    _filehandle = nullptr;
+    if (_reader)
+    {
+        _reader->Close();
+        _reader->StopThread();
+
+        delete _reader;
+        _reader = nullptr;
+    }
 }
 int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 {
     Lock strlock(_stream_lock);
 
-    if (_filehandle)
+    if (_reader)
     {
-        auto bytes = g.XBMC->ReadFile(_filehandle, buffer, size);
-
-        static size_t count=0;
-        std::cout << "ReadLiveStream "<< count++ << " requested: " << size << " got: " << bytes << "\n";
-
+        auto bytes = _reader->read(buffer, size);
         return bytes;
     }
     return 0;
@@ -694,21 +697,26 @@ int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 
 bool PVR_HDHR_TCP::_open_tcp_stream(const std::string& url)
 {
-    if (_filehandle)
-    {
-         CloseLiveStream();
-         // sets _filehandle = nullptr
-    }
+    Lock strlock(_stream_lock);
+    Lock lock(this);
+
+    void *fh;
     if (url.size())
     {
-        _filehandle = g.XBMC->OpenFile(url.c_str(), 0);
+        fh = g.XBMC->OpenFile(url.c_str(), 0);
     }
 
     KODI_LOG(LOG_DEBUG, "Attempt to tune TCP stream from url %s : %s",
             url.c_str(),
-            _filehandle == nullptr ? "Fail":"Success");
+            fh == nullptr ? "Fail":"Success");
 
-    return _filehandle != nullptr;
+    if (fh)
+    {
+        _reader = new ReaderThread(fh);
+        _reader->CreateThread();
+    }
+
+    return fh != nullptr;
 }
 
 bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
@@ -746,6 +754,77 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 {
     return false;
+}
+
+void* PVR_HDHR::ReaderThread::Process()
+{
+    for (;;) {
+        if (!_filehandle)
+            break;
+
+        size_t readsize = _readsize;
+        if (_reserve - _tail < readsize)
+            readsize = _reserve - _tail;
+
+        uint8_t* b = _buffer + _tail;
+        int bytes = g.XBMC->ReadFile(_filehandle, b, readsize);
+
+        if (bytes > 0)
+        {
+            Lock lock(this);
+            _tail += bytes;
+            if (_tail >= _reserve)
+                _tail = 0;
+
+            _event.Signal();
+        }
+    }
+}
+int PVR_HDHR::ReaderThread::read(uint8_t* buf, size_t len)
+{
+    if (!_filehandle)
+        return 0;
+
+    while (len > size())
+        _event.Wait();
+
+    if (!_filehandle)
+        return 0;
+
+    Lock lock(this);
+
+    uint8_t* p = _buffer + _head;
+    if (_head + len <= _reserve)
+    {
+        memcpy(buf, p, len);
+        _head += len;
+        if (_head >= _reserve) {
+            _head = 0;
+        }
+    }
+    else
+    {
+        auto tail = _reserve - _head;
+        memcpy(buf, p, tail);
+        memcpy(buf + tail, _buffer, len - tail);
+        _head = len - tail;
+    }
+
+    return len;
+}
+size_t PVR_HDHR::ReaderThread::size()
+{
+    Lock lock(this);
+    return (_tail - _head) % _reserve;
+}
+void PVR_HDHR::ReaderThread::Close()
+{
+    Lock lock(this);
+
+    auto fh = _filehandle;
+    _filehandle = nullptr;
+    g.XBMC->CloseFile(fh);
+    _event.Signal();
 }
 
 }; // namespace PVRHDHomeRun
