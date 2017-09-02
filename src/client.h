@@ -65,7 +65,7 @@ struct SettingsType
     bool extendedGuide          = false;
     std::vector<uint32_t> preferredDevice;
     std::set<uint32_t>    blacklistDevice;
-    uint16_t udpPort            = 5000;
+    int udpPort                 = 5000;
 
     int deviceDiscoverInterval  = 300;
     int lineupUpdateInterval    = 300;

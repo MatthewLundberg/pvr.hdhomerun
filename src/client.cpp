@@ -256,6 +256,7 @@ void ADDON_ReadSettings(void)
     g.XBMC->GetSetting("use_legacy",     &g.Settings.useLegacyDevices);
     g.XBMC->GetSetting("extended",       &g.Settings.extendedGuide);
     g.XBMC->GetSetting("channel_name",   &g.Settings.channelName);
+    g.XBMC->GetSetting("port",           &g.Settings.udpPort);
 
     char preferred[1024];
     g.XBMC->GetSetting("preferred",      preferred);
@@ -341,36 +342,49 @@ bool ADDON_HasSettings()
 {
     return true;
 }
+} // extern "C"
 
+namespace {
+template<typename T>
+bool setvalue(T& t, const char* text, const char* name, const void* value)
+{
+    if (strcmp(text, name) == 0)
+    {
+        t = *(T*) value;
+        return true;
+    }
+    return false;
+}
+} // namespace
+
+extern "C" {
 ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
 {
     if (g.pvr_hdhr == nullptr)
         return ADDON_STATUS_OK;
 
-    if (strcmp(name, "hide_protected") == 0)
-    {
-        g.Settings.hideProtectedChannels = *(bool*) value;
+    if (setvalue(g.Settings.hideProtectedChannels, "hide_protected", name, value))
         return ADDON_STATUS_NEED_RESTART;
-    }
-    else if (strcmp(name, "mark_new") == 0)
-    {
-        g.Settings.markNewProgram = *(bool*) value;
-    }
-    else if (strcmp(name, "debug") == 0)
-    {
-        g.Settings.debugLog = *(bool*) value;
-    }
-    else if (strcmp(name, "use_legacy") == 0)
-    {
-        g.Settings.useLegacyDevices = *(bool*) value;
+
+    if (setvalue(g.Settings.markNewProgram, "mark_new", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(g.Settings.debugLog, "debug", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(g.Settings.useLegacyDevices, "use_legacy", name, value))
         return ADDON_STATUS_NEED_RESTART;
-    }
-    else if (strcmp(name, "hide_unknown") == 0)
-    {
-        g.Settings.hideUnknownChannels = *(bool*) value;
+
+    if (setvalue(g.Settings.hideUnknownChannels, "hide_unknown", name, value))
         return ADDON_STATUS_NEED_RESTART;
-    }
-    else if (strcmp(name, "channel_name") == 0)
+
+    if (setvalue(g.Settings.udpPort, "port", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(g.Settings.extendedGuide, "extended", name, value))
+        return ADDON_STATUS_OK;
+
+    if (strcmp(name, "channel_name") == 0)
     {
         SetChannelName(*(int*) value);
         return ADDON_STATUS_NEED_RESTART;
@@ -379,10 +393,6 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     {
         SetProtocol((char*) value);
         return ADDON_STATUS_NEED_RESTART;
-    }
-    else if (strcmp(name, "extended") == 0)
-    {
-        g.Settings.extendedGuide = *(bool*) value;
     }
     else if (strcmp(name, "preferred") == 0)
     {

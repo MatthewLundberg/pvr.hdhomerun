@@ -753,6 +753,7 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 
 bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 {
+
     return false;
 }
 
