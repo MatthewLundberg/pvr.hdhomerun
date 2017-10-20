@@ -753,8 +753,27 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 
 bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 {
+    std::stringstream url;
+    url << "udp://@192.168.1.40:" << g.Settings.udpPort;
+    void* fh = g.XBMC->CURLCreate(url.str().c_str());
 
-    return false;
+    std::cout << "Attempted  " << url.str() << "\n";
+    if (fh)
+    {
+        if (!g.XBMC->CURLOpen(fh, 0))
+        {
+            std::cout << "CURLOpen returns false\n";
+        }
+        _reader = new ReaderThread(fh);
+        _reader->CreateThread();
+        std::cout << "Success\n";
+    }
+    else
+    {
+        std::cout << "Can't create " << url.str() << "\n";
+    }
+
+    return true;
 }
 
 void* PVR_HDHR::ReaderThread::Process()
