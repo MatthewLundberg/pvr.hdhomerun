@@ -27,7 +27,6 @@
 
 #include "client.h"
 #include <xbmc_pvr_dll.h>
-#include <p8-platform/util/util.h>
 #include <p8-platform/threads/threads.h>
 #include "PVR_HDHR.h"
 #include "Utils.h"
@@ -281,15 +280,18 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
     g.XBMC = new ADDON::CHelper_libXBMC_addon;
     if (!g.XBMC->RegisterMe(hdl))
     {
-        SAFE_DELETE(g.XBMC);
+        delete g.XBMC;
+        g.XBMC = nullptr;
         return ADDON_STATUS_PERMANENT_FAILURE;
     }
 
     g.PVR = new CHelper_libXBMC_pvr;
     if (!g.PVR->RegisterMe(hdl))
     {
-        SAFE_DELETE(g.PVR);
-        SAFE_DELETE(g.XBMC);
+        delete g.PVR;
+        g.PVR = nullptr;
+        delete g.XBMC;
+        g.XBMC = nullptr;
         return ADDON_STATUS_PERMANENT_FAILURE;
     }
 
@@ -330,9 +332,12 @@ void ADDON_Destroy()
 {
     g_UpdateThread.StopThread();
 
-    SAFE_DELETE(g.pvr_hdhr);
-    SAFE_DELETE(g.PVR);
-    SAFE_DELETE(g.XBMC);
+    delete g.pvr_hdhr;
+    g.pvr_hdhr = nullptr;
+    delete g.PVR;
+    g.PVR = nullptr;
+    delete g.XBMC;
+    g.XBMC = nullptr;
 
     g.isCreated = false;
     g.currentStatus = ADDON_STATUS_UNKNOWN;
