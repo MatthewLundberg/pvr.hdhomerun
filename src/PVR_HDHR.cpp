@@ -670,16 +670,21 @@ bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
 
 void PVR_HDHR::CloseLiveStream(void)
 {
-    Lock strlock(_stream_lock);
-    Lock lock(this);
-
-    g.XBMC->CloseFile(_filehandle);
-    _filehandle = nullptr;
+	_close_live_stream();
 }
 
 int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 {
 	return _read_live_stream(buffer, size);
+}
+
+void PVR_HDHR_TCP::_close_live_stream()
+{
+   Lock strlock(_stream_lock);
+    Lock lock(this);
+
+    g.XBMC->CloseFile(_filehandle);
+    _filehandle = nullptr;
 }
 
 int PVR_HDHR_TCP::_read_live_stream(unsigned char* buffer, unsigned int size)
@@ -770,7 +775,11 @@ bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 }
 int PVR_HDHR_UDP::_read_live_stream(unsigned char* buffer, unsigned int size)
 {
-	return 0;
+    return 0;
+}
+void PVR_HDHR_UDP::_close_live_stream()
+{
+
 }
 
 
