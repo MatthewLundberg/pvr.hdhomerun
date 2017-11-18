@@ -27,7 +27,7 @@
 
 #include "client.h"
 #include <xbmc_pvr_dll.h>
-#include <p8-platform/threads/threads.h>
+#include <thread>
 #include "PVR_HDHR.h"
 #include "Utils.h"
 #include "Lockable.h"
@@ -40,15 +40,28 @@ namespace PVRHDHomeRun
 
 GlobalsType g;
 
-class UpdateThread: public P8PLATFORM::CThread, Lockable
+
+class UpdateThread: public Lockable
 {
     time_t _lastDiscover = 0;
     time_t _lastLineup   = 0;
     time_t _lastGuide    = 0;
 
-    bool   _running      = false;
+    bool   _running      = true;
 
 public:
+    void EnableThread()
+    {
+        _running = true;
+    }
+    void StopThread()
+    {
+        _running = false;
+    }
+    bool IsStopped()
+    {
+        return !_running;
+    }
     void Wake()
     {
         Lock lock(this);
@@ -58,14 +71,14 @@ public:
         _lastGuide    = 0;
         _running      = false;
     }
-    void *Process()
+    void* Process()
     {
         int state{0};
         int prev_num_networks{0};
 
         for (;;)
         {
-            P8PLATFORM::CThread::Sleep(1000);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             if (IsStopped())
             {
                 break;
@@ -161,11 +174,7 @@ public:
                     state = 0;
                 }
 
-                if (!_running)
-                {
-                    g.pvr_hdhr->TriggerEpgUpdate();
-                    _running = false;
-                }
+                g.pvr_hdhr->TriggerEpgUpdate(); // Conditional?
             }
 
             if (updateDiscover || updateLineup || updateGuide)
@@ -185,6 +194,11 @@ public:
 };
 
 UpdateThread g_UpdateThread;
+void thread_func() {
+    g_UpdateThread.EnableThread();
+    g_UpdateThread.Process();
+}
+std::unique_ptr<std::thread> PVRThread;
 }; // namespace
 
 using namespace PVRHDHomeRun;
@@ -314,7 +328,9 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
     if (g.pvr_hdhr)
     {
         g.pvr_hdhr->Update();
-        g_UpdateThread.CreateThread(false);
+        PVRThread.reset(new std::thread(thread_func));
+        PVRThread->detach();
+        //g_UpdateThread.CreateThread(false);
     }
 
     g.currentStatus = ADDON_STATUS_OK;

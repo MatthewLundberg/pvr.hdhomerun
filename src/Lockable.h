@@ -20,7 +20,7 @@
  *
  */
 
-#include <p8-platform/threads/mutex.h>
+#include <mutex>
 
 namespace PVRHDHomeRun
 {
@@ -29,21 +29,44 @@ class Lockable {
 public:
     virtual ~Lockable() {}
     void LockObject() {
-        _lock.Lock();
+        _lock.lock();
+    }
+    bool TryLock() {
+        return _lock.try_lock();
     }
     void UnlockObject() {
-        _lock.Unlock();
+        _lock.unlock();
     }
 private:
-    P8PLATFORM::CMutex _lock;
+    std::recursive_mutex _lock;
+};
+
+class TryLock {
+    TryLock(Lockable* obj) : _obj(obj)
+    {}
+    TryLock(Lockable& obj) : TryLock(&obj)
+    {}
+    ~TryLock()
+    {
+        if (_sts)
+            _obj->UnlockObject();
+    }
+    operator bool() {
+        if (_sts)
+            return _sts;
+        return _sts = _obj->TryLock();
+    }
+private:
+    Lockable* _obj;
+    bool      _sts;
 };
 
 class Lock {
 public:
     Lock(Lockable* obj) : _obj(obj)
-        {
-            _obj->LockObject();
-        }
+    {
+        _obj->LockObject();
+    }
     Lock(Lockable& obj) : Lock(&obj)
     {}
     ~Lock()

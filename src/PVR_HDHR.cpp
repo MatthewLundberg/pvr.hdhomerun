@@ -26,7 +26,7 @@
 #include "Utils.h"
 #include "PVR_HDHR.h"
 #include <chrono>
-#include <thread>
+//#include <thread>
 #include <functional>
 #include <algorithm>
 #include <iterator>
@@ -723,6 +723,9 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 
     auto id = channel.iUniqueId;
     const auto& entry = _lineup.find(id);
+
+    std::cout << "tcp open stream " << id << "\n";
+
     if (entry == _lineup.end())
     {
         KODI_LOG(LOG_ERROR, "Channel %d not found!", id);
@@ -735,7 +738,9 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
     while ((device = info.GetPreferredDevice()) != nullptr)
     {
         if (_open_tcp_stream(info.DlnaURL(device)))
+        {
             return true;
+        }
     }
 
     info.ResetNextDevice();
