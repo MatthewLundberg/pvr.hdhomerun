@@ -27,8 +27,6 @@
 #include "Utils.h"
 #include "Tuner.h"
 #include "Info.h"
-#include <p8-platform/threads/threads.h>
-#include <p8-platform/threads/mutex.h>
 #include <json/json.h>
 #include <cstring>
 #include <vector>
@@ -113,13 +111,14 @@ private:
     bool  _open_tcp_stream(const std::string&);
     int   _read_live_stream(unsigned char* buffer, unsigned int size) override;
     void  _close_live_stream() override;
-    void* _filehandle;
+    void* _filehandle = nullptr;
 };
 class PVR_HDHR_UDP : public PVR_HDHR {
 private:
     bool  _open_live_stream(const PVR_CHANNEL& channel) override;
     int   _read_live_stream(unsigned char* buffer, unsigned int size) override;
     void  _close_live_stream() override;
+    int   _fd = -1;
 };
 
 PVR_HDHR* PVR_HDHR_Factory(int protocol);

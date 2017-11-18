@@ -750,37 +750,61 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 
 bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 {
-	/*
-    std::stringstream url;
-    url << "udp://@192.168.1.113:" << g.Settings.udpPort;
-    _filehandle = g.XBMC->CURLCreate(url.str().c_str());
+    Lock strlock(_stream_lock);
+    Lock lock(this);
 
-    std::cout << "Attempted  " << url.str() << "\n";
-    if (_filehandle)
+    struct sockaddr_in sa = {0};
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = htonl(INADDR_ANY);
+    sa.sin_port = g.Settings.udpPort;
+
+    _fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (_fd == -1)
     {
-        std::cout << "Success\n";
-
-        if (!g.XBMC->CURLOpen(_filehandle, 0))
-        {
-            std::cout << "CURLOpen returns false\n";
-        }
+        std::cout << "Error creating socket\n";
+        return false;
     }
-    else
+    //if (fcntl(_fd, F_SETFL, O_NONBLOCK) == -1)
+    //{
+    //    std::cout << "Error setting nonblock socket\n";
+    //    return false;
+    //}
+
+    if (bind (_fd, reinterpret_cast<struct sockaddr*>(&sa), sizeof sa) == -1)
     {
-        std::cout << "Can't create " << url.str() << "\n";
+        std::cout << "Error binding socket\n";
+        close(_fd);
+        _fd = -1;
+        return false;
     }
-    */
+    std::cout << "Opened socket\n";
+    // Find and configure tuner
 
-    return false;
+    return true;
 }
+
 int PVR_HDHR_UDP::_read_live_stream(unsigned char* buffer, unsigned int size)
 {
-    return 0;
+    Lock strlock(_stream_lock);
+
+    if (_fd == -1)
+        return 0;
+
+    std::cout << "recv\n";
+    auto bytes = recv(_fd, buffer, size, 0);
+    std::cout << "Bytes: "<< bytes << "\n";
+    return bytes >= 0 ? bytes : 0;
 }
+
 void PVR_HDHR_UDP::_close_live_stream()
 {
+    Lock strlock(_stream_lock);
+    Lock lock(this);
 
+    if (_fd != -1) {
+        close(_fd);
+        _fd = -1;
+    }
 }
-
 
 }; // namespace PVRHDHomeRun
