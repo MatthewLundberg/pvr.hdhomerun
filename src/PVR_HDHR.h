@@ -92,6 +92,7 @@ private:
     bool  _update_guide_extended(const GuideNumber&, time_t start);
 
     virtual bool _open_live_stream(const PVR_CHANNEL& channel) = 0;
+    virtual int  _read_live_stream(unsigned char* buffer, unsigned int size) = 0;
 public:
 
 protected:
@@ -110,10 +111,13 @@ class PVR_HDHR_TCP : public PVR_HDHR {
 private:
     bool  _open_live_stream(const PVR_CHANNEL& channel) override;
     bool  _open_tcp_stream(const std::string&);
+    int   _read_live_stream(unsigned char* buffer, unsigned int size) override;
+    void* _filehandle;
 };
 class PVR_HDHR_UDP : public PVR_HDHR {
 private:
     bool  _open_live_stream(const PVR_CHANNEL& channel) override;
+    int   _read_live_stream(unsigned char* buffer, unsigned int size) override;
 };
 
 PVR_HDHR* PVR_HDHR_Factory(int protocol);

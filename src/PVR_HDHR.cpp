@@ -679,6 +679,11 @@ void PVR_HDHR::CloseLiveStream(void)
 
 int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 {
+	return _read_live_stream(buffer, size);
+}
+
+int PVR_HDHR_TCP::_read_live_stream(unsigned char* buffer, unsigned int size)
+{
     Lock strlock(_stream_lock);
 
     if (_filehandle)
@@ -740,6 +745,7 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 
 bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 {
+	/*
     std::stringstream url;
     url << "udp://@192.168.1.113:" << g.Settings.udpPort;
     _filehandle = g.XBMC->CURLCreate(url.str().c_str());
@@ -758,10 +764,14 @@ bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
     {
         std::cout << "Can't create " << url.str() << "\n";
     }
+    */
 
-    return true;
+    return false;
 }
-
+int PVR_HDHR_UDP::_read_live_stream(unsigned char* buffer, unsigned int size)
+{
+	return 0;
+}
 
 
 }; // namespace PVRHDHomeRun
