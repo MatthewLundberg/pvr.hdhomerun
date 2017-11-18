@@ -93,27 +93,6 @@ private:
 
     virtual bool _open_live_stream(const PVR_CHANNEL& channel) = 0;
 public:
-    class ReaderThread : public P8PLATFORM::CThread, Lockable
-    {
-    public:
-        ReaderThread(void *fh)
-                : _buffer(new uint8_t[_reserve])
-                , _filehandle(fh)
-                {}
-
-        void *Process();
-        int read(uint8_t* buf, size_t len);
-        size_t size();
-        void Close();
-
-        const size_t _readsize = 4096;
-        const size_t _reserve = 1024*4096;
-        size_t   _head = 0;
-        size_t   _tail = 0;
-        P8PLATFORM::CEvent _event;
-        uint8_t* _buffer;
-        void*    _filehandle;
-    };
 
 protected:
     std::set<Device*>         _devices;
@@ -124,7 +103,7 @@ protected:
 
     Lockable _guide_lock;
     Lockable _stream_lock;
-    ReaderThread* _reader;
+    void*    _filehandle;
 };
 
 class PVR_HDHR_TCP : public PVR_HDHR {

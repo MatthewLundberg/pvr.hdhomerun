@@ -673,23 +673,17 @@ void PVR_HDHR::CloseLiveStream(void)
     Lock strlock(_stream_lock);
     Lock lock(this);
 
-    if (_reader)
-    {
-        _reader->Close();
-        _reader->StopThread();
-
-        delete _reader;
-        _reader = nullptr;
-    }
+    g.XBMC->CloseFile(_filehandle);
+    _filehandle = nullptr;
 }
+
 int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 {
     Lock strlock(_stream_lock);
 
-    if (_reader)
+    if (_filehandle)
     {
-        auto bytes = _reader->read(buffer, size);
-        return bytes;
+        return g.XBMC->ReadFile(_filehandle, buffer, size);
     }
     return 0;
 }
@@ -700,23 +694,16 @@ bool PVR_HDHR_TCP::_open_tcp_stream(const std::string& url)
     Lock strlock(_stream_lock);
     Lock lock(this);
 
-    void *fh;
     if (url.size())
     {
-        fh = g.XBMC->OpenFile(url.c_str(), 0);
+        _filehandle = g.XBMC->OpenFile(url.c_str(), 0);
     }
 
     KODI_LOG(LOG_DEBUG, "Attempt to tune TCP stream from url %s : %s",
             url.c_str(),
-            fh == nullptr ? "Fail":"Success");
+            _filehandle == nullptr ? "Fail":"Success");
 
-    if (fh)
-    {
-        _reader = new ReaderThread(fh);
-        _reader->CreateThread();
-    }
-
-    return fh != nullptr;
+    return _filehandle != nullptr;
 }
 
 bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
@@ -754,19 +741,18 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 {
     std::stringstream url;
-    url << "udp://@192.168.1.40:" << g.Settings.udpPort;
-    void* fh = g.XBMC->CURLCreate(url.str().c_str());
+    url << "udp://@192.168.1.113:" << g.Settings.udpPort;
+    _filehandle = g.XBMC->CURLCreate(url.str().c_str());
 
     std::cout << "Attempted  " << url.str() << "\n";
-    if (fh)
+    if (_filehandle)
     {
-        if (!g.XBMC->CURLOpen(fh, 0))
+        std::cout << "Success\n";
+
+        if (!g.XBMC->CURLOpen(_filehandle, 0))
         {
             std::cout << "CURLOpen returns false\n";
         }
-        _reader = new ReaderThread(fh);
-        _reader->CreateThread();
-        std::cout << "Success\n";
     }
     else
     {
@@ -776,75 +762,6 @@ bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
     return true;
 }
 
-void* PVR_HDHR::ReaderThread::Process()
-{
-    for (;;) {
-        if (!_filehandle)
-            break;
 
-        size_t readsize = _readsize;
-        if (_reserve - _tail < readsize)
-            readsize = _reserve - _tail;
-
-        uint8_t* b = _buffer + _tail;
-        int bytes = g.XBMC->ReadFile(_filehandle, b, readsize);
-
-        if (bytes > 0)
-        {
-            Lock lock(this);
-            _tail += bytes;
-            if (_tail >= _reserve)
-                _tail = 0;
-
-            _event.Signal();
-        }
-    }
-}
-int PVR_HDHR::ReaderThread::read(uint8_t* buf, size_t len)
-{
-    if (!_filehandle)
-        return 0;
-
-    while (len > size())
-        _event.Wait();
-
-    if (!_filehandle)
-        return 0;
-
-    Lock lock(this);
-
-    uint8_t* p = _buffer + _head;
-    if (_head + len <= _reserve)
-    {
-        memcpy(buf, p, len);
-        _head += len;
-        if (_head >= _reserve) {
-            _head = 0;
-        }
-    }
-    else
-    {
-        auto tail = _reserve - _head;
-        memcpy(buf, p, tail);
-        memcpy(buf + tail, _buffer, len - tail);
-        _head = len - tail;
-    }
-
-    return len;
-}
-size_t PVR_HDHR::ReaderThread::size()
-{
-    Lock lock(this);
-    return (_tail - _head) % _reserve;
-}
-void PVR_HDHR::ReaderThread::Close()
-{
-    Lock lock(this);
-
-    auto fh = _filehandle;
-    _filehandle = nullptr;
-    g.XBMC->CloseFile(fh);
-    _event.Signal();
-}
 
 }; // namespace PVRHDHomeRun
