@@ -41,13 +41,14 @@ namespace PVRHDHomeRun
 GlobalsType g;
 
 
-class UpdateThread: public Lockable
+class UpdateThread
 {
     time_t _lastDiscover = 0;
     time_t _lastLineup   = 0;
     time_t _lastGuide    = 0;
 
-    bool   _running      = true;
+    bool       _running  = true;
+    std::mutex _mutex;
 
 public:
     void EnableThread()
@@ -64,7 +65,7 @@ public:
     }
     void Wake()
     {
-        Lock lock(this);
+        auto lock = Lock(_mutex);
 
         _lastDiscover = 0;
         _lastLineup   = 0;
@@ -179,7 +180,7 @@ public:
 
             if (updateDiscover || updateLineup || updateGuide)
             {
-                Lock lock(this);
+                auto lock = Lock(_mutex);
 
                 if (updateDiscover)
                     _lastDiscover = now;

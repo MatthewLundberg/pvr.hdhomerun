@@ -74,8 +74,8 @@ bool PVR_HDHR::DiscoverDevices()
     bool device_added   = false;
     bool device_removed = false;
 
-    Lock guidelock(_guide_lock);
-    Lock lock(this);
+    auto guidelock = Lock(_guide_lock);
+    auto pvrlock   = Lock(_pvr_lock);
     for (size_t i=0; i<device_count; i++)
     {
         auto& dd = discover_devices[i];
@@ -187,7 +187,7 @@ bool PVR_HDHR::UpdateLineup()
 {
     KODI_LOG(LOG_DEBUG, "PVR_HDHR::UpdateLineup");
 
-    Lock lock(this);
+    auto lock = Lock(_pvr_lock);
     std::set<GuideNumber> prior;
     std::copy(_lineup.begin(), _lineup.end(), std::inserter(prior, prior.begin()));
 
@@ -263,8 +263,8 @@ bool PVR_HDHR::UpdateLineup()
 
 void PVR_HDHR::TriggerEpgUpdate()
 {
-    Lock guidelock(_guide_lock);
-    Lock lock(this);
+    auto guidelock = Lock(_guide_lock);
+    auto lock      = Lock(_pvr_lock);
 
     for (auto& channel : _lineup)
     {
@@ -277,8 +277,8 @@ void PVR_HDHR::TriggerEpgUpdate()
 
 bool PVR_HDHR::_age_out()
 {
-    Lock guidelock(_guide_lock);
-    Lock lock(this);
+    auto guidelock = Lock(_guide_lock);
+    auto lock      = Lock(_pvr_lock);
 
     bool any_changed = false;
 
@@ -403,14 +403,14 @@ bool PVR_HDHR::_insert_guide_data(const GuideNumber* number, const Device* devic
 bool PVR_HDHR::_update_guide_basic()
 {
     // Find a minimal covering of the lineup, to avoid duplicate guide requests.
-    Lock lock(this);
+    auto lock      = Lock(_pvr_lock);
 
     return _insert_guide_data();
 }
 
 bool PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
 {
-    Lock lock(this);
+    auto lock      = Lock(_pvr_lock);
 
     const auto& info = _info[gn];
     auto device = info.GetFirstDevice();
@@ -446,7 +446,7 @@ bool PVR_HDHR::_guide_contains(time_t t)
 }
 void PVR_HDHR::UpdateGuide()
 {
-    Lock guidelock(_guide_lock);
+    auto guidelock = Lock(_guide_lock);
 
     time_t now     = time(nullptr);
     if (!_guide_contains(now) || !_guide_contains(now + g.Settings.guideBasicInterval))
@@ -511,7 +511,7 @@ PVR_ERROR PVR_HDHR::PvrGetChannels(ADDON_HANDLE handle, bool radio)
     if (radio)
         return PVR_ERROR_NO_ERROR;
 
-    Lock lock(this);
+    auto lock = Lock(_pvr_lock);
     for (auto& number: _lineup)
     {
         PVR_CHANNEL pvrChannel = {0};
@@ -565,8 +565,8 @@ PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
             FormatTime(end).c_str()
     );
 
-    Lock guidelock(_guide_lock);
-    Lock lock(this);
+    auto guidelock = Lock(_guide_lock);
+    auto lock      = Lock(_pvr_lock);
 
     auto& guide = _guide[channel.iUniqueId];
     auto& times    = guide.Times();
@@ -639,7 +639,7 @@ PVR_ERROR PVR_HDHR::PvrGetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 PVR_ERROR PVR_HDHR::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
         const PVR_CHANNEL_GROUP &group)
 {
-    Lock lock(this);
+    auto lock      = Lock(_pvr_lock);
 
     for (const auto& number: _lineup)
     {
@@ -680,8 +680,8 @@ int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 
 void PVR_HDHR_TCP::_close_live_stream()
 {
-   Lock strlock(_stream_lock);
-    Lock lock(this);
+    auto streamlock = Lock(_stream_lock);
+    auto lock       = Lock(_pvr_lock);
 
     g.XBMC->CloseFile(_filehandle);
     _filehandle = nullptr;
@@ -689,7 +689,7 @@ void PVR_HDHR_TCP::_close_live_stream()
 
 int PVR_HDHR_TCP::_read_live_stream(unsigned char* buffer, unsigned int size)
 {
-    Lock strlock(_stream_lock);
+    auto streamlock = Lock(_stream_lock);
 
     if (_filehandle)
     {
@@ -701,8 +701,8 @@ int PVR_HDHR_TCP::_read_live_stream(unsigned char* buffer, unsigned int size)
 
 bool PVR_HDHR_TCP::_open_tcp_stream(const std::string& url)
 {
-    Lock strlock(_stream_lock);
-    Lock lock(this);
+    auto streamlock = Lock(_stream_lock);
+    auto lock       = Lock(_pvr_lock);
 
     if (url.size())
     {
@@ -718,8 +718,8 @@ bool PVR_HDHR_TCP::_open_tcp_stream(const std::string& url)
 
 bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 {
-    Lock strlock(_stream_lock);
-    Lock lock(this);
+    auto streamlock = Lock(_stream_lock);
+    auto lock       = Lock(_pvr_lock);
 
     auto id = channel.iUniqueId;
     const auto& entry = _lineup.find(id);
@@ -755,8 +755,8 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
 
 bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 {
-    Lock strlock(_stream_lock);
-    Lock lock(this);
+    auto streamlock = Lock(_stream_lock);
+    auto lock       = Lock(_pvr_lock);
 
     struct sockaddr_in sa = {0};
     sa.sin_family = AF_INET;
@@ -790,7 +790,7 @@ bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 
 int PVR_HDHR_UDP::_read_live_stream(unsigned char* buffer, unsigned int size)
 {
-    Lock strlock(_stream_lock);
+    auto streamlock = Lock(_stream_lock);
 
     if (_fd == -1)
         return 0;
@@ -803,8 +803,8 @@ int PVR_HDHR_UDP::_read_live_stream(unsigned char* buffer, unsigned int size)
 
 void PVR_HDHR_UDP::_close_live_stream()
 {
-    Lock strlock(_stream_lock);
-    Lock lock(this);
+    auto streamlock = Lock(_stream_lock);
+    auto lock       = Lock(_pvr_lock);
 
     if (_fd != -1) {
         close(_fd);

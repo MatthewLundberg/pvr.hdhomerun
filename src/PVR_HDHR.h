@@ -38,7 +38,7 @@
 
 namespace PVRHDHomeRun {
 
-class PVR_HDHR : public Lockable
+class PVR_HDHR
 {
 public:
     PVR_HDHR() = default;
@@ -101,8 +101,9 @@ protected:
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
 
-    Lockable _guide_lock;
-    Lockable _stream_lock;
+    std::recursive_mutex _pvr_lock;
+    std::mutex           _guide_lock;
+    std::recursive_mutex _stream_lock;
 };
 
 class PVR_HDHR_TCP : public PVR_HDHR {

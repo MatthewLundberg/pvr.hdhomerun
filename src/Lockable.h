@@ -25,56 +25,44 @@
 namespace PVRHDHomeRun
 {
 
-class Lockable {
+template <typename T>
+class auto_lock {
 public:
-    virtual ~Lockable() {}
-    void LockObject() {
-        _lock.lock();
+    auto_lock(T& obj) : _obj(obj)
+    {
+        _obj.lock();
     }
-    bool TryLock() {
-        return _lock.try_lock();
-    }
-    void UnlockObject() {
-        _lock.unlock();
+    ~auto_lock()
+    {
+        _obj.unlock();
     }
 private:
-    std::recursive_mutex _lock;
+    T& _obj;
 };
+template <typename T> auto_lock<T> Lock(T& mutex) { return auto_lock<T>(mutex); }
 
-class TryLock {
-    TryLock(Lockable* obj) : _obj(obj)
+template <typename T>
+class auto_try_lock {
+    auto_try_lock(T& obj) : _obj(obj)
     {}
-    TryLock(Lockable& obj) : TryLock(&obj)
-    {}
-    ~TryLock()
+    ~auto_try_lock()
     {
+        auto Lock = Lock(_lock);
         if (_sts)
-            _obj->UnlockObject();
+            _obj->unlock();
     }
     operator bool() {
+        auto Lock = Lock(_lock);
         if (_sts)
             return _sts;
-        return _sts = _obj->TryLock();
+        return _sts = _obj.try_lock();
     }
 private:
-    Lockable* _obj;
-    bool      _sts;
+    std::mutex _lock;
+    T&         _obj;
+    bool       _sts;
 };
+template <typename T> auto_try_lock<T> TryLock(T& mutex) { return auto_try_lock<T>(mutex); }
 
-class Lock {
-public:
-    Lock(Lockable* obj) : _obj(obj)
-    {
-        _obj->LockObject();
-    }
-    Lock(Lockable& obj) : Lock(&obj)
-    {}
-    ~Lock()
-    {
-        _obj->UnlockObject();
-    }
-private:
-    Lockable* _obj;
-};
 
 } // namespace PVRHDHomeRun
