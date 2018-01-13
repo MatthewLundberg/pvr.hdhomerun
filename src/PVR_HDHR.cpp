@@ -761,7 +761,7 @@ bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
     struct sockaddr_in sa = {0};
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = g.Settings.udpPort;
+    sa.sin_port = htons(g.Settings.udpPort);
 
     _fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (_fd == -1)
