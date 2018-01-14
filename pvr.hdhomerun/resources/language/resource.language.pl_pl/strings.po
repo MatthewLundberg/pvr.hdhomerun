@@ -23,7 +23,7 @@ msgstr "General Settings"
 
 msgctxt "#32009"
 msgid "Enable debug logging"
-msgstr "Enable debug logging"
+msgstr "Rejestruj komunikaty diagnostyczne"
 
 
 

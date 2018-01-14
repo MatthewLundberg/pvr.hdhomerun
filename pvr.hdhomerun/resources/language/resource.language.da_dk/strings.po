@@ -53,7 +53,7 @@ msgstr "Hide unknown channels"
 
 msgctxt "#32016"
 msgid "Hide protected channels"
-msgstr "Hide protected channels"
+msgstr "Skjul beskyttede kanaler"
 
 msgctxt "#32017"
 msgid "Use Extended Guide"

@@ -1,6 +1,24 @@
 v4.0.0
 - Use lineup-based channels, to show every channel exactly once while allowing multiple for reception
 
+v3.3.0
+- PVR API 5.8.0 changes implemented
+
+v3.2.0
+- code cleanup
+- guide filters updated
+- additional epg_tag fields added, another episode number format added
+- handle discovering new tuners without an addon restart
+
+v3.1.9
+- Bump jsoncpp to version 1.8.3
+- Json::CharReaderBuilder implementation
+
+v3.1.8
+- Whitespace changes (tabs to spaces to make all files uniform)
+- jsoncpp 0.10.6 Update
+- code cleanup
+
 v3.1.4
 - Update to PVR API 5.7.0
 - Stub IsEPGTagPlayable as not implemented
