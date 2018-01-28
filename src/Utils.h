@@ -26,8 +26,9 @@
  *
  */
 
+#include <string>
+
 #include "client.h"
-#include <stdlib.h>
 
 #if defined(TARGET_WINDOWS) && defined(DEBUG)
 #define USE_DBG_CONSOLE
@@ -36,7 +37,7 @@
 #ifdef USE_DBG_CONSOLE
 int DbgPrintf(const char* szFormat, ...);
 #else
-#define DbgPrintf(...)							do {} while(0)
+#define DbgPrintf(...)              do {} while(0)
 #endif // USE_DBG_CONSOLE
 
 #define KODI_LOG(level, ...)											\

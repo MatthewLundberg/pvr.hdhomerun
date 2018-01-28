@@ -26,7 +26,6 @@
 #include "Utils.h"
 #include "PVR_HDHR.h"
 #include <chrono>
-#include <thread>
 #include <functional>
 #include <algorithm>
 #include <iterator>
@@ -34,6 +33,7 @@
 #include <sstream>
 #include <iterator>
 #include <numeric>
+#include <iostream>
 
 namespace PVRHDHomeRun
 {
