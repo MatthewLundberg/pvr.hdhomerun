@@ -196,7 +196,7 @@ bool PVR_HDHR::UpdateLineup()
     for (auto device: _devices)
     {
 
-        KODI_LOG(LOG_DEBUG, "Requesting HDHomeRun channel lineup for %08x: %s",
+        KODI_LOG(LOG_DEBUG, "Requesting channel lineup for %08x: %s",
                 device->DeviceID(), device->LineupURL().c_str()
         );
 
@@ -350,7 +350,7 @@ bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
     return new_guide_entries;
 }
 
-bool PVR_HDHR::_insert_guide_data(const GuideNumber* number, const Device* device, time_t start)
+bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, const Device* device, time_t start)
 {
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
     if (device)
@@ -377,7 +377,7 @@ bool PVR_HDHR::_insert_guide_data(const GuideNumber* number, const Device* devic
             URL.append(start_s);
         }
     }
-    KODI_LOG(LOG_DEBUG, "Requesting HDHomeRun guide for %08x: %s",
+    KODI_LOG(LOG_DEBUG, "Requesting guide for %08x: %s",
             device ? device->DeviceID() : 0xffffffff, URL.c_str());
 
     std::string guidedata;
@@ -405,7 +405,7 @@ bool PVR_HDHR::_update_guide_basic()
     // Find a minimal covering of the lineup, to avoid duplicate guide requests.
     Lock lock(this);
 
-    return _insert_guide_data();
+    return _fetch_guide_data();
 }
 
 bool PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
@@ -418,7 +418,7 @@ bool PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
     if (!device)
         return false;
 
-    return _insert_guide_data(&gn, device, start);
+    return _fetch_guide_data(&gn, device, start);
 }
 
 bool PVR_HDHR::_guide_contains(time_t t)
@@ -556,7 +556,7 @@ PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
         )
 {
     KODI_LOG(LOG_DEBUG,
-            "PvrGetEPCForChannel Handle:%p Channel ID: %d Number: %u Sub: %u Start: %s End: %s",
+            "PvrGetEPGForChannel Handle:%p Channel ID: %d Number: %u Sub: %u Start: %s End: %s",
             handle,
             channel.iUniqueId,
             channel.iChannelNumber,

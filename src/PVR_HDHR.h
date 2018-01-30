@@ -85,7 +85,7 @@ private:
     bool  _age_out(void);
     bool  _guide_contains(time_t);
     bool  _insert_json_guide_data(const Json::Value&, const Device*);
-    bool  _insert_guide_data(const GuideNumber* = nullptr, const Device* = nullptr, time_t start=0);
+    bool  _fetch_guide_data(const GuideNumber* = nullptr, const Device* = nullptr, time_t start=0);
     bool  _update_guide_basic();
     bool  _update_guide_extended(const GuideNumber&, time_t start);
 
