@@ -97,18 +97,4 @@ bool Info::RemoveDevice(Device* t)
     return true;
 }
 
-std::string Info::DeviceListString() const
-{
-    std::string devices;
-    for (auto device : _devices)
-    {
-        char id[10];
-        sprintf(id, " %08x", device->DeviceID());
-        devices += id;
-    }
-
-    return devices;
-}
-
-
 } // namespace PVRHDHomeRun

@@ -38,7 +38,7 @@
 
 namespace PVRHDHomeRun {
 
-class PVR_HDHR : public Lockable
+class PVR_HDHR : public Lockable, public DeviceSet
 {
 public:
     PVR_HDHR() = default;
@@ -84,8 +84,8 @@ public:
 private:
     bool  _age_out(void);
     bool  _guide_contains(time_t);
-    bool  _insert_json_guide_data(const Json::Value&, const Device*);
-    bool  _fetch_guide_data(const GuideNumber* = nullptr, const Device* = nullptr, time_t start=0);
+    bool  _insert_json_guide_data(const Json::Value&, const char* idstr);
+    bool  _fetch_guide_data(const GuideNumber* = nullptr, time_t start=0);
     bool  _update_guide_basic();
     bool  _update_guide_extended(const GuideNumber&, time_t start);
 
@@ -95,7 +95,6 @@ private:
 public:
 
 protected:
-    std::set<Device*>         _devices;
     std::set<uint32_t>        _device_ids;
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;

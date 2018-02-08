@@ -194,4 +194,29 @@ uint32_t Device::LocalIP() const
     return 0;
 }
 
+std::string DeviceSet::IDString() const
+{
+    std::string devices;
+    for (auto device : _devices)
+    {
+        char id[10];
+        sprintf(id, " %08x", device->DeviceID());
+        devices += id;
+    }
+
+    return devices;
+}
+
+std::string DeviceSet::AuthString() const
+{
+    std::string auth;
+    for (auto device : _devices)
+    {
+        auth += device->Auth();
+    }
+
+    return auth;
+}
+
+
 } // namespace PVRHDHomeRun

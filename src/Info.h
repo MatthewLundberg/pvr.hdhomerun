@@ -22,13 +22,14 @@
 
 #include <json/json.h>
 #include <set>
+#include "Tuner.h"
 
 namespace PVRHDHomeRun
 {
 
 class Device;
 
-class Info
+class Info : public DeviceSet // Device pointers are owned by PVR_HDHR
 {
 public:
     Info(const Json::Value&);
@@ -57,11 +58,6 @@ public:
             return it->second;
         return "";
     }
-    size_t DeviceCount() const
-    {
-        return _devices.size();
-    }
-    std::string DeviceListString() const;
 
     std::string _guidename;
     bool        _hd       = false;
@@ -69,10 +65,7 @@ public:
     bool        _favorite = false;
 
 private:
-    // Devices which can receive this channel.
-    // Device pointers are owned by Lineup
     bool                           _has_next = false;
-    std::set<Device*>              _devices;
     std::set<Device*>::iterator    _next;
     std::map<Device*, std::string> _url;
 };

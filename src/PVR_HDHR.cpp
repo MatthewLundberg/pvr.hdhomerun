@@ -100,6 +100,7 @@ bool PVR_HDHR::DiscoverDevices()
             // New device
             device_added = true;
             KODI_LOG(LOG_DEBUG, "Adding device %08x", id);
+            std::cout << "New tuner "<< std::hex << dd.device_id << std::dec << " auth " << EncodeURL(dd.device_auth) << "\n";
 
             _devices.insert(new Device(dd));
             _device_ids.insert(id);
@@ -231,7 +232,7 @@ bool PVR_HDHR::UpdateLineup()
     for (const auto& number: _lineup)
     {
         auto& info = _info[number];
-        std::string devices = info.DeviceListString();
+        std::string devices = info.IDString();
 
         if (prior.find(number) == prior.end())
         {
@@ -298,11 +299,11 @@ bool PVR_HDHR::_age_out()
     return any_changed;
 }
 
-bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const Device* device)
+bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const char* idstr)
 {
     if (jsondeviceguide.type() != Json::arrayValue)
     {
-        KODI_LOG(LOG_ERROR, "Top-level JSON guide data is not an array for %08x", device->DeviceID());
+        KODI_LOG(LOG_ERROR, "Top-level JSON guide data is not an array for %s", idstr);
         return {};
     }
 
@@ -323,7 +324,7 @@ bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
         auto jsonguidenetries = jsonchannelguide["Guide"];
         if (jsonguidenetries.type() != Json::arrayValue)
         {
-            KODI_LOG(LOG_ERROR, "Guide entries is not an array for %08x", device->DeviceID());
+            KODI_LOG(LOG_ERROR, "Guide entries is not an array for %s", idstr);
             continue;
         }
 
@@ -350,20 +351,21 @@ bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
     return new_guide_entries;
 }
 
-bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, const Device* device, time_t start)
+bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
 {
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
-    if (device)
+    const DeviceSet* dl = this;
+    if (number)
     {
-        URL.append(EncodeURL(device->Auth()));
+        const auto& info = _info[*number];
+        dl = &info;
     }
-    else
-    {
-        for (const auto t : _devices)
-        {
-            URL.append(EncodeURL(t->Auth()));
-        }
-    }
+    if (!dl->DeviceCount())
+        return false;
+    const auto idstr = dl->IDString().c_str();
+
+    auto auth = EncodeURL(dl->AuthString());
+    URL.append(auth);
 
     if (number)
     {
@@ -377,14 +379,14 @@ bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, const Device* device
             URL.append(start_s);
         }
     }
-    KODI_LOG(LOG_DEBUG, "Requesting guide for %08x: %s",
-            device ? device->DeviceID() : 0xffffffff, URL.c_str());
+    KODI_LOG(LOG_DEBUG, "Requesting guide for %s: %s %s",
+            idstr, start?FormatTime(start).c_str():"", URL.c_str());
 
     std::string guidedata;
     if (!GetFileContents(URL, guidedata))
     {
-        KODI_LOG(LOG_ERROR, "Error requesting guide for %08x from %s",
-                device ? device->DeviceID() : 0xffffffff, URL.c_str());
+        KODI_LOG(LOG_ERROR, "Error requesting guide for %s from %s",
+                idstr, URL.c_str());
         return {};
     }
     if (guidedata.substr(0,4) == "null")
@@ -394,10 +396,10 @@ bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, const Device* device
     Json::Value  jsondeviceguide;
     if (!jsonreader.parse(guidedata, jsondeviceguide))
     {
-        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %08x", device ? device->DeviceID() : 0xffffffff);
+        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %s", idstr);
         return {};
     }
-    return _insert_json_guide_data(jsondeviceguide, device);
+    return _insert_json_guide_data(jsondeviceguide, idstr);
 }
 
 bool PVR_HDHR::_update_guide_basic()
@@ -411,14 +413,7 @@ bool PVR_HDHR::_update_guide_basic()
 bool PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
 {
     Lock lock(this);
-
-    const auto& info = _info[gn];
-    auto device = info.GetFirstDevice();
-
-    if (!device)
-        return false;
-
-    return _fetch_guide_data(&gn, device, start);
+    return _fetch_guide_data(&gn, start);
 }
 
 bool PVR_HDHR::_guide_contains(time_t t)

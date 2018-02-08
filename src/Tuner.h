@@ -24,6 +24,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <set>
 
 namespace PVRHDHomeRun
 {
@@ -92,6 +93,20 @@ public:
     friend class Tuner;
 };
 
+class DeviceSet
+{
+public:
+    size_t DeviceCount() const
+    {
+        return _devices.size();
+    }
+    std::string IDString() const;
+    std::string AuthString() const;
+protected:
+
+    std::set<Device*> _devices;
+};
+
 class Tuner
 {
 public:
@@ -132,7 +147,6 @@ private:
 
     friend class TunerLock;
 };
-
 
 class TunerLock
 {
