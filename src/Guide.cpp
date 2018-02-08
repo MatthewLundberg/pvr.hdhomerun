@@ -117,13 +117,22 @@ GuideEntry::GuideEntry(const Json::Value& v)
     _starttime       = v["StartTime"].asUInt();
     _endtime         = v["EndTime"].asUInt();
     _originalairdate = v["OriginalAirdate"].asUInt();
-    _title           = v["Title"].asString();
+
     _episodenumber   = v["EpisodeNumber"].asString();
     _episodetitle    = v["EpisodeTitle"].asString();
     _synopsis        = v["Synopsis"].asString();
     _imageURL        = v["ImageURL"].asString();
     _seriesID        = v["SeriesID"].asString();
     _genre           = GetGenreType(v["Filter"]);
+    bool recording = v.isMember("RecordingRule") && v["RecordingRule"].asBool();
+    if (recording)
+    {
+        _title = std::string("* ") + v["Title"].asString();
+    }
+    else
+    {
+        _title = v["Title"].asString();
+    }
 }
 
 
