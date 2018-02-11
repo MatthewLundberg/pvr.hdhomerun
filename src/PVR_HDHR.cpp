@@ -336,6 +336,12 @@ bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
 
             GuideEntry entry{jsonentry};
             bool n = channelguide.AddEntry(entry);
+            EPG_EVENT_STATE state = n ? EPG_EVENT_CREATED : EPG_EVENT_UPDATED;
+            EPG_TAG tag = entry.Epg_Tag(number);
+            g.PVR->EpgEventStateChange(&tag, state);
+
+            if (number.ID() == 130002)
+                std::cout << "Guide event new: " << n << " channel " << number << " time " << FormatTime(entry._starttime) << " times "<< channelguide.Times().toString() <<  "\n";
 
             if (n) {
                 new_channel_entries = true;
@@ -345,7 +351,7 @@ bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
         if (new_channel_entries)
         {
             new_guide_entries = true;
-            g.PVR->TriggerEpgUpdate(number);
+            //g.PVR->TriggerEpgUpdate(number);
         }
     }
     return new_guide_entries;
@@ -362,7 +368,7 @@ bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
     }
     if (!dl->DeviceCount())
         return false;
-    const auto idstr = dl->IDString().c_str();
+    auto idstr = dl->IDString();
 
     auto auth = EncodeURL(dl->AuthString());
     URL.append(auth);
@@ -380,13 +386,13 @@ bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
         }
     }
     KODI_LOG(LOG_DEBUG, "Requesting guide for %s: %s %s",
-            idstr, start?FormatTime(start).c_str():"", URL.c_str());
+            idstr.c_str(), start?FormatTime(start).c_str():"", URL.c_str());
 
     std::string guidedata;
     if (!GetFileContents(URL, guidedata))
     {
         KODI_LOG(LOG_ERROR, "Error requesting guide for %s from %s",
-                idstr, URL.c_str());
+                idstr.c_str(), URL.c_str());
         return {};
     }
     if (guidedata.substr(0,4) == "null")
@@ -396,17 +402,15 @@ bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
     Json::Value  jsondeviceguide;
     if (!jsonreader.parse(guidedata, jsondeviceguide))
     {
-        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %s", idstr);
+        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %s", idstr.c_str());
         return {};
     }
-    return _insert_json_guide_data(jsondeviceguide, idstr);
+    return _insert_json_guide_data(jsondeviceguide, idstr.c_str());
 }
 
 bool PVR_HDHR::_update_guide_basic()
 {
-    // Find a minimal covering of the lineup, to avoid duplicate guide requests.
     Lock lock(this);
-
     return _fetch_guide_data();
 }
 
@@ -431,6 +435,7 @@ bool PVR_HDHR::_guide_contains(time_t t)
 
         if (!guide.Times().Contains(t))
         {
+            std::cout << "Nonempty guide for " << ng.first << " does not contain now(" << FormatTime(t) << ") : times " << guide.Times().toString() << "\n";
             return false;
         }
 
@@ -441,12 +446,32 @@ bool PVR_HDHR::_guide_contains(time_t t)
 }
 void PVR_HDHR::UpdateGuide()
 {
+    time_t now = time(nullptr);
+    static time_t basic_update_time = 0;
     Lock guidelock(_guide_lock);
 
-    time_t now     = time(nullptr);
-    if (!_guide_contains(now) || !_guide_contains(now + g.Settings.guideBasicInterval))
+    bool do_basic = false;
+
+    if (!_guide_contains(now))
     {
+        std::cout << "Guide does not contain now - ";
+        do_basic = true;
+    }
+    if (now % g.Settings.guideBasicInterval >= g.Settings.guideBasicInterval - 300 && now - basic_update_time > 300)
+    {
+        std::cout << "Five til the hour - ";
+        do_basic = true;
+    }
+    if (basic_update_time + g.Settings.guideBasicInterval < now)
+    {
+        std::cout << "update based on interval - ";
+        do_basic = true;
+    }
+    if (do_basic)
+    {
+        std::cout << "Update basic guide\n";
         _update_guide_basic();
+        basic_update_time = now;
         return;
     }
 
@@ -461,26 +486,18 @@ void PVR_HDHR::UpdateGuide()
 
             if (guide.Times().Empty())
             {
-                time_t again = guide.LastCheck() + g.Settings.guideZeroCheckInterval;
-                if (now < again)
-                    continue;
-
-                start = now;
+                // Nothing retrieved for this channel with the basic guide, skip it.
+                continue;
             }
             else if (!guide.Times().Contains(now + g.Settings.guideExtendedLength))
             {
                 start = guide.Times().End();
-            }
-            else if (!guide.Times().Contains(now - g.Settings.guideReverseLength))
-            {
-                start = guide.Times().Start() - g.Settings.guideExtendedEach;
+                std::cout << "Fetching channel " << number << " from time " << FormatTime(start) << "\n";
             }
             else
             {
                 continue;
             }
-
-            //std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
             KODI_LOG(LOG_DEBUG, "Extended Update: %d %s Times %s Requests %s",
                     number,
@@ -550,21 +567,13 @@ PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
         const PVR_CHANNEL& channel, time_t start, time_t end
         )
 {
-    KODI_LOG(LOG_DEBUG,
-            "PvrGetEPGForChannel Handle:%p Channel ID: %d Number: %u Sub: %u Start: %s End: %s",
-            handle,
-            channel.iUniqueId,
-            channel.iChannelNumber,
-            channel.iSubChannelNumber,
-            FormatTime(start).c_str(),
-            FormatTime(end).c_str()
-    );
-
     Lock guidelock(_guide_lock);
     Lock lock(this);
 
     auto& guide = _guide[channel.iUniqueId];
     auto& times    = guide.Times();
+
+    //std::cout << "PvrGetEPGForChannel " << channel.iUniqueId << " " << FormatTime(start) << " " << FormatTime(end) << " " << times.toString() << " " << guide.Requests().toString() << "\n";
 
     if (!times.Contains(start) && !times.Contains(end))
     {
@@ -577,21 +586,6 @@ PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
     else if (!times.Contains(end))
     {
         guide.AddRequest({times.End(), end});
-    }
-
-    for (auto& ge: guide.Entries())
-    {
-        if (ge._endtime < start)
-            continue;
-        if (ge._starttime > end)
-            break;
-        if (ge._transferred)
-            continue;
-
-        EPG_TAG tag = ge.Epg_Tag(channel.iUniqueId);
-        g.PVR->TransferEpgEntry(handle, &tag);
-
-        guide.Transferred(ge);
     }
 
     return PVR_ERROR_NO_ERROR;
