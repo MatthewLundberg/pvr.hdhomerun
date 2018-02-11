@@ -163,12 +163,6 @@ public:
                 {
                     state = 0;
                 }
-
-                if (!_running)
-                {
-                    g.pvr_hdhr->TriggerEpgUpdate();
-                    _running = false;
-                }
             }
 
             if (updateDiscover || updateLineup || updateGuide)

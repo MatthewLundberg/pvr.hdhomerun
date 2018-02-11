@@ -82,8 +82,6 @@ public:
     uint32_t    _genre;
     uint32_t    _id;
 
-    mutable bool _transferred = false;
-
     bool operator<(const GuideEntry& rhs) const
     {
         return _starttime < rhs._starttime;
@@ -116,12 +114,14 @@ public:
     Guide(const Json::Value&);
     Guide() = default;
 
-    // Add entry, retrive from set if it already exists.
-    // Returns true if the entry is newly inserted, false otherwise.
-    bool AddEntry(GuideEntry&);
+    bool AddEntry(GuideEntry&, uint32_t number);
     void AddRequest(const Interval& r)
     {
         _requests.Add(r);
+    }
+    void RemoveRequest(const Interval& i)
+    {
+        _requests.Remove(i);
     }
     bool _age_out(uint32_t number);
 
@@ -149,13 +149,6 @@ public:
     {
         return _entries;
     }
-    void Transferred(const GuideEntry& ge)
-    {
-        ge._transferred = true;
-        _requests.Remove(ge);
-    }
-
-    void ResetTransferred();
 
     time_t LastCheck() const
     {

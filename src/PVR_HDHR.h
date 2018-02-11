@@ -53,7 +53,6 @@ public:
     bool DiscoverDevices();
     bool UpdateLineup();
     void UpdateGuide();
-    void TriggerEpgUpdate();
 
     bool Update()
     {
@@ -84,10 +83,10 @@ public:
 private:
     bool  _age_out(void);
     bool  _guide_contains(time_t);
-    bool  _insert_json_guide_data(const Json::Value&, const char* idstr);
-    bool  _fetch_guide_data(const GuideNumber* = nullptr, time_t start=0);
-    bool  _update_guide_basic();
-    bool  _update_guide_extended(const GuideNumber&, time_t start);
+    void  _insert_json_guide_data(const Json::Value&, const char* idstr);
+    void  _fetch_guide_data(const GuideNumber* = nullptr, time_t start=0);
+    void  _update_guide_basic();
+    void  _update_guide_extended(const GuideNumber&, time_t start);
 
     virtual bool _open_live_stream(const PVR_CHANNEL& channel) = 0;
     virtual int  _read_live_stream(unsigned char* buffer, unsigned int size) = 0;

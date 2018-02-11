@@ -133,6 +133,9 @@ GuideEntry::GuideEntry(const Json::Value& v)
     {
         _title = v["Title"].asString();
     }
+
+    // TODO remove
+    _synopsis = _seriesID + " " + _synopsis;
 }
 
 
@@ -152,9 +155,15 @@ EPG_TAG GuideEntry::Epg_Tag(uint32_t number) const
     tag.strIconPath        = _imageURL.c_str();
     tag.iGenreType         = _genre;
 
-    // SD doesn't provide integers for these, so we ignore them for now.
-    //tag.iSeriesNumber
-    //tag.iEpisodeNumber
+    if (_episodenumber[0] == 'S') {
+        auto e = _episodenumber.find('E');
+        if (e != std::string::npos) {
+            auto season  = _episodenumber.substr(1, e);
+            auto episode = _episodenumber.substr(e+1);
+            tag.iSeriesNumber  = std::stoi(season);
+            tag.iEpisodeNumber = std::stoi(episode);
+        }
+    }
 
     return tag;
 }
@@ -166,31 +175,32 @@ Guide::Guide(const Json::Value& v)
     _imageURL  = v["ImageURL"].asString();
 }
 
-bool Guide::AddEntry(GuideEntry& v)
+bool Guide::AddEntry(GuideEntry& v, uint32_t number)
 {
+    bool newentry = false;
     auto it = _entries.find(v);
     if (it == _entries.end())
     {
         v._id = _nextidx ++;
-        _entries.insert(v);
-
-        Interval i(v);
-        _times.Add(i);
-        _requests.Remove(i);
-        return true;
+        newentry = true;
     }
-    v = *it;
-
-    return false;
-}
-
-void Guide::ResetTransferred()
-{
-    for (auto& entry : _entries)
+    else
     {
-        entry._transferred = false;
+        v._id = it->_id;
     }
+
+    Interval i(v);
+    _times.Add(i);
+    _requests.Remove(i);
+    _entries.insert(v);
+
+    EPG_EVENT_STATE state = newentry ? EPG_EVENT_CREATED : EPG_EVENT_UPDATED;
+    EPG_TAG tag = v.Epg_Tag(number);
+    g.PVR->EpgEventStateChange(&tag, state);
+
+    return newentry;
 }
+
 bool Guide::_age_out(uint32_t number)
 {
     bool changed = false;
@@ -217,6 +227,7 @@ bool Guide::_age_out(uint32_t number)
         else
             it ++;
     }
+    _requests.Remove({0, lim});
 
     return changed;
 }

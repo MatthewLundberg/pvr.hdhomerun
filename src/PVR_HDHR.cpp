@@ -261,21 +261,6 @@ bool PVR_HDHR::UpdateLineup()
     }
 }
 
-
-void PVR_HDHR::TriggerEpgUpdate()
-{
-    Lock guidelock(_guide_lock);
-    Lock lock(this);
-
-    for (auto& channel : _lineup)
-    {
-        auto& guide = _guide[channel];
-        guide.ResetTransferred();
-
-        g.PVR->TriggerEpgUpdate(channel);
-    }
-}
-
 bool PVR_HDHR::_age_out()
 {
     Lock guidelock(_guide_lock);
@@ -299,15 +284,13 @@ bool PVR_HDHR::_age_out()
     return any_changed;
 }
 
-bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const char* idstr)
+void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const char* idstr)
 {
     if (jsondeviceguide.type() != Json::arrayValue)
     {
         KODI_LOG(LOG_ERROR, "Top-level JSON guide data is not an array for %s", idstr);
-        return {};
+        return;
     }
-
-    bool new_guide_entries{false};
 
     for (auto& jsonchannelguide : jsondeviceguide)
     {
@@ -335,29 +318,20 @@ bool PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
             static uint32_t counter = 1;
 
             GuideEntry entry{jsonentry};
-            bool n = channelguide.AddEntry(entry);
-            EPG_EVENT_STATE state = n ? EPG_EVENT_CREATED : EPG_EVENT_UPDATED;
-            EPG_TAG tag = entry.Epg_Tag(number);
-            g.PVR->EpgEventStateChange(&tag, state);
+            bool n = channelguide.AddEntry(entry, number.ID());
 
             if (number.ID() == 130002)
-                std::cout << "Guide event new: " << n << " channel " << number << " time " << FormatTime(entry._starttime) << " times "<< channelguide.Times().toString() <<  "\n";
+                std::cout << "Guide event new: " << n << " channel " << number << " time " << FormatTime(entry._starttime)
+                << " times "<< channelguide.Times().toString()
+                << " Requests " << channelguide.Requests().toString()
+                <<  "\n";
 
-            if (n) {
-                new_channel_entries = true;
-            }
         }
 
-        if (new_channel_entries)
-        {
-            new_guide_entries = true;
-            //g.PVR->TriggerEpgUpdate(number);
-        }
     }
-    return new_guide_entries;
 }
 
-bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
+void PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
 {
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
     const DeviceSet* dl = this;
@@ -367,7 +341,7 @@ bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
         dl = &info;
     }
     if (!dl->DeviceCount())
-        return false;
+        return;
     auto idstr = dl->IDString();
 
     auto auth = EncodeURL(dl->AuthString());
@@ -393,31 +367,31 @@ bool PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
     {
         KODI_LOG(LOG_ERROR, "Error requesting guide for %s from %s",
                 idstr.c_str(), URL.c_str());
-        return {};
+        return;
     }
     if (guidedata.substr(0,4) == "null")
-        return {};
+        return;
 
     Json::Reader jsonreader;
     Json::Value  jsondeviceguide;
     if (!jsonreader.parse(guidedata, jsondeviceguide))
     {
         KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %s", idstr.c_str());
-        return {};
+        return;
     }
-    return _insert_json_guide_data(jsondeviceguide, idstr.c_str());
+    _insert_json_guide_data(jsondeviceguide, idstr.c_str());
 }
 
-bool PVR_HDHR::_update_guide_basic()
+void PVR_HDHR::_update_guide_basic()
 {
     Lock lock(this);
-    return _fetch_guide_data();
+    _fetch_guide_data();
 }
 
-bool PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
+void PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
 {
     Lock lock(this);
-    return _fetch_guide_data(&gn, start);
+    _fetch_guide_data(&gn, start);
 }
 
 bool PVR_HDHR::_guide_contains(time_t t)
@@ -472,7 +446,6 @@ void PVR_HDHR::UpdateGuide()
         std::cout << "Update basic guide\n";
         _update_guide_basic();
         basic_update_time = now;
-        return;
     }
 
     if (g.Settings.extendedGuide)
@@ -492,7 +465,8 @@ void PVR_HDHR::UpdateGuide()
             else if (!guide.Times().Contains(now + g.Settings.guideExtendedLength))
             {
                 start = guide.Times().End();
-                std::cout << "Fetching channel " << number << " from time " << FormatTime(start) << "\n";
+                if (number == 130002)
+                    std::cout << "Fetching channel " << number << " from time " << FormatTime(start) << "\n";
             }
             else
             {
@@ -573,20 +547,20 @@ PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
     auto& guide = _guide[channel.iUniqueId];
     auto& times    = guide.Times();
 
-    //std::cout << "PvrGetEPGForChannel " << channel.iUniqueId << " " << FormatTime(start) << " " << FormatTime(end) << " " << times.toString() << " " << guide.Requests().toString() << "\n";
+    guide.AddRequest({start, end});
+    for (auto& ge: guide.Entries())
+    {
+        if (ge._endtime < start)
+            continue;
+        if (ge._starttime > end)
+            continue;
+        EPG_TAG tag = ge.Epg_Tag(channel.iUniqueId);
+        g.PVR->TransferEpgEntry(handle, &tag);
+        guide.RemoveRequest(ge);
+    }
 
-    if (!times.Contains(start) && !times.Contains(end))
-    {
-        guide.AddRequest({start, end});
-    }
-    else if (!times.Contains(start))
-    {
-        guide.AddRequest({start, times.Start()});
-    }
-    else if (!times.Contains(end))
-    {
-        guide.AddRequest({times.End(), end});
-    }
+    if (channel.iUniqueId == 130002)
+        std::cout << "PvrGetEPGForChannel " << channel.iUniqueId << " start " << FormatTime(start) << " end " << FormatTime(end) << " times " << times.toString() << " requests " << guide.Requests().toString() << "\n";
 
     return PVR_ERROR_NO_ERROR;
 }
