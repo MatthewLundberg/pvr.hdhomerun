@@ -59,7 +59,9 @@ msgctxt "#32017"
 msgid "Use Extended Guide"
 msgstr "Use Extended Guide"
 
-
+msgctxt "#32018"
+msgid "Extended Guide Days"
+msgstr "Extended Guide Days"
 
 msgctxt "#32020"
 msgid "Network Settings"

@@ -63,6 +63,7 @@ struct SettingsType
     CHANNEL_NAME channelName    = AFFILIATE;
     PROTOCOL     protocol       = TCP;
     bool extendedGuide          = false;
+    int  guideDays              = 1;
     std::vector<uint32_t> preferredDevice;
     std::set<uint32_t>    blacklistDevice;
     int udpPort                 = 5000;
@@ -72,7 +73,6 @@ struct SettingsType
     int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update
     int guideBasicInterval      = 3600;      // 1 hour  Refresh basic guide
     int guideExtendedEach       = 3600 * 8;  // 8 hours How much is supplied at a time
-    int guideExtendedLength     = 3600 * 24 * 14; // TODO - remove this.
     int guideAgeOut             = 3600 * 24;
 };
 

@@ -3,10 +3,11 @@
 
   <!-- Guide Settings -->
   <category label="32010">
-    <setting id="channel_name"   type="enum" label="32014" lvalues="32011|32012|32013" default="2"/>
-    <setting id="hide_unknown"   type="bool" label="32015" default="true" />
-    <setting id="hide_protected" type="bool" label="32016" default="true" />
-    <setting id="extended"       type="bool" label="32017" default="false" />
+    <setting id="channel_name"   type="enum"   label="32014" lvalues="32011|32012|32013" default="2"/>
+    <setting id="hide_unknown"   type="bool"   label="32015" default="true" />
+    <setting id="hide_protected" type="bool"   label="32016" default="true" />
+    <setting id="extended"       type="bool"   label="32017" default="false" />
+    <setting id="guidedays"      type="number" label="32018" default="1" visible="eq(-1,true)" />
   </category>
 
   <!-- Tuner Settings -->
@@ -20,7 +21,7 @@
 
   <!-- General Settings -->
   <category label=32000>
-    <setting id="debug"         type="bool" label="32009" default="false" />
+    <setting id="debug"         type="bool"    label="32009" default="false" />
   </category>
 
 </settings>

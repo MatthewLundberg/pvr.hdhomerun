@@ -462,7 +462,7 @@ void PVR_HDHR::UpdateGuide()
                 // Nothing retrieved for this channel with the basic guide, skip it.
                 continue;
             }
-            else if (!guide.Times().Contains(now + g.Settings.guideExtendedLength))
+            else if (!guide.Times().Contains(now + g.Settings.guideDays*24*3600 - g.Settings.guideExtendedEach + 300))
             {
                 start = guide.Times().End();
                 if (number == 130002)

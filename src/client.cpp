@@ -37,6 +37,7 @@
 #include <iterator>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 
 namespace PVRHDHomeRun
 {
@@ -251,14 +252,15 @@ void ADDON_ReadSettings(void)
     g.XBMC->GetSetting("hide_unknown",   &g.Settings.hideUnknownChannels);
     g.XBMC->GetSetting("use_legacy",     &g.Settings.useLegacyDevices);
     g.XBMC->GetSetting("extended",       &g.Settings.extendedGuide);
+    g.XBMC->GetSetting("guidedays",      &g.Settings.guideDays);
     g.XBMC->GetSetting("channel_name",   &g.Settings.channelName);
     g.XBMC->GetSetting("port",           &g.Settings.udpPort);
 
-    char preferred[1024];
+    char preferred[1024] = "";
     g.XBMC->GetSetting("preferred",      preferred);
     g.Settings.preferredDevice = split_vec(preferred);
 
-    char blacklist[1024];
+    char blacklist[1024] = "";
     g.XBMC->GetSetting("blacklist",      blacklist);
     g.Settings.blacklistDevice = split_set(blacklist);
 
@@ -302,7 +304,9 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
     g.pvr_hdhr = PVR_HDHR_Factory(g.Settings.protocol);
 
     if (g.pvr_hdhr == nullptr)
+    {
         return ADDON_STATUS_PERMANENT_FAILURE;
+    }
     KODI_LOG(LOG_DEBUG, "Done with new-style Lineup");
 
     if (g.pvr_hdhr)
@@ -378,6 +382,9 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
         return ADDON_STATUS_OK;
 
     if (setvalue(g.Settings.extendedGuide, "extended", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(g.Settings.guideDays, "guidedays", name, value))
         return ADDON_STATUS_OK;
 
     if (strcmp(name, "channel_name") == 0)
