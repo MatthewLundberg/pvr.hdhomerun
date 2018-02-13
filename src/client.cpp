@@ -255,6 +255,8 @@ void ADDON_ReadSettings(void)
     g.XBMC->GetSetting("guidedays",      &g.Settings.guideDays);
     g.XBMC->GetSetting("channel_name",   &g.Settings.channelName);
     g.XBMC->GetSetting("port",           &g.Settings.udpPort);
+    g.XBMC->GetSetting("record",         &g.Settings.record);
+    g.XBMC->GetSetting("recordforlive",  &g.Settings.recordforlive);
 
     char preferred[1024] = "";
     g.XBMC->GetSetting("preferred",      preferred);
@@ -385,6 +387,12 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
         return ADDON_STATUS_OK;
 
     if (setvalue(g.Settings.guideDays, "guidedays", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(g.Settings.record, "record", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(g.Settings.recordforlive, "recordforlive", name, value))
         return ADDON_STATUS_OK;
 
     if (strcmp(name, "channel_name") == 0)

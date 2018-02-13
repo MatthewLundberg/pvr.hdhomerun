@@ -67,6 +67,8 @@ struct SettingsType
     std::vector<uint32_t> preferredDevice;
     std::set<uint32_t>    blacklistDevice;
     int udpPort                 = 5000;
+    bool record                 = false;
+    bool recordforlive          = true;
 
     int deviceDiscoverInterval  = 300;
     int lineupUpdateInterval    = 300;
