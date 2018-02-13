@@ -87,3 +87,19 @@ msgctxt "#32025"
 msgid "Port"
 msgstr "Port"
 
+msgctxt "#32026"
+msgid "Use Record Engine for Live TV"
+msgstr "Use Record Engine for Live TV"
+
+msgctxt "#32030"
+msgid "Record Engine"
+msgstr "Record Engine"
+
+msgctxt "#32031"
+msgid "Use SD Record Engine"
+msgstr "Use SD Record Engine"
+
+msgctxt "#32032"
+msgid "Use Record Engine for Live TV"
+msgstr "Use Record Engine for Live TV"
+
