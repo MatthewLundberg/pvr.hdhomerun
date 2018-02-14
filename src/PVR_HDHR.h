@@ -66,6 +66,10 @@ public:
 
     PVR_ERROR PvrGetChannels(ADDON_HANDLE handle, bool bRadio);
     int PvrGetChannelsAmount();
+    PVR_ERROR PvrGetEPGForChannel(ADDON_HANDLE handle,
+            const PVR_CHANNEL& channel,
+            time_t iStart,
+            time_t iEnd);
     int PvrGetChannelGroupsAmount(void);
     PVR_ERROR PvrGetChannelGroups(ADDON_HANDLE handle, bool bRadio);
     PVR_ERROR PvrGetChannelGroupMembers(ADDON_HANDLE handle,
@@ -77,7 +81,7 @@ public:
 
 
 private:
-    void  _age_out(time_t limit);
+    void  _age_out(time_t);
     bool  _guide_contains(time_t);
     void  _insert_json_guide_data(const Json::Value&, const char* idstr);
     void  _fetch_guide_data(const GuideNumber* = nullptr, time_t start=0);
