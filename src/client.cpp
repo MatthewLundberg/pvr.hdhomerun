@@ -488,14 +488,6 @@ PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
     return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL& channel,
-        time_t iStart, time_t iEnd)
-{
-    return g.pvr_hdhr ?
-            g.pvr_hdhr->PvrGetEPGForChannel(handle, channel, iStart, iEnd) :
-            PVR_ERROR_SERVER_ERROR;
-}
-
 int GetChannelsAmount(void)
 {
     return g.pvr_hdhr ? g.pvr_hdhr->PvrGetChannelsAmount() : PVR_ERROR_SERVER_ERROR;
@@ -625,6 +617,7 @@ bool IsTimeshifting(void) { return false; }
 PVR_ERROR SetEPGTimeFrame(int) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR IsEPGTagPlayable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL& channel, time_t iStart, time_t iEnd) { return PVR_ERROR_NO_ERROR; }
 PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 } // extern "C"
 

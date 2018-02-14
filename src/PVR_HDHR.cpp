@@ -535,36 +535,6 @@ PVR_ERROR PVR_HDHR::PvrGetChannels(ADDON_HANDLE handle, bool radio)
     return PVR_ERROR_NO_ERROR;
 }
 
-
-
-PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
-        const PVR_CHANNEL& channel, time_t start, time_t end
-        )
-{
-    Lock guidelock(_guide_lock);
-    Lock lock(this);
-
-    auto& guide = _guide[channel.iUniqueId];
-    auto& times    = guide.Times();
-
-    guide.AddRequest({start, end});
-    for (auto& ge: guide.Entries())
-    {
-        if (ge._endtime < start)
-            continue;
-        if (ge._starttime > end)
-            continue;
-        EPG_TAG tag = ge.Epg_Tag(channel.iUniqueId);
-        g.PVR->TransferEpgEntry(handle, &tag);
-        guide.RemoveRequest(ge);
-    }
-
-    if (channel.iUniqueId == 130002)
-        std::cout << "PvrGetEPGForChannel " << channel.iUniqueId << " start " << FormatTime(start) << " end " << FormatTime(end) << " times " << times.toString() << " requests " << guide.Requests().toString() << "\n";
-
-    return PVR_ERROR_NO_ERROR;
-}
-
 int PVR_HDHR::PvrGetChannelGroupsAmount()
 {
     return 3;
