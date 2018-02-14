@@ -75,7 +75,6 @@ struct SettingsType
     int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update
     int guideBasicInterval      = 3600;      // 1 hour  Refresh basic guide
     int guideExtendedEach       = 3600 * 8;  // 8 hours How much is supplied at a time
-    int guideAgeOut             = 3600 * 24;
 };
 
 struct GlobalsType

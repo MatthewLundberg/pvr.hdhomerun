@@ -261,27 +261,17 @@ bool PVR_HDHR::UpdateLineup()
     }
 }
 
-bool PVR_HDHR::_age_out()
+void PVR_HDHR::_age_out()
 {
     Lock guidelock(_guide_lock);
     Lock lock(this);
-
-    bool any_changed = false;
 
     for (auto& mapentry : _guide)
     {
         uint32_t id = mapentry.first;
         auto& guide = mapentry.second;
-
-        bool changed = guide._age_out(id);
-        if (changed)
-        {
-            any_changed = true;
-            g.PVR->TriggerEpgUpdate(id);
-        }
+        guide._age_out(id);
     }
-
-    return any_changed;
 }
 
 void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const char* idstr)

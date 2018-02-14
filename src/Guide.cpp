@@ -201,35 +201,26 @@ bool Guide::AddEntry(GuideEntry& v, uint32_t number)
     return newentry;
 }
 
-bool Guide::_age_out(uint32_t number)
+void Guide::_age_out(uint32_t number)
 {
-    bool changed = false;
-
-    uint32_t max_age = g.Settings.guideAgeOut;
     time_t   now = time(nullptr);
-    time_t   lim = now - max_age;
-
-    _requests.Remove({0, lim});
 
     auto it = _entries.begin();
     while (it != _entries.end())
     {
         auto& entry = *it;
         time_t end = entry._endtime;
-        if (end < lim)
+        if (end < now)
         {
             KODI_LOG(LOG_DEBUG, "Deleting guide entry for age %u: %s - %s", (now-end), entry._title.c_str(), entry._episodetitle.c_str());
 
             _times.Remove(entry);
             it = _entries.erase(it);
-            changed = true;
         }
         else
             it ++;
     }
-    _requests.Remove({0, lim});
-
-    return changed;
+    _requests.Remove({0, now});
 }
 
 
