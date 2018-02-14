@@ -212,8 +212,6 @@ void Guide::_age_out(uint32_t number)
         time_t end = entry._endtime;
         if (end < now)
         {
-            KODI_LOG(LOG_DEBUG, "Deleting guide entry for age %u: %s - %s", (now-end), entry._title.c_str(), entry._episodetitle.c_str());
-
             _times.Remove(entry);
             it = _entries.erase(it);
         }
