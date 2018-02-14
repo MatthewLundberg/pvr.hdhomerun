@@ -261,7 +261,7 @@ bool PVR_HDHR::UpdateLineup()
     }
 }
 
-void PVR_HDHR::_age_out()
+void PVR_HDHR::_age_out(time_t now)
 {
     Lock guidelock(_guide_lock);
     Lock lock(this);
@@ -270,7 +270,7 @@ void PVR_HDHR::_age_out()
     {
         uint32_t id = mapentry.first;
         auto& guide = mapentry.second;
-        guide._age_out(id);
+        guide._age_out(id, now);
     }
 }
 
@@ -411,6 +411,10 @@ bool PVR_HDHR::_guide_contains(time_t t)
 void PVR_HDHR::UpdateGuide()
 {
     time_t now = time(nullptr);
+
+    // First remove stale entries
+    _age_out(now);
+
     static time_t basic_update_time = 0;
     Lock guidelock(_guide_lock);
 
@@ -474,8 +478,6 @@ void PVR_HDHR::UpdateGuide()
             guide.LastCheck(now);
         }
     }
-
-    _age_out();
 }
 
 int PVR_HDHR::PvrGetChannelsAmount()

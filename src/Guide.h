@@ -123,7 +123,7 @@ public:
     {
         _requests.Remove(i);
     }
-    void _age_out(uint32_t number);
+    void _age_out(uint32_t number, time_t limit);
 
     const IntervalSet& Times() const
     {

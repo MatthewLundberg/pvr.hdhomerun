@@ -77,7 +77,7 @@ public:
 
 
 private:
-    void  _age_out(void);
+    void  _age_out(time_t limit);
     bool  _guide_contains(time_t);
     void  _insert_json_guide_data(const Json::Value&, const char* idstr);
     void  _fetch_guide_data(const GuideNumber* = nullptr, time_t start=0);

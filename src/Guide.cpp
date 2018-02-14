@@ -201,16 +201,14 @@ bool Guide::AddEntry(GuideEntry& v, uint32_t number)
     return newentry;
 }
 
-void Guide::_age_out(uint32_t number)
+void Guide::_age_out(uint32_t number, time_t limit)
 {
-    time_t   now = time(nullptr);
-
     auto it = _entries.begin();
     while (it != _entries.end())
     {
         auto& entry = *it;
         time_t end = entry._endtime;
-        if (end < now)
+        if (end < limit)
         {
             _times.Remove(entry);
             it = _entries.erase(it);
@@ -218,7 +216,7 @@ void Guide::_age_out(uint32_t number)
         else
             it ++;
     }
-    _requests.Remove({0, now});
+    _requests.Remove({0, limit});
 }
 
 
