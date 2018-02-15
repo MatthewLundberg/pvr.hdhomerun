@@ -43,6 +43,14 @@ public:
     {
         return _start < rhs._start;
     }
+    time_t Start() const
+    {
+        return _start;
+    }
+    time_t End() const
+    {
+        return _end;
+    }
     time_t Length() const
     {
         return _end - _start;
@@ -99,6 +107,14 @@ public:
     time_t End() const
     {
         return _intervals.rbegin()->_end;
+    }
+    const Interval& Last() const
+    {
+        return *_intervals.rbegin();
+    }
+    const size_t Count() const
+    {
+        return _intervals.size();
     }
 
     void _rebalance();

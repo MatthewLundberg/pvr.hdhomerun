@@ -276,6 +276,8 @@ void PVR_HDHR::_age_out(time_t now)
 
 void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const char* idstr)
 {
+    Lock lock(this);
+
     if (jsondeviceguide.type() != Json::arrayValue)
     {
         KODI_LOG(LOG_ERROR, "Top-level JSON guide data is not an array for %s", idstr);
@@ -374,13 +376,14 @@ void PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
 
 void PVR_HDHR::_update_guide_basic()
 {
-    Lock lock(this);
     _fetch_guide_data();
 }
 
 void PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
 {
-    Lock lock(this);
+    if (gn.ID() == 130002)
+        std::cout << "Fetching channel " << gn << " from time " << FormatTime(start) << "\n";
+
     _fetch_guide_data(&gn, start);
 }
 
@@ -449,32 +452,44 @@ void PVR_HDHR::UpdateGuide()
             auto  number = ng.first;
             auto& guide  = ng.second;
 
-            time_t start;
-
             if (guide.Times().Empty())
             {
                 // Nothing retrieved for this channel with the basic guide, skip it.
                 continue;
             }
-            else if (!guide.Times().Contains(now + g.Settings.guideDays*24*3600 - g.Settings.guideExtendedEach + 300))
+
+            time_t tail = guide.Times().End();
+            time_t end  = now + g.Settings.guideDays*24*3600;
+
+            guide.RemoveRequest({0, now});
+            if (end > tail)
             {
-                start = guide.Times().End();
-                if (number == 130002)
-                    std::cout << "Fetching channel " << number << " from time " << FormatTime(start) << "\n";
+                guide.AddRequest({tail, end});
             }
-            else
+
+            if (guide.Requests().Empty())
             {
                 continue;
             }
 
-            KODI_LOG(LOG_DEBUG, "Extended Update: %d %s Times %s Requests %s",
-                    number,
-                    FormatTime(start).c_str(),
-                    guide.Times().toString().c_str(),
-                    guide.Requests().toString().c_str()
-                    );
+            // First try the last interval in requests
+            auto& last = guide.Requests().Last();
+            if (last.Length() > g.Settings.guideExtendedEach + 300)
+            {
+                _update_guide_extended(number, last.Start());
+            }
+            else if (guide.Requests().Count() > 1)
+            {
+                // TODO - get iterator from IntervalSet
+                for (auto& i : guide.Requests()._intervals)
+                {
+                    // TODO - proper comparison
+                    if (i._start == last._start)
+                        break;
+                    _update_guide_extended(number, i.Start());
+                }
+            }
 
-            _update_guide_extended(number, start);
             guide.LastCheck(now);
         }
     }
@@ -544,7 +559,6 @@ PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
             continue;
         EPG_TAG tag = ge.Epg_Tag(channel.iUniqueId);
         g.PVR->TransferEpgEntry(handle, &tag);
-        guide.RemoveRequest(ge);
     }
 
    if (channel.iUniqueId == 130002)
