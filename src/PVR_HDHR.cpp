@@ -34,6 +34,7 @@
 #include <iterator>
 #include <numeric>
 #include <iostream>
+#include <random>
 
 namespace PVRHDHomeRun
 {
@@ -389,36 +390,32 @@ void PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
 
 bool PVR_HDHR::_guide_contains(time_t t)
 {
-    bool   contains = true;
-    bool   haveany  = false;
-
+    // guidelock held.
     for (auto& ng: _guide)
     {
         uint32_t number = ng.first;
         auto&    guide = ng.second;
 
-        if (guide.Times().Empty())
-            continue;
-
-        if (!guide.Times().Contains(t))
+        if (guide.Times().Contains(t))
         {
-            std::cout << "Nonempty guide for " << ng.first << " does not contain now(" << FormatTime(t) << ") : times " << guide.Times().toString() << "\n";
-            return false;
+            return true;
         }
-
-        haveany = true;
     }
-
-    return haveany;
+    return false;
 }
+
 void PVR_HDHR::UpdateGuide()
 {
+    // Offset by a random value to stagger load on the upstream servers.
+    static std::default_random_engine generator;
+    static std::uniform_int_distribution<int> distribution(0, g.Settings.guideRandom);
+    static time_t basic_update_time = 0;
+
     time_t now = time(nullptr);
 
     // First remove stale entries
     _age_out(now);
 
-    static time_t basic_update_time = 0;
     Lock guidelock(_guide_lock);
 
     bool do_basic = false;
@@ -428,9 +425,10 @@ void PVR_HDHR::UpdateGuide()
         std::cout << "Guide does not contain now - ";
         do_basic = true;
     }
-    if (now % g.Settings.guideBasicInterval >= g.Settings.guideBasicInterval - 300 && now - basic_update_time > 300)
+    int guide_early = g.Settings.guideBasicBeforeHour + distribution(generator);
+    if (now % g.Settings.guideBasicInterval >= g.Settings.guideBasicInterval - guide_early && now - basic_update_time > guide_early)
     {
-        std::cout << "Five til the hour - ";
+        std::cout << guide_early << " seconds til the hour - ";
         do_basic = true;
     }
     if (basic_update_time + g.Settings.guideBasicInterval < now)
@@ -443,6 +441,7 @@ void PVR_HDHR::UpdateGuide()
         std::cout << "Update basic guide\n";
         _update_guide_basic();
         basic_update_time = now;
+        return;
     }
 
     if (g.Settings.extendedGuide)
@@ -474,23 +473,32 @@ void PVR_HDHR::UpdateGuide()
 
             // First try the last interval in requests
             auto& last = guide.Requests().Last();
-            if (last.Length() > g.Settings.guideExtendedEach + 300)
+            auto limit = g.Settings.guideExtendedHysteresis - distribution(generator);
+            if (last.Length() > limit)
             {
                 _update_guide_extended(number, last.Start());
             }
             else if (guide.Requests().Count() > 1)
             {
+                // Next attept to fill holes
                 // TODO - get iterator from IntervalSet
+                // Keep a separate set of start times.  Inserting into the guide modifies Requests.
+                std::set<time_t> starts;
                 for (auto& i : guide.Requests()._intervals)
                 {
-                    // TODO - proper comparison
-                    if (i._start == last._start)
+                    auto start = i.Start();
+                    if (start == last.Start())
                         break;
-                    _update_guide_extended(number, i.Start());
+                    starts.insert(start);
+                }
+                for (auto start : starts)
+                {
+                    if (!guide.Requests().Contains(start))
+                    {
+                        _update_guide_extended(number, start);
+                    }
                 }
             }
-
-            guide.LastCheck(now);
         }
     }
 }

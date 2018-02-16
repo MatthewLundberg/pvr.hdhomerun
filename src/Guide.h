@@ -150,15 +150,6 @@ public:
         return _entries;
     }
 
-    time_t LastCheck() const
-    {
-        return _lastCheck;
-    }
-    void LastCheck(time_t t)
-    {
-        _lastCheck = t;
-    }
-
 private:
     std::string          _guidename;
     std::string          _affiliate;
@@ -168,8 +159,6 @@ private:
 
     IntervalSet          _times;
     IntervalSet          _requests;
-    time_t               _lastCheck = 0;
-
 };
 
 

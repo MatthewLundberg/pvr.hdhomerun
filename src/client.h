@@ -74,7 +74,10 @@ struct SettingsType
     int lineupUpdateInterval    = 300;
     int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update
     int guideBasicInterval      = 3600;      // 1 hour  Refresh basic guide
+    int guideBasicBeforeHour    = 300;       // 5 minutes before the hour ...
     int guideExtendedEach       = 3600 * 8;  // 8 hours How much is supplied at a time
+    int guideExtendedHysteresis = 3600;      // 4 hours max unfilled guide...
+    int guideRandom             = 300;       // ... but up to 5 minutes early
 };
 
 struct GlobalsType
