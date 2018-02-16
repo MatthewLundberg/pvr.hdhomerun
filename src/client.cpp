@@ -456,7 +456,7 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
     pCapabilities->bSupportsChannelScan              = false;
     pCapabilities->bSupportsChannelSettings          = false;
     pCapabilities->bHandlesInputStream               = true;
-    pCapabilities->bHandlesDemuxing                  = true;
+    pCapabilities->bHandlesDemuxing                  = false;
     pCapabilities->bSupportsRecordingPlayCount       = false;
     pCapabilities->bSupportsLastPlayedPosition       = true;
     pCapabilities->bSupportsRecordingEdl             = false;
@@ -619,7 +619,7 @@ PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPL
 PVR_ERROR DeleteAllRecordingsFromTrash() { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR UndeleteRecording(const PVR_RECORDING&) { return PVR_ERROR_NOT_IMPLEMENTED; }
 // Timers
-PVR_ERROR AddTimer(const PVR_TIMER&) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR AddTimer(const PVR_TIMER&) { return PVR_ERROR_NO_ERROR; }
 PVR_ERROR DeleteTimer(const PVR_TIMER&, bool) { return PVR_ERROR_NOT_IMPLEMENTED; }
 int GetTimersAmount(void) { return -1; }
 PVR_ERROR GetTimers(ADDON_HANDLE) { return PVR_ERROR_NOT_IMPLEMENTED; }

@@ -102,6 +102,15 @@ public:
     }
     std::string IDString() const;
     std::string AuthString() const;
+
+    std::set<Device*>::iterator begin()
+    {
+        return _devices.begin();
+    }
+    std::set<Device*>::iterator end()
+    {
+        return _devices.end();
+    }
 protected:
 
     std::set<Device*> _devices;

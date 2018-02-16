@@ -34,17 +34,7 @@ class Info : public DeviceSet // Device pointers are owned by PVR_HDHR
 public:
     Info(const Json::Value&);
     Info() = default;
-    const Device* GetFirstDevice() const
-    {
-        auto it = _devices.begin();
-        if (it == _devices.end())
-            return nullptr;
 
-        return *it;
-    }
-    Device* GetPreferredDevice();
-    Device* GetNextDevice();
-    void ResetNextDevice();
     bool AddDevice(Device*, const std::string& url);
     bool RemoveDevice(Device*);
     bool HasDevice(Device* t) const
@@ -63,10 +53,7 @@ public:
     bool        _hd       = false;
     bool        _drm      = false;
     bool        _favorite = false;
-
 private:
-    bool                           _has_next = false;
-    std::set<Device*>::iterator    _next;
     std::map<Device*, std::string> _url;
 };
 

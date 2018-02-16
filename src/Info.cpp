@@ -35,43 +35,6 @@ Info::Info(const Json::Value& v)
     _hd        = v["HD"].asBool();
 }
 
-Device* Info::GetPreferredDevice()
-{
-    for (const auto id: g.Settings.preferredDevice)
-    {
-        for (const auto device: _devices)
-        {
-            if (id == device->DeviceID())
-                return device;
-        }
-    }
-    return nullptr;
-}
-
-Device* Info::GetNextDevice()
-{
-    if (_has_next)
-    {
-        _next ++;
-        if (_next == _devices.end())
-        {
-            _has_next = false;
-            return nullptr;
-        }
-    }
-    else
-    {
-        _has_next = true;
-        _next = _devices.begin();
-    }
-    return *_next;
-}
-
-void Info::ResetNextDevice()
-{
-    _has_next = false;
-}
-
 bool Info::AddDevice(Device* t, const std::string& url)
 {
     if (HasDevice(t))
@@ -80,8 +43,6 @@ bool Info::AddDevice(Device* t, const std::string& url)
     }
     _devices.insert(t);
     _url[t] = url;
-    ResetNextDevice();
-
     return true;
 }
 
@@ -92,8 +53,6 @@ bool Info::RemoveDevice(Device* t)
         return false;
     }
     _devices.erase(t);
-    ResetNextDevice();
-
     return true;
 }
 

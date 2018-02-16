@@ -56,13 +56,11 @@ Device::Device(const hdhomerun_discover_device_t& d)
     for (unsigned int index=0; index<_tunercount; index++)
     {
         _tuners.push_back(std::unique_ptr<Tuner>(new Tuner(this, index)));
-
     }
 }
 
 Device::~Device()
 {}
-
 
 void Tuner::_get_var(std::string& value, const char* name)
 {

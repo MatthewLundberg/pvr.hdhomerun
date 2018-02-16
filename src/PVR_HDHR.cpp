@@ -705,17 +705,14 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
         return false;
     }
     auto& info = _info[id];
-    info.ResetNextDevice();
 
-    Device* device;
-    while ((device = info.GetPreferredDevice()) != nullptr)
+    for (auto id : g.Settings.preferredDevice)
     {
-        if (_open_tcp_stream(info.DlnaURL(device)))
-            return true;
+        for (auto device : info)
+            if (device->DeviceID() == id && _open_tcp_stream(info.DlnaURL(device)))
+                return true;
     }
-
-    info.ResetNextDevice();
-    while ((device = info.GetNextDevice()) != nullptr)
+    for (auto device : info)
     {
         if (_open_tcp_stream(info.DlnaURL(device)))
             return true;
