@@ -446,16 +446,24 @@ void OnPowerSavingDeactivated()
 
 PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
-    pCapabilities->bSupportsEPG = true;
-    pCapabilities->bSupportsTV = true;
-    pCapabilities->bSupportsRadio = false;
-    pCapabilities->bSupportsChannelGroups = true;
-    pCapabilities->bSupportsRecordings = false;
-    pCapabilities->bSupportsRecordingsUndelete = false;
-    pCapabilities->bSupportsTimers = false;
-    pCapabilities->bSupportsRecordingsRename = false;
+    pCapabilities->bSupportsEPG                      = true;
+    pCapabilities->bSupportsTV                       = true;
+    pCapabilities->bSupportsRadio                    = false;
+    pCapabilities->bSupportsRecordings               = g.Settings.record;
+    pCapabilities->bSupportsRecordingsUndelete       = false;
+    pCapabilities->bSupportsTimers                   = g.Settings.record;
+    pCapabilities->bSupportsChannelGroups            = g.Settings.usegroups;
+    pCapabilities->bSupportsChannelScan              = false;
+    pCapabilities->bSupportsChannelSettings          = false;
+    pCapabilities->bHandlesInputStream               = true;
+    pCapabilities->bHandlesDemuxing                  = true;
+    pCapabilities->bSupportsRecordingPlayCount       = false;
+    pCapabilities->bSupportsLastPlayedPosition       = true;
+    pCapabilities->bSupportsRecordingEdl             = false;
+    pCapabilities->bSupportsRecordingsRename         = false;
     pCapabilities->bSupportsRecordingsLifetimeChange = false;
-    pCapabilities->bSupportsDescrambleInfo = false;
+    pCapabilities->bSupportsDescrambleInfo           = false;
+    pCapabilities->iRecordingsLifetimesSize          = 0;
 
     return PVR_ERROR_NO_ERROR;
 }

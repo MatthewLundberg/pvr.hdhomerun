@@ -70,6 +70,7 @@ struct SettingsType
     bool record                 = false;
     bool recordforlive          = true;
 
+    bool usegroups              = false;
     int deviceDiscoverInterval  = 300;
     int lineupUpdateInterval    = 300;
     int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update
