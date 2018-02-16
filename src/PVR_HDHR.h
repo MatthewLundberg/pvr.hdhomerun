@@ -25,7 +25,7 @@
 #include "Guide.h"
 #include "client.h"
 #include "Utils.h"
-#include "Tuner.h"
+#include "Device.h"
 #include "Info.h"
 #include <json/json.h>
 #include <cstring>

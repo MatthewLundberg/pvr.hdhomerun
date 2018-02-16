@@ -19,7 +19,7 @@
  *
  */
 
-#include "Tuner.h"
+#include "Device.h"
 #include "Utils.h"
 #include "client.h"
 #include <json/json.h>

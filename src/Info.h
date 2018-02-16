@@ -22,7 +22,7 @@
 
 #include <json/json.h>
 #include <set>
-#include "Tuner.h"
+#include "Device.h"
 
 namespace PVRHDHomeRun
 {

@@ -20,7 +20,7 @@
  */
 
 #include "Info.h"
-#include "Tuner.h"
+#include "Device.h"
 #include "client.h"
 #include <sstream>
 #include <cstdlib>

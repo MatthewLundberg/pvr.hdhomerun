@@ -26,7 +26,7 @@ set(DEPLIBS ${kodiplatform_LIBRARIES}
             ${HDHOMERUN_LIBRARIES})
 
 set(PVRHDHOMERUN_SOURCES src/client.cpp
-                         src/Tuner.cpp
+                         src/Device.cpp
                          src/Info.cpp
                          src/Guide.cpp
                          src/IntervalSet.cpp
@@ -34,7 +34,7 @@ set(PVRHDHOMERUN_SOURCES src/client.cpp
                          src/Utils.cpp)
 
 set(PVRHDHOMERUN_HEADERS src/client.h
-                         src/Tuner.h
+                         src/Device.h
                          src/Info.h
                          src/Guide.h
                          src/Lockable.h
