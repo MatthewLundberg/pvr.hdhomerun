@@ -88,7 +88,7 @@ bool PVR_HDHR::DiscoverDevices()
         	continue;
         }
 
-        if (dd.is_legacy && !g.Settings.useLegacyDevices)
+        if (dd.is_legacy && !g.Settings.UseLegacyDevices())
         {
         	KODI_LOG(LOG_INFO, "Ignoring legacy device %08x", id);
             continue;
@@ -101,7 +101,11 @@ bool PVR_HDHR::DiscoverDevices()
             // New device
             device_added = true;
             KODI_LOG(LOG_DEBUG, "Adding device %08x", id);
-            std::cout << "New tuner "<< std::hex << dd.device_id << std::dec << " auth " << EncodeURL(dd.device_auth) << "\n";
+            std::cout << "New tuner "
+                    << std::hex << dd.device_id << std::dec
+                    << " auth " << EncodeURL(dd.device_auth)
+                    << " URL " << dd.base_url
+                    << "\n";
 
             _devices.insert(new Device(dd));
             _device_ids.insert(id);
@@ -725,59 +729,19 @@ bool PVR_HDHR_UDP::_open_live_stream(const PVR_CHANNEL& channel)
 {
     Lock strlock(_stream_lock);
     Lock lock(this);
-
-    struct sockaddr_in sa = {0};
-    sa.sin_family = AF_INET;
-    sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = g.Settings.udpPort;
-
-    _fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (_fd == -1)
-    {
-        std::cout << "Error creating socket\n";
-        return false;
-    }
-    //if (fcntl(_fd, F_SETFL, O_NONBLOCK) == -1)
-    //{
-    //    std::cout << "Error setting nonblock socket\n";
-    //    return false;
-    //}
-
-    if (bind (_fd, reinterpret_cast<struct sockaddr*>(&sa), sizeof sa) == -1)
-    {
-        std::cout << "Error binding socket\n";
-        close(_fd);
-        _fd = -1;
-        return false;
-    }
-    std::cout << "Opened socket\n";
-    // Find and configure tuner
-
-    return true;
+    return false;
 }
 
 int PVR_HDHR_UDP::_read_live_stream(unsigned char* buffer, unsigned int size)
 {
     Lock strlock(_stream_lock);
-
-    if (_fd == -1)
-        return 0;
-
-    std::cout << "recv\n";
-    auto bytes = recv(_fd, buffer, size, 0);
-    std::cout << "Bytes: "<< bytes << "\n";
-    return bytes >= 0 ? bytes : 0;
+    return 0;
 }
 
 void PVR_HDHR_UDP::_close_live_stream()
 {
     Lock strlock(_stream_lock);
     Lock lock(this);
-
-    if (_fd != -1) {
-        close(_fd);
-        _fd = -1;
-    }
 }
 
 }; // namespace PVRHDHomeRun

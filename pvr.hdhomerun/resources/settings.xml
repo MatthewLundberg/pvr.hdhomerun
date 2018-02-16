@@ -19,7 +19,7 @@
   <category label=32020>
     <setting id="record"         visible="false" />
     <setting id="recordforlive"  type="bool"   label="32026" default="true" visible="eq(-1,true)" />
-    <setting id="protocol"       type="select" label="32021" values="TCP|UDP" default="TCP" visible="eq(-1,false) | eq(-2,false)" />
+    <setting id="protocol"       type="select" label="32021" values="TCP|UDP" default="TCP" visible="false + (eq(-1,false) | eq(-2,false))" />
     <setting id="port"           type="number" label="32025" default=5000 visible="eq(-1,1) + (eq(-2,false) | eq(-3, false))" />
     <setting id="use_legacy"     type="bool"   label="32022" default="false" visible="eq(-2,1) + (eq(-3,false) | eq(-4, false))" />
     <setting id="preferred"      type="text"   label="32023" default="" visible="eq(-4,false) | eq(-5, false)"/>

@@ -357,6 +357,7 @@ bool setvalue(T& t, const char* text, const char* name, const void* value)
     }
     return false;
 }
+
 } // namespace
 
 extern "C" {

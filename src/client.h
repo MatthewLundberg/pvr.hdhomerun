@@ -79,6 +79,11 @@ struct SettingsType
     int guideExtendedEach       = 3600 * 8;  // 8 hours How much is supplied at a time
     int guideExtendedHysteresis = 3600;      // 4 hours max unfilled guide...
     int guideRandom             = 300;       // ... but up to 5 minutes early
+
+    bool UseLegacyDevices()
+    {
+        return useLegacyDevices && protocol == UDP;
+    }
 };
 
 struct GlobalsType

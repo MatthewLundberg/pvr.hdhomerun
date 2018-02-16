@@ -101,6 +101,7 @@ protected:
 
     Lockable _guide_lock;
     Lockable _stream_lock;
+    void* _filehandle = nullptr;
 };
 
 class PVR_HDHR_TCP : public PVR_HDHR {
@@ -109,14 +110,12 @@ private:
     bool  _open_tcp_stream(const std::string&);
     int   _read_live_stream(unsigned char* buffer, unsigned int size) override;
     void  _close_live_stream() override;
-    void* _filehandle = nullptr;
 };
 class PVR_HDHR_UDP : public PVR_HDHR {
 private:
     bool  _open_live_stream(const PVR_CHANNEL& channel) override;
     int   _read_live_stream(unsigned char* buffer, unsigned int size) override;
     void  _close_live_stream() override;
-    int   _fd = -1;
 };
 
 PVR_HDHR* PVR_HDHR_Factory(int protocol);
