@@ -25,7 +25,6 @@
 #include "Guide.h"
 #include "client.h"
 #include "Utils.h"
-#include "Device.h"
 #include "Info.h"
 #include <json/json.h>
 #include <cstring>
@@ -38,17 +37,11 @@
 
 namespace PVRHDHomeRun {
 
-class PVR_HDHR : public Lockable, public DeviceSet
+class PVR_HDHR : public Lockable, public HasTunerSet<PVR_HDHR>
 {
 public:
     PVR_HDHR() = default;
-    virtual ~PVR_HDHR()
-    {
-        for (auto device: _devices)
-        {
-            delete device;
-        }
-    }
+    virtual ~PVR_HDHR();
 
     bool DiscoverDevices();
     bool UpdateLineup();
@@ -62,7 +55,7 @@ public:
 
         return newDevice || newLineup;
     }
-    void AddLineupEntry(const Json::Value&, Device*);
+    void AddLineupEntry(const Json::Value&, TunerDevice*);
 
     PVR_ERROR PvrGetChannels(ADDON_HANDLE handle, bool bRadio);
     int PvrGetChannelsAmount();
@@ -78,7 +71,6 @@ public:
     bool OpenLiveStream(const PVR_CHANNEL& channel);
     void CloseLiveStream(void);
     int ReadLiveStream(unsigned char* buffer, unsigned int size);
-
 
 private:
     void  _age_out(time_t);
@@ -98,7 +90,10 @@ protected:
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
-
+public:
+    std::set<TunerDevice*>    _tuner_devices;
+    std::set<StorageDevice*>  _storage_devices;
+protected:
     Lockable _guide_lock;
     Lockable _stream_lock;
     void* _filehandle = nullptr;

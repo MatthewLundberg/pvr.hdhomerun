@@ -49,6 +49,18 @@ PVR_HDHR* PVR_HDHR_Factory(int protocol) {
     return nullptr;
 }
 
+PVR_HDHR::~PVR_HDHR()
+{
+    for (auto device: _tuner_devices)
+    {
+        delete device;
+    }
+    for (auto device: _storage_devices)
+    {
+        delete device;
+    }
+}
+
 bool PVR_HDHR::DiscoverDevices()
 {
     struct hdhomerun_discover_device_t discover_devices[64];
@@ -107,26 +119,26 @@ bool PVR_HDHR::DiscoverDevices()
                     << " URL " << dd.base_url
                     << "\n";
 
-            _devices.insert(new Device(dd));
+            _tuner_devices.insert(New_TunerDevice(&dd));
             _device_ids.insert(id);
         }
         else
         {
             KODI_LOG(LOG_DEBUG, "Known device %08x", id);
 
-            for (auto t: _devices)
+            for (auto t: _tuner_devices)
             {
                 if (t->DeviceID() == id)
                 {
-                    t->Refresh(dd);
+                    t->Refresh(&dd);
                 }
             }
         }
     }
 
     // Iterate through devices, Refresh and determine if there are stale entries.
-    auto tit = _devices.begin();
-    while (tit != _devices.end())
+    auto tit = _tuner_devices.begin();
+    while (tit != _tuner_devices.end())
     {
         auto device = *tit;
         uint32_t id = device->DeviceID();
@@ -136,7 +148,7 @@ bool PVR_HDHR::DiscoverDevices()
             device_removed = true;
             KODI_LOG(LOG_DEBUG, "Removing device %08x", id);
 
-            auto pdevice = const_cast<Device*>(device);
+            auto pdevice = const_cast<TunerDevice*>(device);
 
             auto nit = _lineup.begin();
             while (nit != _lineup.end())
@@ -160,7 +172,7 @@ bool PVR_HDHR::DiscoverDevices()
             }
 
             // Erase device from this
-            tit = _devices.erase(tit);
+            tit = _tuner_devices.erase(tit);
             _device_ids.erase(id);
             delete(device);
         }
@@ -173,7 +185,7 @@ bool PVR_HDHR::DiscoverDevices()
     return device_added || device_removed;
 }
 
-void PVR_HDHR::AddLineupEntry(const Json::Value& v, Device* device)
+void PVR_HDHR::AddLineupEntry(const Json::Value& v, TunerDevice* device)
 {
     GuideNumber number = v;
     if ((g.Settings.hideUnknownChannels) && (number._guidename == "Unknown"))
@@ -199,7 +211,7 @@ bool PVR_HDHR::UpdateLineup()
 
     _lineup.clear();
 
-    for (auto device: _devices)
+    for (auto device: _tuner_devices)
     {
 
         KODI_LOG(LOG_DEBUG, "Requesting channel lineup for %08x: %s",
@@ -331,17 +343,25 @@ void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
 void PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
 {
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
-    const DeviceSet* dl = this;
+    std::string authstring;
+    std::string idstring;
     if (number)
     {
         const auto& info = _info[*number];
-        dl = &info;
+        if (!info.DeviceCount())
+        {
+            return;
+        }
+        authstring = info.AuthString();
+        idstring   = info.IDString();
     }
-    if (!dl->DeviceCount())
-        return;
-    auto idstr = dl->IDString();
+    else
+    {
+        authstring = AuthString();
+        idstring   = IDString();
+    }
 
-    auto auth = EncodeURL(dl->AuthString());
+    auto auth = EncodeURL(authstring);
     URL.append(auth);
 
     if (number)
@@ -357,13 +377,13 @@ void PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
         }
     }
     KODI_LOG(LOG_DEBUG, "Requesting guide for %s: %s %s",
-            idstr.c_str(), start?FormatTime(start).c_str():"", URL.c_str());
+            idstring.c_str(), start?FormatTime(start).c_str():"", URL.c_str());
 
     std::string guidedata;
     if (!GetFileContents(URL, guidedata))
     {
         KODI_LOG(LOG_ERROR, "Error requesting guide for %s from %s",
-                idstr.c_str(), URL.c_str());
+                idstring.c_str(), URL.c_str());
         return;
     }
     if (guidedata.substr(0,4) == "null")
@@ -373,10 +393,10 @@ void PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
     Json::Value  jsondeviceguide;
     if (!jsonreader.parse(guidedata, jsondeviceguide))
     {
-        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %s", idstr.c_str());
+        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %s", idstring.c_str());
         return;
     }
-    _insert_json_guide_data(jsondeviceguide, idstr.c_str());
+    _insert_json_guide_data(jsondeviceguide, idstring.c_str());
 }
 
 void PVR_HDHR::_update_guide_basic()

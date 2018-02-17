@@ -27,9 +27,15 @@
 
 namespace PVRHDHomeRun
 {
+TunerDevice* New_TunerDevice(const hdhomerun_discover_device_t* d)
+{
+    auto t = new TunerDevice();
+    t->Refresh(d);
+    return t;
+}
 
 
-Tuner::Tuner(Device* box, unsigned int index)
+Tuner::Tuner(TunerDevice* box, unsigned int index)
     : _box(box)
     , _index(index)
 	, _debug(nullptr) // _debug(hdhomerun_debug_create())
@@ -43,24 +49,27 @@ Tuner::~Tuner()
     //hdhomerun_debug_destroy(_debug);
 }
 
-Device::Device(const hdhomerun_discover_device_t& d)
-	: _discover_device(d) // copy
+void Device::Refresh(const hdhomerun_discover_device_t* d)
 {
-    _get_api_data();
-    _get_discover_data();
+    if (d)
+        _discover_device = *d;
 
-    // We only need the device-level info for TCP
-    if (g.Settings.protocol == SettingsType::TCP)
-        return;
-
-    for (unsigned int index=0; index<_tunercount; index++)
+    std::string discoverResults;
+    std::string baseURL{BaseURL()};
+    if (GetFileContents(baseURL + "/discover.json", discoverResults))
     {
-        _tuners.push_back(std::unique_ptr<Tuner>(new Tuner(this, index)));
+        Json::Reader jsonReader;
+        Json::Value  discoverJson;
+        if (jsonReader.parse(discoverResults, discoverJson))
+        {
+            _parse_discover_data(discoverJson);
+        }
     }
 }
-
-Device::~Device()
-{}
+const char* Device::BaseURL()
+{
+    return _discover_device.base_url;
+}
 
 void Tuner::_get_var(std::string& value, const char* name)
 {
@@ -116,57 +125,35 @@ void Tuner::_set_var(const char* value, const char* name)
         );
     }
 }
-void Device::_get_api_data()
+
+void StorageDevice::_parse_discover_data(const Json::Value& json)
 {
+    _storageID  = json["StorageID"].asString();
+    _storageURL = json["StorageURL"].asString();
+    _freeSpace  = json["FreeSpace"].asUInt();
 }
 
-void Device::_get_discover_data()
+void TunerDevice::_parse_discover_data(const Json::Value& json)
 {
-    std::string discoverResults;
+    _lineupURL  = json["LineupURL"].asString();
+    _tunercount = json["TunerCount"].asUInt();
+    _legacy     = json["Legacy"].asBool();
 
-    // Ask the device for its lineup URL
-    std::string discoverURL{ _discover_device.base_url };
-    discoverURL.append("/discover.json");
-
-    if (GetFileContents(discoverURL, discoverResults))
+    // We only need the device-level info for TCP
+    if (g.Settings.protocol == SettingsType::UDP)
     {
-        Json::Reader jsonReader;
-        Json::Value discoverJson;
-        if (jsonReader.parse(discoverResults, discoverJson))
+        _tuners.clear();
+        for (unsigned int index=0; index<_tunercount; index++)
         {
-            auto& lineupURL  = discoverJson["LineupURL"];
-            auto& tunercount = discoverJson["TunerCount"];
-            auto& legacy     = discoverJson["Legacy"];
-
-            _lineupURL  = std::move(lineupURL.asString());
-            _tunercount = std::move(tunercount.asUInt());
-            _legacy     = std::move(legacy.asBool());
-
-            KODI_LOG(LOG_DEBUG, "HDR ID %08x LineupURL %s Tuner Count %d Legacy %d",
-                    _discover_device.device_id,
-                    _lineupURL.c_str(),
-                    _tunercount,
-                    _legacy
-            );
+            _tuners.push_back(std::unique_ptr<Tuner>(new Tuner(this, index)));
         }
     }
-    else
-    {
-        // Fall back to a pattern for "modern" devices
-        KODI_LOG(LOG_DEBUG, "HDR ID %08x Fallback lineup URL %s/lineup.json",
-                _discover_device.device_id,
-                _discover_device.base_url
-        );
-
-        _lineupURL.assign(_discover_device.base_url);
-        _lineupURL.append("/lineup.json");
-    }
-}
-
-void Device::Refresh(const hdhomerun_discover_device_t& d)
-{
-    _discover_device = d;
-    _get_discover_data();
+    KODI_LOG(LOG_DEBUG, "HDR ID %08x LineupURL %s Tuner Count %d Legacy %d",
+            _discover_device.device_id,
+            _lineupURL.c_str(),
+            _tunercount,
+            _legacy
+    );
 }
 
 uint32_t Device::LocalIP() const
@@ -191,30 +178,5 @@ uint32_t Device::LocalIP() const
 
     return 0;
 }
-
-std::string DeviceSet::IDString() const
-{
-    std::string devices;
-    for (auto device : _devices)
-    {
-        char id[10];
-        sprintf(id, " %08x", device->DeviceID());
-        devices += id;
-    }
-
-    return devices;
-}
-
-std::string DeviceSet::AuthString() const
-{
-    std::string auth;
-    for (auto device : _devices)
-    {
-        auth += device->Auth();
-    }
-
-    return auth;
-}
-
 
 } // namespace PVRHDHomeRun

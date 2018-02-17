@@ -35,24 +35,24 @@ Info::Info(const Json::Value& v)
     _hd        = v["HD"].asBool();
 }
 
-bool Info::AddDevice(Device* t, const std::string& url)
+bool Info::AddDevice(TunerDevice* t, const std::string& url)
 {
     if (HasDevice(t))
     {
         return false;
     }
-    _devices.insert(t);
+    _tuner_devices.insert(t);
     _url[t] = url;
     return true;
 }
 
-bool Info::RemoveDevice(Device* t)
+bool Info::RemoveDevice(TunerDevice* t)
 {
     if (!HasDevice(t))
     {
         return false;
     }
-    _devices.erase(t);
+    _tuner_devices.erase(t);
     return true;
 }
 

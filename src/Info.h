@@ -29,19 +29,19 @@ namespace PVRHDHomeRun
 
 class Device;
 
-class Info : public DeviceSet // Device pointers are owned by PVR_HDHR
+class Info : public HasTunerSet<Info>
 {
 public:
     Info(const Json::Value&);
     Info() = default;
 
-    bool AddDevice(Device*, const std::string& url);
-    bool RemoveDevice(Device*);
-    bool HasDevice(Device* t) const
+    bool AddDevice(TunerDevice*, const std::string& url);
+    bool RemoveDevice(TunerDevice*);
+    bool HasDevice(TunerDevice* t) const
     {
-        return _devices.find(t) != _devices.end();
+        return _tuner_devices.find(t) != _tuner_devices.end();
     }
-    std::string DlnaURL(Device* t) const
+    std::string DlnaURL(TunerDevice* t) const
     {
         auto it = _url.find(t);
         if (it != _url.end())
@@ -55,6 +55,9 @@ public:
     bool        _favorite = false;
 private:
     std::map<Device*, std::string> _url;
+public:
+    // Device pointers are owned by PVR_HDHR
+    std::set<TunerDevice*>         _tuner_devices;
 };
 
 } // namespace PVRHDHomeRun
