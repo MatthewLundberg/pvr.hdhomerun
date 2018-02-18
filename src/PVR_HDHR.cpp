@@ -340,7 +340,7 @@ void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
     }
 }
 
-void PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
+void PVR_HDHR::_fetch_guide_data(const uint32_t* number, time_t start)
 {
     TunerSet* ts;
     if (number)
@@ -359,12 +359,13 @@ void PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
 
     if (number)
     {
+        GuideNumber gn{*number};
         URL.append("&Channel=");
-        URL.append(number->toString());
+        URL.append(gn.toString());
 
         if (start)
         {
-            std::string start_s = std::to_string(start);
+            auto start_s = std::to_string(start);
             URL.append("&Start=");
             URL.append(start_s);
         }
@@ -390,19 +391,6 @@ void PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
         return;
     }
     _insert_json_guide_data(jsondeviceguide, idstring.c_str());
-}
-
-void PVR_HDHR::_update_guide_basic()
-{
-    _fetch_guide_data();
-}
-
-void PVR_HDHR::_update_guide_extended(const GuideNumber& gn, time_t start)
-{
-    if (gn.ID() == 130002)
-        std::cout << "Fetching channel " << gn << " from time " << FormatTime(start) << "\n";
-
-    _fetch_guide_data(&gn, start);
 }
 
 bool PVR_HDHR::_guide_contains(time_t t)
@@ -456,7 +444,7 @@ void PVR_HDHR::UpdateGuide()
     if (do_basic)
     {
         std::cout << "Update basic guide\n";
-        _update_guide_basic();
+        _fetch_guide_data();
         basic_update_time = now;
         return;
     }
@@ -493,7 +481,7 @@ void PVR_HDHR::UpdateGuide()
             auto limit = g.Settings.guideExtendedHysteresis - distribution(generator);
             if (last.Length() > limit)
             {
-                _update_guide_extended(number, last.Start());
+                _fetch_guide_data(&number, last.Start());
             }
             else if (guide.Requests().Count() > 1)
             {
@@ -512,7 +500,7 @@ void PVR_HDHR::UpdateGuide()
                 {
                     if (!guide.Requests().Contains(start))
                     {
-                        _update_guide_extended(number, start);
+                        _fetch_guide_data(&number, start);
                     }
                 }
             }

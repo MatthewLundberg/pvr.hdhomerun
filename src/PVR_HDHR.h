@@ -76,9 +76,7 @@ private:
     void  _age_out(time_t);
     bool  _guide_contains(time_t);
     void  _insert_json_guide_data(const Json::Value&, const char* idstr);
-    void  _fetch_guide_data(const GuideNumber* = nullptr, time_t start=0);
-    void  _update_guide_basic();
-    void  _update_guide_extended(const GuideNumber&, time_t start);
+    void  _fetch_guide_data(const uint32_t* = nullptr, time_t start=0);
 
     virtual bool _open_live_stream(const PVR_CHANNEL& channel) = 0;
     virtual int  _read_live_stream(unsigned char* buffer, unsigned int size) = 0;
