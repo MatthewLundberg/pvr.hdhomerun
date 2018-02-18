@@ -133,9 +133,6 @@ GuideEntry::GuideEntry(const Json::Value& v)
     {
         _title = v["Title"].asString();
     }
-
-    // TODO remove
-    _synopsis = _seriesID + " " + _synopsis;
 }
 
 
