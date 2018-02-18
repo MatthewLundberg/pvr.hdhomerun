@@ -127,7 +127,7 @@ public:
 
                 if (now >= _lastDiscover + g.Settings.deviceDiscoverInterval)
                 {
-                    bool discovered = g.pvr_hdhr->DiscoverDevices();
+                    bool discovered = g.pvr_hdhr->DiscoverTunerDevices();
                     if (discovered)
                     {
                         KODI_LOG(LOG_DEBUG, "PVR::DiscoverDevices returned true, try again");

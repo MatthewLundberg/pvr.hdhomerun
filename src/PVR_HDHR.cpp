@@ -61,7 +61,7 @@ PVR_HDHR::~PVR_HDHR()
     }
 }
 
-bool PVR_HDHR::DiscoverDevices()
+bool PVR_HDHR::DiscoverTunerDevices()
 {
     struct hdhomerun_discover_device_t discover_devices[64];
     size_t device_count = hdhomerun_discover_find_devices_custom_v2(
@@ -72,7 +72,7 @@ bool PVR_HDHR::DiscoverDevices()
             64
             );
 
-    KODI_LOG(LOG_DEBUG, "PVR_HDHR::DiscoverDevices Found %d devices", device_count);
+    KODI_LOG(LOG_DEBUG, "PVR_HDHR::DiscoverTunerDevices Found %d devices", device_count);
 
     if (device_count == 0)
     {

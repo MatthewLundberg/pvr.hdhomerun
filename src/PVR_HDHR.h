@@ -43,13 +43,13 @@ public:
     PVR_HDHR() = default;
     virtual ~PVR_HDHR();
 
-    bool DiscoverDevices();
+    bool DiscoverTunerDevices();
     bool UpdateLineup();
     void UpdateGuide();
 
     bool Update()
     {
-        bool newDevice  = DiscoverDevices();
+        bool newDevice  = DiscoverTunerDevices();
         bool newLineup = UpdateLineup();
         UpdateGuide();
 
