@@ -342,25 +342,18 @@ void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
 
 void PVR_HDHR::_fetch_guide_data(const GuideNumber* number, time_t start)
 {
-    std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
-    std::string authstring;
-    std::string idstring;
+    TunerSet* ts;
     if (number)
-    {
-        const auto& info = _info[*number];
-        if (!info.DeviceCount())
-        {
-            return;
-        }
-        authstring = info.AuthString();
-        idstring   = info.IDString();
-    }
+        ts = &_info[*number];
     else
-    {
-        authstring = AuthString();
-        idstring   = IDString();
-    }
+        ts = this;
 
+    if (!ts->DeviceCount())
+        return;
+
+    std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
+    auto authstring = ts->AuthString();
+    auto idstring   = ts->IDString();
     auto auth = EncodeURL(authstring);
     URL.append(auth);
 

@@ -125,8 +125,18 @@ public:
 
 TunerDevice* New_TunerDevice(const hdhomerun_discover_device_t* d);
 
+class TunerSet
+{
+public:
+    virtual std::string IDString() const = 0;
+    virtual std::string AuthString() const = 0;
+    virtual size_t      DeviceCount() const = 0;
+    virtual std::set<TunerDevice*>::iterator begin() = 0;
+    virtual std::set<TunerDevice*>::iterator end() = 0;
+};
+
 template<typename T>
-class HasTunerSet
+class HasTunerSet : public TunerSet
 {
 public:
     std::string IDString() const
