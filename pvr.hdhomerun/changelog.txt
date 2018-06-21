@@ -1,6 +1,15 @@
 v4.0.0
 - Use lineup-based channels, to show every channel exactly once while allowing multiple for reception
 
+v3.4.1
+- Update to PVR API v5.10.1
+
+v3.4.0
+- Update to PVR API v5.10.0
+
+v3.3.2
+- PVR API 5.9.0 changes implemented
+
 v3.3.0
 - PVR API 5.8.0 changes implemented
 

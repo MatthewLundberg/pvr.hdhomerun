@@ -550,6 +550,11 @@ void CloseLiveStream(void)
         g.pvr_hdhr->CloseLiveStream();
 }
 
+int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
+{
+    return g.pvr_hdhr ? g.pvr_hdhr->ReadLiveStream(pBuffer, iBufferSize) : 0;
+}
+
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 {
     PVR_STRCPY(signalStatus.strAdapterName, "otherkids PVR");
@@ -566,11 +571,6 @@ bool CanPauseStream(void)
 bool CanSeekStream(void)
 {
     return true;
-}
-
-int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
-{
-    return g.pvr_hdhr ? g.pvr_hdhr->ReadLiveStream(pBuffer, iBufferSize) : 0;
 }
 
 PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
@@ -635,5 +635,8 @@ PVR_ERROR SetEPGTimeFrame(int) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR IsEPGTagPlayable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetEPGTagEdl(const EPG_TAG* epgTag, PVR_EDL_ENTRY edl[], int *size) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetStreamReadChunkSize(int* chunksize) { return PVR_ERROR_NOT_IMPLEMENTED; }
+
 } // extern "C"
 
