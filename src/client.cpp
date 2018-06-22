@@ -2,6 +2,9 @@
  *      Copyright (C) 2017-2018 Matthew Lundberg <matthew.k.lundberg@gmail.com>
  *      https://github.com/MatthewLundberg/pvr.hdhomerun
  *
+ *      Copyright (c) 2017 Michael G. Brehm
+ *      https://github.com/djp952/pvr.hdhomerundvr
+ *
  *      Copyright (C) 2015 Zoltan Csizmadia <zcsizmadia@gmail.com>
  *      https://github.com/zcsizmadia/pvr.hdhomerun
  *
@@ -24,6 +27,28 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
+//---------------------------------------------------------------------------
+// Copyright (c) 2017 Michael G. Brehm
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//---------------------------------------------------------------------------
+
 
 #include "client.h"
 
@@ -580,6 +605,211 @@ PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE
   return PVR_ERROR_NO_ERROR;
 }
 
+// duplicate_prevention
+//
+// Defines the identifiers for series duplicate prevention values
+enum duplicate_prevention {
+
+    none                    = 0,
+    newonly                 = 1,
+    recentonly              = 2,
+};
+
+// timer_type
+//
+// Defines the identifiers for the various timer types (1-based)
+enum timer_type {
+
+    seriesrule              = 1,
+    datetimeonlyrule        = 2,
+    epgseriesrule           = 3,
+    epgdatetimeonlyrule     = 4,
+    seriestimer             = 5,
+    datetimeonlytimer       = 6,
+};// g_timertypes (const)
+//
+// Array of PVR_TIMER_TYPE structures to pass to Kodi
+static const PVR_TIMER_TYPE g_timertypes[] ={
+
+    // timer_type::seriesrule
+    //
+    // Timer type for non-EPG series rules, requires a series name match operation to create. Also used when editing
+    // an existing recording rule as the EPG/seriesid information will not be available
+    {
+        // iID
+        timer_type::seriesrule,
+
+        // iAttributes
+        PVR_TIMER_TYPE_IS_REPEATING | PVR_TIMER_TYPE_SUPPORTS_CHANNELS | PVR_TIMER_TYPE_SUPPORTS_TITLE_EPG_MATCH | PVR_TIMER_TYPE_SUPPORTS_RECORD_ONLY_NEW_EPISODES |
+            PVR_TIMER_TYPE_SUPPORTS_START_END_MARGIN | PVR_TIMER_TYPE_FORBIDS_EPG_TAG_ON_CREATE | PVR_TIMER_TYPE_SUPPORTS_ANY_CHANNEL,
+
+        // strDescription
+        "Record Series Rule",
+
+        0, { { 0, "" } }, 0,        // priorities
+        0, { { 0, "" } }, 0,        // lifetimes
+
+        // preventDuplicateEpisodes
+        3, {
+            { duplicate_prevention::none, "Record all episodes" },
+            { duplicate_prevention::newonly, "Record only new episodes" },
+            { duplicate_prevention::recentonly, "Record only recent episodes" }
+        }, 0,
+
+        0, { { 0, "" } }, 0,        // recordingGroup
+        0, { { 0, "" } }, 0,        // maxRecordings
+    },
+
+    // timer_type::datetimeonlyrule
+    //
+    // Timer type for non-EPG date time only rules, requires a series name match operation to create. Also used when editing
+    // an existing recording rule as the EPG/seriesid information will not be available
+    //
+    // TODO: Made read-only since there is no way to get it to display the proper date selector.  Making it one-shot or manual
+    // rather than repeating removes it from the Timer Rules area and causes other problems.  If Kodi allowed the date selector
+    // to be displayed I think that would suffice, and wouldn't be that difficult or disruptive to the Kodi code.  For now, the
+    // PVR_TIMER_TYPE_SUPPORTS_FIRST_DAY flag was added to show the date of the recording.  Unfortunately, this also means that
+    // the timer rule cannot be deleted, which sucks.
+    {
+        // iID
+        timer_type::datetimeonlyrule,
+
+        // iAttributes
+        PVR_TIMER_TYPE_IS_REPEATING | PVR_TIMER_TYPE_IS_READONLY | PVR_TIMER_TYPE_SUPPORTS_CHANNELS | PVR_TIMER_TYPE_SUPPORTS_TITLE_EPG_MATCH |
+            PVR_TIMER_TYPE_SUPPORTS_FIRST_DAY | PVR_TIMER_TYPE_SUPPORTS_START_TIME | PVR_TIMER_TYPE_SUPPORTS_START_END_MARGIN |
+            PVR_TIMER_TYPE_FORBIDS_EPG_TAG_ON_CREATE,
+
+        // strDescription
+        "Record Once Rule",
+
+        0, { { 0, "" } }, 0,        // priorities
+        0, { { 0, "" } }, 0,        // lifetimes
+        0, { { 0, "" } }, 0,        // preventDuplicateEpisodes
+        0, { { 0, "" } }, 0,        // recordingGroup
+        0, { { 0, "" } }, 0,        // maxRecordings
+    },
+
+    // timer_type::epgseriesrule
+    //
+    // Timer type for EPG series rules
+    {
+        // iID
+        timer_type::epgseriesrule,
+
+        // iAttributes
+        //
+        // todo: PVR_TIMER_TYPE_REQUIRES_EPG_SERIESLINK_ON_CREATE can be set here, but seems to have bugs right now, after Kodi
+        // is stopped and restarted, the cached EPG data prevents adding a new timer if this is set
+        PVR_TIMER_TYPE_IS_REPEATING | PVR_TIMER_TYPE_SUPPORTS_CHANNELS | PVR_TIMER_TYPE_SUPPORTS_RECORD_ONLY_NEW_EPISODES |
+            PVR_TIMER_TYPE_SUPPORTS_START_END_MARGIN | PVR_TIMER_TYPE_REQUIRES_EPG_SERIES_ON_CREATE | PVR_TIMER_TYPE_SUPPORTS_ANY_CHANNEL,
+
+        // strDescription
+        "Record Series",
+
+        0, { { 0, "" } }, 0,        // priorities
+        0, { { 0, "" } }, 0,        // lifetimes
+
+        // preventDuplicateEpisodes
+        3, {
+            { duplicate_prevention::none, "Record all episodes" },
+            { duplicate_prevention::newonly, "Record only new episodes" },
+            { duplicate_prevention::recentonly, "Record only recent episodes" }
+        }, 0,
+
+        0, { { 0, "" } }, 0,        // recordingGroup
+        0, { { 0, "" } }, 0,        // maxRecordings
+    },
+
+    // timer_type::epgdatetimeonlyrule
+    //
+    // Timer type for EPG date time only rules
+    {
+        // iID
+        timer_type::epgdatetimeonlyrule,
+
+        // iAttributes
+        //
+        // todo: PVR_TIMER_TYPE_REQUIRES_EPG_SERIESLINK_ON_CREATE can be set here, but seems to have bugs right now, after Kodi
+        // is stopped and restarted, the cached EPG data prevents adding a new timer if this is set
+        PVR_TIMER_TYPE_SUPPORTS_CHANNELS | PVR_TIMER_TYPE_SUPPORTS_START_END_MARGIN | PVR_TIMER_TYPE_REQUIRES_EPG_SERIES_ON_CREATE,
+
+        // strDescription
+        "Record Once",
+
+        0, { { 0, "" } }, 0,        // priorities
+        0, { { 0, "" } }, 0,        // lifetimes
+        0, { { 0, "" } }, 0,        // preventDuplicateEpisodes
+        0, { { 0, "" } }, 0,        // recordingGroup
+        0, { { 0, "" } }, 0,        // maxRecordings
+    },
+
+    // timer_type::seriestimer
+    //
+    // used for existing episode timers; these cannot be edited or deleted by the end user
+    {
+        // iID
+        timer_type::seriestimer,
+
+        // iAttributes
+        PVR_TIMER_TYPE_IS_READONLY | PVR_TIMER_TYPE_FORBIDS_NEW_INSTANCES | PVR_TIMER_TYPE_SUPPORTS_CHANNELS | PVR_TIMER_TYPE_SUPPORTS_START_TIME |
+            PVR_TIMER_TYPE_SUPPORTS_END_TIME,
+
+        // strDescription
+        "Record Series Episode",
+
+        0, { {0, "" } }, 0,         // priorities
+        0, { {0, "" } }, 0,         // lifetimes
+        0, { {0, "" } }, 0,         // preventDuplicateEpisodes
+        0, { {0, "" } }, 0,         // recordingGroup
+        0, { {0, "" } }, 0,         // maxRecordings
+    },
+
+    // timer_type::datetimeonlytimer
+    //
+    // used for existing date/time only episode timers; these cannot be edited by the user, but allows the
+    // timer and it's associated parent rule to be deleted successfully via the live TV interface
+    {
+        // iID
+        timer_type::datetimeonlytimer,
+
+        // iAttributes
+        PVR_TIMER_TYPE_FORBIDS_NEW_INSTANCES | PVR_TIMER_TYPE_SUPPORTS_CHANNELS | PVR_TIMER_TYPE_SUPPORTS_START_TIME | PVR_TIMER_TYPE_SUPPORTS_END_TIME,
+
+        // strDescription
+        "Record Once Episode",
+
+        0, { {0, "" } }, 0,         // priorities
+        0, { {0, "" } }, 0,         // lifetimes
+        0, { {0, "" } }, 0,         // preventDuplicateEpisodes
+        0, { {0, "" } }, 0,         // recordingGroup
+        0, { {0, "" } }, 0,         // maxRecordings
+    },
+};
+
+//---------------------------------------------------------------------------
+// GetTimerTypes
+//
+// Retrieve the timer types supported by the backend
+//
+// Arguments:
+//
+//  types       - The function has to write the definition of the supported timer types into this array
+//  count       - in: The maximum size of the list; out: the actual size of the list
+
+PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int* count)
+{
+    if(count == nullptr) return PVR_ERROR::PVR_ERROR_INVALID_PARAMETERS;
+    if((*count) && (types == nullptr)) return PVR_ERROR::PVR_ERROR_INVALID_PARAMETERS;
+
+    // Only copy up to the maximum size of the array provided by the caller
+    *count = std::min(*count, static_cast<int>(std::extent<decltype(g_timertypes)>::value));
+    for(int index = 0; index < *count; index++) types[index] = g_timertypes[index];
+
+    return PVR_ERROR::PVR_ERROR_NO_ERROR;
+}
+
+
+
 /* UNUSED API FUNCTIONS */
 PVR_ERROR CallMenuHook(const PVR_MENUHOOK&, const PVR_MENUHOOK_DATA&) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEMENTED; }
@@ -624,7 +854,6 @@ PVR_ERROR AddTimer(const PVR_TIMER&) { return PVR_ERROR_NO_ERROR; }
 PVR_ERROR DeleteTimer(const PVR_TIMER&, bool) { return PVR_ERROR_NOT_IMPLEMENTED; }
 int GetTimersAmount(void) { return -1; }
 PVR_ERROR GetTimers(ADDON_HANDLE) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR UpdateTimer(const PVR_TIMER&) { return PVR_ERROR_NOT_IMPLEMENTED; }
 // Timeshift
 void PauseStream(bool bPaused) {}
