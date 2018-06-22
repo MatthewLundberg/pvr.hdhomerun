@@ -74,6 +74,7 @@ public:
         return _storageID == rhs._storageID;
     }
 };
+StorageDevice* New_StorageDevice(const hdhomerun_discover_device_t* d);
 
 // The tuner box has an ID, lineup, guide, and one or more tuners.
 class Tuner;

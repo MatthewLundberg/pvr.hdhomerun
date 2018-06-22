@@ -33,7 +33,12 @@ TunerDevice* New_TunerDevice(const hdhomerun_discover_device_t* d)
     t->Refresh(d);
     return t;
 }
-
+StorageDevice* New_StorageDevice(const hdhomerun_discover_device_t* d)
+{
+    auto t = new StorageDevice();
+    t->Refresh(d);
+    return t;
+}
 
 Tuner::Tuner(TunerDevice* box, unsigned int index)
     : _box(box)
@@ -128,9 +133,16 @@ void Tuner::_set_var(const char* value, const char* name)
 
 void StorageDevice::_parse_discover_data(const Json::Value& json)
 {
-    _storageID  = json["StorageID"].asString();
-    _storageURL = json["StorageURL"].asString();
-    _freeSpace  = json["FreeSpace"].asUInt();
+    try
+    {
+        _storageID  = json["StorageID"].asString();
+        _storageURL = json["StorageURL"].asString();
+        _freeSpace  = json["FreeSpace"].asUInt64();
+    }
+    catch (...)
+    {
+        KODI_LOG(LOG_INFO, "Exception caught parsing JSON from device");
+    }
 }
 
 void TunerDevice::_parse_discover_data(const Json::Value& json)

@@ -85,6 +85,7 @@ public:
 
 protected:
     std::set<uint32_t>        _device_ids;
+    std::set<std::string>     _storage_urls;
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;

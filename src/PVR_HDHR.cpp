@@ -66,7 +66,7 @@ bool PVR_HDHR::DiscoverTunerDevices()
     struct hdhomerun_discover_device_t discover_devices[64];
     size_t device_count = hdhomerun_discover_find_devices_custom_v2(
             0,
-            HDHOMERUN_DEVICE_TYPE_TUNER,
+            HDHOMERUN_DEVICE_TYPE_WILDCARD,
             HDHOMERUN_DEVICE_ID_WILDCARD,
             discover_devices,
             64
@@ -82,61 +82,114 @@ bool PVR_HDHR::DiscoverTunerDevices()
         return true;
     }
 
-    std::set<uint32_t> discovered_ids;
+    std::set<uint32_t>    discovered_ids;  // Tuner IDs
+    std::set<std::string> discovered_urls; // Storage URLs
 
-    bool device_added   = false;
-    bool device_removed = false;
+    bool device_added    = false;
+    bool device_removed  = false;
+    bool storage_added   = false;
+    bool storage_removed = false;
 
     Lock guidelock(_guide_lock);
     Lock lock(this);
     for (size_t i=0; i<device_count; i++)
     {
         auto& dd = discover_devices[i];
-        auto  id = dd.device_id;
 
-        if (g.Settings.blacklistDevice.find(id) != g.Settings.blacklistDevice.end())
+        if (dd.device_type == HDHOMERUN_DEVICE_TYPE_STORAGE)
         {
-        	KODI_LOG(LOG_INFO, "Ignoring blacklisted device %08x", id);
-        	continue;
-        }
+            if (!g.Settings.record)
+                continue;
 
-        if (dd.is_legacy && !g.Settings.UseLegacyDevices())
-        {
-        	KODI_LOG(LOG_INFO, "Ignoring legacy device %08x", id);
-            continue;
-        }
+            const auto url = dd.base_url;
+            discovered_urls.insert(url);
 
-        discovered_ids.insert(id);
-
-        if (_device_ids.find(id) == _device_ids.end())
-        {
-            // New device
-            device_added = true;
-            KODI_LOG(LOG_DEBUG, "Adding device %08x", id);
-            std::cout << "New tuner "
-                    << std::hex << dd.device_id << std::dec
-                    << " auth " << EncodeURL(dd.device_auth)
-                    << " URL " << dd.base_url
-                    << "\n";
-
-            _tuner_devices.insert(New_TunerDevice(&dd));
-            _device_ids.insert(id);
-        }
-        else
-        {
-            KODI_LOG(LOG_DEBUG, "Known device %08x", id);
-
-            for (auto t: _tuner_devices)
+            if (_storage_urls.find(url) == _storage_urls.end())
             {
-                if (t->DeviceID() == id)
+                storage_added = true;
+                KODI_LOG(LOG_DEBUG, "Adding storage %s", url);
+                std::cout << "New Storage URL " << url << std::endl;
+
+                _storage_urls.insert(url);
+                _storage_devices.insert(New_StorageDevice(&dd));
+            }
+            else
+            {
+                KODI_LOG(LOG_DEBUG, "Known storage %s", url);
+                for (auto s: _storage_devices)
                 {
-                    t->Refresh(&dd);
+                    if (!strcmp(s->BaseURL(), url))
+                    {
+                        s->Refresh(&dd);
+                    }
+                }
+            }
+        }
+        else if (dd.device_type = HDHOMERUN_DEVICE_TYPE_TUNER)
+        {
+            auto  id = dd.device_id;
+
+
+            if (g.Settings.blacklistDevice.find(id) != g.Settings.blacklistDevice.end())
+            {
+                KODI_LOG(LOG_INFO, "Ignoring blacklisted device %08x", id);
+                continue;
+            }
+
+            if (dd.is_legacy && !g.Settings.UseLegacyDevices())
+            {
+                KODI_LOG(LOG_INFO, "Ignoring legacy device %08x", id);
+                continue;
+            }
+
+            discovered_ids.insert(id);
+
+            if (_device_ids.find(id) == _device_ids.end())
+            {
+                // New device
+                device_added = true;
+                KODI_LOG(LOG_DEBUG, "Adding device %08x", id);
+                std::cout << "New tuner "
+                        << std::hex << dd.device_id << std::dec
+                        << " auth " << EncodeURL(dd.device_auth)
+                        << " URL " << dd.base_url
+                        << "\n";
+
+                _tuner_devices.insert(New_TunerDevice(&dd));
+                _device_ids.insert(id);
+            }
+            else
+            {
+                KODI_LOG(LOG_DEBUG, "Known device %08x", id);
+
+                for (auto t: _tuner_devices)
+                {
+                    if (t->DeviceID() == id)
+                    {
+                        t->Refresh(&dd);
+                    }
                 }
             }
         }
     }
 
     // Iterate through devices, Refresh and determine if there are stale entries.
+    auto sit = _storage_devices.begin();
+    while (sit != _storage_devices.end())
+    {
+        auto storage = *sit;
+        const auto url = storage->BaseURL();
+        if (discovered_urls.find(url) == discovered_urls.end())
+        {
+            storage_removed = true;
+            sit = _storage_devices.erase(sit);
+            _storage_urls.erase(url);
+            delete(storage);
+        }
+        else
+            sit ++;
+    }
+
     auto tit = _tuner_devices.begin();
     while (tit != _tuner_devices.end())
     {
@@ -328,13 +381,6 @@ void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
 
             GuideEntry entry{jsonentry};
             bool n = channelguide.AddEntry(entry, number.ID());
-
-            if (number.ID() == 130002)
-                std::cout << "Guide event new: " << n << " channel " << number << " time " << FormatTime(entry._starttime)
-                << " times "<< channelguide.Times().toString()
-                << " Requests " << channelguide.Requests().toString()
-                <<  "\n";
-
         }
 
     }
