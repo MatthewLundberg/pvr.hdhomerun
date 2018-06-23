@@ -30,9 +30,10 @@ namespace PVRHDHomeRun
 
 Info::Info(const Json::Value& v)
 {
-    _guidename = v["GuideName"].asString();
-    _drm       = v["DRM"].asBool();
-    _hd        = v["HD"].asBool();
+    _guidenumber = v["GuideNumber"].asString();
+    _guidename   = v["GuideName"].asString();
+    _drm         = v["DRM"].asBool();
+    _hd          = v["HD"].asBool();
 }
 
 bool Info::AddDevice(TunerDevice* t, const std::string& url)

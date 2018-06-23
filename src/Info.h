@@ -49,6 +49,7 @@ public:
         return "";
     }
 
+    std::string _guidenumber;
     std::string _guidename;
     bool        _hd       = false;
     bool        _drm      = false;

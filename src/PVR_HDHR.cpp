@@ -757,6 +757,19 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
     }
     auto& info = _info[id];
 
+    if (g.Settings.recordforlive && _storage_devices.size())
+    {
+        for (auto device : _storage_devices)
+        {
+            std::string url = device->BaseURL();
+            url += "/auto/v" + info._guidenumber;
+            std::cout << "Attempting to tune " << url << std::endl;
+            if (_open_tcp_stream(url))
+                return true;
+        }
+    }
+
+
     for (auto id : g.Settings.preferredDevice)
     {
         for (auto device : info)
