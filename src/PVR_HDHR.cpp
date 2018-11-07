@@ -712,6 +712,7 @@ void PVR_HDHR_TCP::_close_live_stream()
 
     g.XBMC->CloseFile(_filehandle);
     _filehandle = nullptr;
+    _current_storage = nullptr;
 }
 
 int PVR_HDHR_TCP::_read_live_stream(unsigned char* buffer, unsigned int size)
@@ -763,12 +764,14 @@ bool PVR_HDHR_TCP::_open_live_stream(const PVR_CHANNEL& channel)
         {
             std::string url = device->BaseURL();
             url += "/auto/v" + info._guidenumber;
-            std::cout << "Attempting to tune " << url << std::endl;
             if (_open_tcp_stream(url))
+            {
+                _current_storage = device;
                 return true;
+            }
         }
+        KODI_LOG(LOG_INFO, "Failed to tune channel %s from storage, falling back to tuner device", info._guidenumber.c_str());
     }
-
 
     for (auto id : g.Settings.preferredDevice)
     {

@@ -826,7 +826,11 @@ DemuxPacket* DemuxRead(void) { return NULL; }
 void DemuxReset(void) {}
 // LiveStream
 long long LengthLiveStream(void) { return -1; }
-long long SeekLiveStream(long long, int) { return -1; }
+long long SeekLiveStream(long long position, int whence)
+{
+    std::cout << "SeekLiveStream(" << position << ',' << whence << ')' << std::endl;
+    return position;
+}
 bool SeekTime(double,bool,double*) { return false; }
 bool IsRealTimeStream(void) { return true; }
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*) { return PVR_ERROR_NOT_IMPLEMENTED; }

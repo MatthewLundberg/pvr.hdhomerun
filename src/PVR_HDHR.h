@@ -92,6 +92,7 @@ protected:
 public:
     std::set<TunerDevice*>    _tuner_devices;
     std::set<StorageDevice*>  _storage_devices;
+    StorageDevice*            _current_storage = nullptr;
 protected:
     Lockable _guide_lock;
     Lockable _stream_lock;
