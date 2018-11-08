@@ -27,28 +27,6 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-//---------------------------------------------------------------------------
-// Copyright (c) 2017 Michael G. Brehm
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-//---------------------------------------------------------------------------
-
 
 #include "client.h"
 
@@ -605,6 +583,8 @@ PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE
   return PVR_ERROR_NO_ERROR;
 }
 
+// Timer definition is copied from djp952
+//
 // duplicate_prevention
 //
 // Defines the identifiers for series duplicate prevention values
@@ -627,6 +607,7 @@ enum timer_type {
     seriestimer             = 5,
     datetimeonlytimer       = 6,
 };// g_timertypes (const)
+
 //
 // Array of PVR_TIMER_TYPE structures to pass to Kodi
 static const PVR_TIMER_TYPE g_timertypes[] ={
@@ -828,18 +809,18 @@ void DemuxReset(void) {}
 long long LengthLiveStream(void) { return -1; }
 long long SeekLiveStream(long long position, int whence)
 {
-    std::cout << "SeekLiveStream(" << position << ',' << whence << ')' << std::endl;
+    std::cout << __FUNCTION__ << "(" << position << ',' << whence << ')' << std::endl;
     return position;
 }
-bool SeekTime(double,bool,double*) { return false; }
+bool SeekTime(double time,bool backwards,double* startpts) { return false; }
 bool IsRealTimeStream(void) { return true; }
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times) { return PVR_ERROR_NOT_IMPLEMENTED; }
 // Recording
 bool OpenRecordedStream(const PVR_RECORDING&) { return false; }
 void CloseRecordedStream(void) {}
-int ReadRecordedStream(unsigned char*, unsigned int) { return 0; }
-long long SeekRecordedStream(long long, int) { return 0; }
+int ReadRecordedStream(unsigned char* buf, unsigned int len) { return 0; }
+long long SeekRecordedStream(long long pos, int whence) { return 0; }
 long long LengthRecordedStream(void) { return 0; }
 PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR DeleteRecording(const PVR_RECORDING&) { return PVR_ERROR_NOT_IMPLEMENTED; }
