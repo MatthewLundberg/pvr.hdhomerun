@@ -1,34 +1,39 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
 
-  <!-- Guide Settings -->
-  <category label="32010">
-    <setting id="channel_name"   type="enum"   label="32014" lvalues="32011|32012|32013" default="2"/>
-    <setting id="hide_unknown"   type="bool"   label="32015" default="true" />
-    <setting id="hide_protected" type="bool"   label="32016" default="true" />
-    <setting id="extended"       type="bool"   label="32017" default="false" />
-    <setting id="guidedays"      type="number" label="32018" default="1" visible="eq(-1,true)" />
-  </category>
-  
-  <!-- Recorder Settings -->
-  <category label=32030>
-    <setting id="record"         type="bool"   label="32031" default="false" />
-  </category>
-
-  <!-- Tuner Settings -->
-  <category label=32020>
-    <setting id="record"         visible="false" />
-    <setting id="recordforlive"  type="bool"   label="32026" default="true" visible="eq(-1,true)" />
-    <setting id="protocol"       type="select" label="32021" values="TCP|UDP" default="TCP" visible="false + (eq(-1,false) | eq(-2,false))" />
-    <setting id="port"           type="number" label="32025" default=5000 visible="eq(-1,1) + (eq(-2,false) | eq(-3, false))" />
-    <setting id="use_legacy"     type="bool"   label="32022" default="false" visible="eq(-2,1) + (eq(-3,false) | eq(-4, false))" />
-    <setting id="preferred"      type="text"   label="32023" default="" visible="eq(-4,false) | eq(-5, false)"/>
-    <setting id="blacklist"      type="text"   label="32024" default="" visible="eq(-5,false) | eq(-6, false)"/>
-  </category>
-
   <!-- General Settings -->
   <category label=32000>
     <setting id="debug"         type="bool"    label="32009" default="false" />
   </category>
+
+
+  <!-- Guide Settings -->
+  <category label="32100">
+    <setting id="channel_name"   type="enum"   label="32104" lvalues="32101|32102|32103" default="2"/>
+    <setting id="hide_unknown"   type="bool"   label="32105" default="true" />
+    <setting id="hide_protected" type="bool"   label="32106" default="true" />
+    <setting id="hide_ch_no"     type="text"   label="32109" default="" />
+    <setting id="extended"       type="bool"   label="32107" default="false" />
+    <setting id="guidedays"      type="number" label="32108" default="1" visible="eq(-1,true)" />
+  </category>
+
+
+  <!-- Tuner Settings -->
+  <category label=32200>
+    <setting id="record"         visible="false" />
+    <setting id="recordforlive"  type="bool"   label="32206" default="true" visible="eq(-1,true)" />
+    <setting id="protocol"       type="select" label="32201" values="TCP|UDP" default="TCP" visible="false + (eq(-1,false) | eq(-2,false))" />
+    <setting id="port"           type="number" label="32205" default=5000 visible="eq(-1,1) + (eq(-2,false) | eq(-3, false))" />
+    <setting id="use_legacy"     type="bool"   label="32202" default="false" visible="eq(-2,1) + (eq(-3,false) | eq(-4, false))" />
+    <setting id="preferred"      type="text"   label="32203" default="" visible="eq(-4,false) | eq(-5, false)"/>
+    <setting id="blacklist"      type="text"   label="32204" default="" visible="eq(-5,false) | eq(-6, false)"/>
+  </category>
+
+
+  <!-- Recorder Settings -->
+  <category label=32300>
+    <setting id="record"         type="bool"   label="32301" default="false" />
+  </category>
+
 
 </settings>

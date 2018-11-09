@@ -64,6 +64,7 @@ struct SettingsType
     PROTOCOL     protocol       = TCP;
     bool extendedGuide          = false;
     int  guideDays              = 1;
+    std::set<std::string> hiddenChannels;
     std::vector<uint32_t> preferredDevice;
     std::set<uint32_t>    blacklistDevice;
     int udpPort                 = 5000;

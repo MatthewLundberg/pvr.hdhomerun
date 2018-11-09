@@ -27,79 +27,86 @@ msgstr "Enable debug logging"
 
 
 
-msgctxt "#32010"
+msgctxt "#32100"
 msgid "Guide Settings"
 msgstr "Guide Settings"
 
-msgctxt "#32011"
+msgctxt "#32101"
 msgid "Tuner Name"
 msgstr "Tuner Name"
 
-msgctxt "#32012"
+msgctxt "#32102"
 msgid "Guide Name"
 msgstr "Guide Name"
 
-msgctxt "#32013"
+msgctxt "#32103"
 msgid "Affiliate"
 msgstr "Affiliate"
 
-msgctxt "#32014"
+msgctxt "#32104"
 msgid "Name to display"
 msgstr "Name to display"
 
-msgctxt "#32015"
+msgctxt "#32105"
 msgid "Hide unknown channels"
 msgstr "Hide unknown channels"
 
-msgctxt "#32016"
+msgctxt "#32106"
 msgid "Hide protected channels"
 msgstr "Hide protected channels"
 
-msgctxt "#32017"
+msgctxt "#32107"
 msgid "Use Extended Guide"
 msgstr "Use Extended Guide"
 
-msgctxt "#32018"
+msgctxt "#32108"
 msgid "Extended Guide Days"
 msgstr "Extended Guide Days"
 
-msgctxt "#32020"
+msgctxt "#32109"
+msgid "Hide Stations Numbers"
+msgstr "Hide Stations Numbers"
+
+
+msgctxt "#32200"
 msgid "Network Settings"
 msgstr "Network Settings"
 
-msgctxt "#32021"
+msgctxt "#32201"
 msgid "Network Protocol"
 msgstr "Network Protocol"
 
-msgctxt "#32022"
+msgctxt "#32202"
 msgid "Use legacy hardware"
 msgstr "Use legacy hardware"
 
-msgctxt "#32023"
+msgctxt "#32203"
 msgid "Preferred Tuners"
 msgstr "Preferred Tuners"
 
-msgctxt "#32024"
+msgctxt "#32204"
 msgid "Blacklist Tuners"
 msgstr "Blacklist Tuners"
 
-msgctxt "#32025"
+msgctxt "#32205"
 msgid "Port"
 msgstr "Port"
 
-msgctxt "#32026"
+msgctxt "#32206"
 msgid "Use Record Engine for Live TV"
 msgstr "Use Record Engine for Live TV"
 
-msgctxt "#32030"
+
+
+msgctxt "#32300"
 msgid "Record Engine"
 msgstr "Record Engine"
 
-msgctxt "#32031"
+msgctxt "#32301"
 msgid "Use SD Record Engine"
 msgstr "Use SD Record Engine"
 
-msgctxt "#32032"
+msgctxt "#32302"
 msgid "Use Record Engine for Live TV"
 msgstr "Use Record Engine for Live TV"
 

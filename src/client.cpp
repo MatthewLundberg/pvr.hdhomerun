@@ -222,20 +222,35 @@ void SetProtocol(const char* proto)
 
 namespace {
 
-std::vector<uint32_t> split_vec(const std::string& s) {
+template<typename T> std::vector<T> split_vec(const std::string& s)
+{
+	std::vector<T> retval;
+	return retval;
+}
+
+template<>
+std::vector<std::string> split_vec(const std::string& s)
+{
 	std::stringstream ss(s);
 	std::istream_iterator<std::string> begin(ss);
 	std::istream_iterator<std::string> end;
 	std::vector<std::string> svec(begin, end);
+	return svec;
+}
+template<>
+std::vector<uint32_t> split_vec(const std::string& s) {
 	std::vector<uint32_t> ivec;
+	auto svec = split_vec<std::string>(s);
 	std::transform(svec.begin(), svec.end(), std::back_inserter(ivec),
 			[](const std::string& s) {return std::stoul(s, 0, 16);}
 	);
 	return ivec;
 }
-std::set<uint32_t> split_set(const std::string& s) {
-	auto vec = split_vec(s);
-	std::set<uint32_t> sset(vec.begin(), vec.end());
+
+template<typename T>
+std::set<T> split_set(const std::string& s) {
+	auto vec = split_vec<T>(s);
+	std::set<T> sset(vec.begin(), vec.end());
 	return sset;
 }
 
@@ -263,11 +278,15 @@ void ADDON_ReadSettings(void)
 
     char preferred[1024] = "";
     g.XBMC->GetSetting("preferred",      preferred);
-    g.Settings.preferredDevice = split_vec(preferred);
+    g.Settings.preferredDevice = split_vec<uint32_t>(preferred);
 
     char blacklist[1024] = "";
     g.XBMC->GetSetting("blacklist",      blacklist);
-    g.Settings.blacklistDevice = split_set(blacklist);
+    g.Settings.blacklistDevice = split_set<uint32_t>(blacklist);
+
+    char hiddenchannels[4096] = "";
+    g.XBMC->GetSetting("hide_ch_no",     hiddenchannels);
+    g.Settings.hiddenChannels = split_set<std::string>(hiddenchannels);
 
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
@@ -411,11 +430,15 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     }
     else if (strcmp(name, "preferred") == 0)
     {
-        g.Settings.preferredDevice = split_vec((char*) value);
+        g.Settings.preferredDevice = split_vec<uint32_t>((char*) value);
     }
     else if (strcmp(name, "blackist") == 0)
     {
-        g.Settings.blacklistDevice = split_set((char*) value);
+        g.Settings.blacklistDevice = split_set<uint32_t>((char*) value);
+    }
+    else if (strcmp(name, "hide_ch_no") == 0)
+    {
+        g.Settings.hiddenChannels = split_set<std::string>((char*) value);
     }
 
     return ADDON_STATUS_OK;
@@ -806,14 +829,23 @@ void DemuxFlush(void) {}
 DemuxPacket* DemuxRead(void) { return NULL; }
 void DemuxReset(void) {}
 // LiveStream
-long long LengthLiveStream(void) { return -1; }
+long long LengthLiveStream(void) {
+	std::cout << __FUNCTION__ << std::endl;
+	return -1;
+}
 long long SeekLiveStream(long long position, int whence)
 {
     std::cout << __FUNCTION__ << "(" << position << ',' << whence << ')' << std::endl;
     return position;
 }
-bool SeekTime(double time,bool backwards,double* startpts) { return false; }
-bool IsRealTimeStream(void) { return true; }
+bool SeekTime(double time,bool backwards,double* startpts) {
+	std::cout << __FUNCTION__ << "(" << time << ',' << backwards << ",)" << std::endl;
+	return false;
+}
+bool IsRealTimeStream(void) {
+	//std::cout << __FUNCTION__ << std::endl;
+	return false;
+}
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times) { return PVR_ERROR_NOT_IMPLEMENTED; }
 // Recording
@@ -825,10 +857,10 @@ long long LengthRecordedStream(void) { return 0; }
 PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR DeleteRecording(const PVR_RECORDING&) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetRecordings(ADDON_HANDLE, bool) { return PVR_ERROR_NOT_IMPLEMENTED; }
-int GetRecordingsAmount(bool) { return -1; }
+int GetRecordingsAmount(bool deleted) { return -1; }
 PVR_ERROR RenameRecording(const PVR_RECORDING&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int*) { return PVR_ERROR_NOT_IMPLEMENTED; };
-PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING&, int) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int* size) { return PVR_ERROR_NOT_IMPLEMENTED; };
+PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING&, int count) { return PVR_ERROR_NOT_IMPLEMENTED; }
 int GetRecordingLastPlayedPosition(const PVR_RECORDING&) { return -1; }
 PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING&, int) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
@@ -845,10 +877,10 @@ void PauseStream(bool bPaused) {}
 void SetSpeed(int) {};
 bool IsTimeshifting(void) { return false; }
 // EPG
-PVR_ERROR SetEPGTimeFrame(int) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR SetEPGTimeFrame(int days) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR IsEPGTagPlayable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int* count) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetEPGTagEdl(const EPG_TAG* epgTag, PVR_EDL_ENTRY edl[], int *size) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetStreamReadChunkSize(int* chunksize) { return PVR_ERROR_NOT_IMPLEMENTED; }
 

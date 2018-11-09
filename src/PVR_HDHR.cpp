@@ -245,6 +245,19 @@ void PVR_HDHR::AddLineupEntry(const Json::Value& v, TunerDevice* device)
     {
         return;
     }
+    auto numberstr = number.toString();
+
+    for (const auto& hidden: g.Settings.hiddenChannels)
+    {
+        if (hidden.size() && hidden[hidden.size()-1] == '*')
+        {
+            auto sz = hidden.size() - 1;
+            if (hidden.substr(0, sz) == numberstr.substr(0, sz))
+                return;
+        }
+        if (hidden == numberstr)
+        	return;
+    }
     _lineup.insert(number);
     if (_info.find(number) == _info.end())
     {
