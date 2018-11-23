@@ -21,7 +21,7 @@
 
 #include "Info.h"
 #include "Device.h"
-#include "client.h"
+#include "Addon.h"
 #include <sstream>
 #include <cstdlib>
 

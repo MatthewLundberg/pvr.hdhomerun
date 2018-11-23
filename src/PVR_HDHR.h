@@ -23,7 +23,6 @@
 #include "Lockable.h"
 #include "IntervalSet.h"
 #include "Guide.h"
-#include "client.h"
 #include "Utils.h"
 #include "Info.h"
 #include <json/json.h>
@@ -71,6 +70,8 @@ public:
     bool OpenLiveStream(const PVR_CHANNEL& channel);
     void CloseLiveStream(void);
     int ReadLiveStream(unsigned char* buffer, unsigned int size);
+    long long SeekLiveStream(long long position, int whence);
+    PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times);
 
 private:
     void  _age_out(time_t);
@@ -81,6 +82,7 @@ private:
     virtual bool _open_live_stream(const PVR_CHANNEL& channel) = 0;
     virtual int  _read_live_stream(unsigned char* buffer, unsigned int size) = 0;
     virtual void _close_live_stream() = 0;
+    virtual int64_t _seek_live_stream(int64_t position, int whence);
 public:
 
 protected:
@@ -97,6 +99,7 @@ protected:
     Lockable _guide_lock;
     Lockable _stream_lock;
     void* _filehandle = nullptr;
+    size_t _bytesread = 0;
 };
 
 class PVR_HDHR_TCP : public PVR_HDHR {
@@ -105,6 +108,7 @@ private:
     bool  _open_tcp_stream(const std::string&);
     int   _read_live_stream(unsigned char* buffer, unsigned int size) override;
     void  _close_live_stream() override;
+    int64_t _seek_live_stream(int64_t position, int whence) override;
 };
 class PVR_HDHR_UDP : public PVR_HDHR {
 private:

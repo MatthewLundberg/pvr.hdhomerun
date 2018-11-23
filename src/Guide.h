@@ -21,8 +21,8 @@
  */
 
 #include "IntervalSet.h"
+#include "Addon.h"
 #include <json/json.h>
-#include "client.h"
 
 namespace PVRHDHomeRun
 {

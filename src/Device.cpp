@@ -21,7 +21,7 @@
 
 #include "Device.h"
 #include "Utils.h"
-#include "client.h"
+#include "Addon.h"
 #include <json/json.h>
 
 

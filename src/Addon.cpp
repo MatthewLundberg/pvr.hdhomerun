@@ -28,7 +28,7 @@
  *
  */
 
-#include "client.h"
+#include "Addon.h"
 
 #include <cstring>
 #include <string>
@@ -474,6 +474,7 @@ void OnPowerSavingDeactivated()
 PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
     pCapabilities->bSupportsEPG                      = true;
+    pCapabilities->bSupportsEPGEdl                   = false;
     pCapabilities->bSupportsTV                       = true;
     pCapabilities->bSupportsRadio                    = false;
     pCapabilities->bSupportsRecordings               = g.Settings.record;
@@ -830,13 +831,12 @@ DemuxPacket* DemuxRead(void) { return NULL; }
 void DemuxReset(void) {}
 // LiveStream
 long long LengthLiveStream(void) {
-	std::cout << __FUNCTION__ << std::endl;
-	return -1;
+    //return g.pvr_hdhr ? g.pvr_hdhr->LengthLiveStream() : -1;
+    return -1;
 }
 long long SeekLiveStream(long long position, int whence)
 {
-    std::cout << __FUNCTION__ << "(" << position << ',' << whence << ')' << std::endl;
-    return position;
+    return g.pvr_hdhr ? g.pvr_hdhr->SeekLiveStream(position, whence) : position;
 }
 bool SeekTime(double time,bool backwards,double* startpts) {
 	std::cout << __FUNCTION__ << "(" << time << ',' << backwards << ",)" << std::endl;
@@ -847,7 +847,9 @@ bool IsRealTimeStream(void) {
 	return false;
 }
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times) {
+    return g.pvr_hdhr ? g.pvr_hdhr->GetStreamTimes(times) : PVR_ERROR_SERVER_ERROR;
+}
 // Recording
 bool OpenRecordedStream(const PVR_RECORDING&) { return false; }
 void CloseRecordedStream(void) {}

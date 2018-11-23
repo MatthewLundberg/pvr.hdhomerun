@@ -30,7 +30,7 @@
 #include <string>
 #include <p8-platform/util/StringUtils.h>
 
-#include "client.h"
+#include "Addon.h"
 
 #if defined(USE_DBG_CONSOLE) && defined(TARGET_WINDOWS)
 int DbgPrintf(const char* szFormat, ...)

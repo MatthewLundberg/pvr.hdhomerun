@@ -20,7 +20,7 @@
  */
 
 #include "Guide.h"
-#include "client.h"
+#include "Addon.h"
 #include "Utils.h"
 
 namespace PVRHDHomeRun

@@ -28,8 +28,6 @@
 
 #include <string>
 
-#include "client.h"
-
 #if defined(TARGET_WINDOWS) && defined(DEBUG)
 #define USE_DBG_CONSOLE
 #endif

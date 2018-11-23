@@ -25,7 +25,7 @@ set(DEPLIBS ${kodiplatform_LIBRARIES}
             ${JSONCPP_LIBRARIES}
             ${HDHOMERUN_LIBRARIES})
 
-set(PVRHDHOMERUN_SOURCES src/client.cpp
+set(PVRHDHOMERUN_SOURCES src/Addon.cpp
                          src/Device.cpp
                          src/Info.cpp
                          src/Guide.cpp
@@ -33,7 +33,7 @@ set(PVRHDHOMERUN_SOURCES src/client.cpp
                          src/PVR_HDHR.cpp
                          src/Utils.cpp)
 
-set(PVRHDHOMERUN_HEADERS src/client.h
+set(PVRHDHOMERUN_HEADERS src/Addon.h
                          src/Device.h
                          src/Info.h
                          src/Guide.h

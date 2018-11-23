@@ -22,9 +22,10 @@
  *
  */
 
-#include "client.h"
+#include "Addon.h"
 #include "Utils.h"
 #include "PVR_HDHR.h"
+#include "Filesystem.h"
 #include <chrono>
 #include <functional>
 #include <algorithm>
@@ -705,22 +706,35 @@ PVR_ERROR PVR_HDHR::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
 bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
 {
     CloseLiveStream();
+    _bytesread = 0;
     return _open_live_stream(channel);
 }
 
 void PVR_HDHR::CloseLiveStream(void)
 {
-	_close_live_stream();
+    _close_live_stream();
+    _bytesread = 0;
 }
 
 int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 {
-	return _read_live_stream(buffer, size);
+    auto bytes = _read_live_stream(buffer, size);
+	_bytesread += bytes;
+	return bytes;
+}
+
+PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
+{
+    times->startTime = 0;
+    times->ptsStart = 0;
+    times->ptsBegin = 0;
+    times->ptsEnd = 400 * 1000 * 1000;
+    return PVR_ERROR_NO_ERROR;
 }
 
 void PVR_HDHR_TCP::_close_live_stream()
 {
-   Lock strlock(_stream_lock);
+    Lock strlock(_stream_lock);
     Lock lock(this);
 
     g.XBMC->CloseFile(_filehandle);
@@ -734,20 +748,65 @@ int PVR_HDHR_TCP::_read_live_stream(unsigned char* buffer, unsigned int size)
 
     if (_filehandle)
     {
-        return g.XBMC->ReadFile(_filehandle, buffer, size);
+        auto bytes = g.XBMC->ReadFile(_filehandle, buffer, size);
+        if (bytes <= 0)
+            std::cout << __FUNCTION__ << " returned " << bytes << std::endl;
+        return bytes;
     }
     return 0;
 }
 
+long long PVR_HDHR::SeekLiveStream(long long position, int whence)
+{
+    return static_cast<long long>(_seek_live_stream(static_cast<int64_t>(position), whence));
+}
+
+int64_t PVR_HDHR::_seek_live_stream(int64_t position, int whence)
+{};
+
+int64_t PVR_HDHR_TCP::_seek_live_stream(int64_t position, int whence)
+{
+    Lock strlock(_stream_lock);
+    Lock lock(this);
+
+    auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
+    std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " " << pos << std::endl;
+    //auto sts = g.XBMC->CURLOpen(_filehandle, XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM);
+    if (position < 0)
+        return 0;
+    return position;
+}
 
 bool PVR_HDHR_TCP::_open_tcp_stream(const std::string& url)
 {
     Lock strlock(_stream_lock);
     Lock lock(this);
 
+    _filehandle = nullptr;
     if (url.size())
     {
-        _filehandle = g.XBMC->OpenFile(url.c_str(), 0);
+        _filehandle = g.XBMC->CURLCreate(url.c_str());
+        if (!_filehandle)
+        {
+            KODI_LOG(LOG_ERROR, "Error creating CURL connection.");
+        }
+        else
+        {
+            bool sts = g.XBMC->CURLAddOption(_filehandle, XFILE::CURLOPTIONTYPE::CURL_OPTION_PROTOCOL, "seekable", "1");
+            if (!sts)
+            {
+                KODI_LOG(LOG_ERROR, "Cannot add CURL seekable option.");
+            }
+            else
+            {
+                sts = g.XBMC->CURLOpen(_filehandle, XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM);
+            }
+            if (!sts)
+            {
+                g.XBMC->CloseFile(_filehandle);
+                _filehandle = nullptr;
+            }
+        }
     }
 
     KODI_LOG(LOG_DEBUG, "Attempt to tune TCP stream from url %s : %s",
