@@ -516,96 +516,99 @@ const char *GetBackendHostname(void)
     return "";
 }
 
-PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
-{
-    // TODO - fix this
-    *iTotal = 1024 * 1024 * 1024;
-    *iUsed = 0;
-    return PVR_ERROR_NO_ERROR;
-}
+// Pass-through to PVR object
+#define PVR_VOID_0(name)         void name(void)         { if (g.pvr_hdhr) g.pvr_hdhr->name(); }
+#define PVR_VOID_1(name, t0)     void name(t0 v0)        { if (g.pvr_hdhr) g.pvr_hdhr->name(v0); }
+#define PVR_VOID_2(name, t0, t1) void name(t0 v0, t1 v1) { if (g.pvr_hdhr) g.pvr_hdhr->name(v0, v1); }
 
-PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL& channel,
-        time_t iStart, time_t iEnd)
-{
-    return g.pvr_hdhr ?
-            g.pvr_hdhr->PvrGetEPGForChannel(handle, channel, iStart, iEnd) :
-            PVR_ERROR_SERVER_ERROR;
-}
+#define PVR_RETR_0(name, typ, def)                 typ name(void)                       { return g.pvr_hdhr ? g.pvr_hdhr->name()               : def; }
+#define PVR_RETR_1(name, typ, def, t0)             typ name(t0 v0)                      { return g.pvr_hdhr ? g.pvr_hdhr->name(v0)             : def; }
+#define PVR_RETR_2(name, typ, def, t0, t1)         typ name(t0 v0, t1 v1)               { return g.pvr_hdhr ? g.pvr_hdhr->name(v0, v1)         : def; }
+#define PVR_RETR_3(name, typ, def, t0, t1, t2)     typ name(t0 v0, t1 v1, t2 v2)        { return g.pvr_hdhr ? g.pvr_hdhr->name(v0, v1, v2)     : def; }
+#define PVR_RETR_4(name, typ, def, t0, t1, t2, t3) typ name(t0 v0, t1 v1, t2 v2, t3 v3) { return g.pvr_hdhr ? g.pvr_hdhr->name(v0, v1, v2, v3) : def; }
 
-int GetChannelsAmount(void)
-{
-    return g.pvr_hdhr ? g.pvr_hdhr->PvrGetChannelsAmount() : PVR_ERROR_SERVER_ERROR;
-}
 
-PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
-{
-    return g.pvr_hdhr ?
-            g.pvr_hdhr->PvrGetChannels(handle, bRadio) : PVR_ERROR_SERVER_ERROR;
-}
+PVR_RETR_2(GetDriveSpace,          PVR_ERROR,     PVR_ERROR_SERVER_ERROR, long long *, long long *)
+PVR_RETR_4(GetEPGForChannel,       PVR_ERROR,     PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, const PVR_CHANNEL&, time_t, time_t)
+PVR_RETR_0(GetChannelsAmount,      int,           -1)
+PVR_RETR_2(GetChannels,            PVR_ERROR,     PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, bool)
+PVR_RETR_0(GetChannelGroupsAmount, int,           -1)
+PVR_RETR_2(GetChannelGroups,       PVR_ERROR,     PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, bool)
+PVR_RETR_2(GetChannelGroupMembers, PVR_ERROR,     PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, const PVR_CHANNEL_GROUP &)
+PVR_RETR_1(OpenLiveStream,         bool,          false,                  const PVR_CHANNEL &)
+PVR_VOID_0(CloseLiveStream)
+PVR_RETR_2(ReadLiveStream,         int,           0,                      unsigned char *, unsigned int)
+PVR_RETR_1(SignalStatus,           PVR_ERROR,     PVR_ERROR_SERVER_ERROR, PVR_SIGNAL_STATUS&)
+PVR_RETR_0(CanPauseStream,         bool,          false)
+PVR_RETR_0(CanSeekStream,          bool,          false)
+PVR_RETR_3(GetChannelStreamProperties, PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_CHANNEL*, PVR_NAMED_VALUE*, unsigned int*)
 
-int GetChannelGroupsAmount(void)
-{
-    return g.pvr_hdhr ?
-            g.pvr_hdhr->PvrGetChannelGroupsAmount() : PVR_ERROR_SERVER_ERROR;
-}
+// LiveStream
+PVR_RETR_0(LengthLiveStream,    long long, -1)
+PVR_RETR_2(SeekLiveStream,      long long, v0, long long, int)
+PVR_RETR_3(SeekTime,            bool,      false, double, bool, double*)
+PVR_RETR_0(IsRealTimeStream,    bool,      false)
+PVR_RETR_1(GetStreamProperties, PVR_ERROR, PVR_ERROR_SERVER_ERROR, PVR_STREAM_PROPERTIES*)
+PVR_RETR_1(GetStreamTimes,      PVR_ERROR, PVR_ERROR_SERVER_ERROR, PVR_STREAM_TIMES*)
 
-PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
-{
-    return g.pvr_hdhr ?
-            g.pvr_hdhr->PvrGetChannelGroups(handle, bRadio) :
-            PVR_ERROR_SERVER_ERROR;
-}
+// Recording
+PVR_RETR_1(OpenRecordedStream,             bool,      false, const PVR_RECORDING&);
+PVR_VOID_0(CloseRecordedStream)
+PVR_RETR_2(ReadRecordedStream,             int,       0,     unsigned char*, unsigned int);
+PVR_RETR_2(SeekRecordedStream,             long long, v0,    long long, int)
+PVR_RETR_0(LengthRecordedStream,           long long, 0)
+PVR_RETR_3(GetRecordingStreamProperties,   PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*)
+PVR_RETR_1(DeleteRecording,                PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&)
+PVR_RETR_2(GetRecordings,                  PVR_ERROR, PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, bool)
+PVR_RETR_1(GetRecordingsAmount,            int,       -1, bool)
+PVR_RETR_1(RenameRecording,                PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&)
+PVR_RETR_3(GetRecordingEdl,                PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&, PVR_EDL_ENTRY*, int*)
+PVR_RETR_2(SetRecordingPlayCount,          PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&, int)
+PVR_RETR_1(GetRecordingLastPlayedPosition, int,       -1, const PVR_RECORDING&)
+PVR_RETR_2(SetRecordingLastPlayedPosition, PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&, int)
+PVR_RETR_1(SetRecordingLifetime,           PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING*)
+PVR_RETR_0(DeleteAllRecordingsFromTrash,   PVR_ERROR, PVR_ERROR_SERVER_ERROR)
+PVR_RETR_1(UndeleteRecording,              PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&)
 
-PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle,
-        const PVR_CHANNEL_GROUP &group)
-{
-    return g.pvr_hdhr ?
-            g.pvr_hdhr->PvrGetChannelGroupMembers(handle, group) :
-            PVR_ERROR_SERVER_ERROR;
-}
+// Timers
+PVR_RETR_1(AddTimer,                       PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_TIMER&)
+PVR_RETR_2(DeleteTimer,                    PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_TIMER&, bool)
+PVR_RETR_0(GetTimersAmount,                int,       -1);
+PVR_RETR_1(GetTimers,                      PVR_ERROR, PVR_ERROR_SERVER_ERROR, ADDON_HANDLE);
+PVR_RETR_1(UpdateTimer,                    PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_TIMER&)
 
-bool OpenLiveStream(const PVR_CHANNEL &channel)
-{
-    return g.pvr_hdhr ?
-            g.pvr_hdhr->OpenLiveStream(channel) :
-            false;
-}
+// Timeshift
+PVR_VOID_1(PauseStream,    bool)
+PVR_VOID_1(SetSpeed,       int)
+PVR_RETR_0(IsTimeshifting, bool, false)
 
-void CloseLiveStream(void)
-{
-    if (g.pvr_hdhr)
-        g.pvr_hdhr->CloseLiveStream();
-}
 
-int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
-{
-    return g.pvr_hdhr ? g.pvr_hdhr->ReadLiveStream(pBuffer, iBufferSize) : 0;
-}
 
-PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
-{
-    PVR_STRCPY(signalStatus.strAdapterName, "otherkids PVR");
-    PVR_STRCPY(signalStatus.strAdapterStatus, "OK");
+/* UNUSED API FUNCTIONS */
+PVR_ERROR CallMenuHook(const PVR_MENUHOOK&, const PVR_MENUHOOK_DATA&) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+// Channel
+PVR_ERROR OpenDialogChannelScan(void) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR OpenDialogChannelSettings(const PVR_CHANNEL&) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR OpenDialogChannelAdd(const PVR_CHANNEL&) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR DeleteChannel(const PVR_CHANNEL&) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR RenameChannel(const PVR_CHANNEL&) { return PVR_ERROR_NOT_IMPLEMENTED; }
+// Demux
+void DemuxAbort(void) {}
+void DemuxFlush(void) {}
+DemuxPacket* DemuxRead(void) { return NULL; }
+void DemuxReset(void) {}
 
-    return PVR_ERROR_NO_ERROR;
-}
 
-bool CanPauseStream(void)
-{
-    return true;
-}
 
-bool CanSeekStream(void)
-{
-    return true;
-}
+// EPG
+PVR_ERROR SetEPGTimeFrame(int days) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR IsEPGTagPlayable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int* count) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetEPGTagEdl(const EPG_TAG* epgTag, PVR_EDL_ENTRY edl[], int *size) { return PVR_ERROR_NOT_IMPLEMENTED; }
+PVR_ERROR GetStreamReadChunkSize(int* chunksize) { return PVR_ERROR_NOT_IMPLEMENTED; }
 
-PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
-{
-  *iPropertiesCount = 0;
-
-  return PVR_ERROR_NO_ERROR;
-}
 
 // Timer definition is copied from djp952
 //
@@ -813,78 +816,6 @@ PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int* count)
     return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
 
-
-
-/* UNUSED API FUNCTIONS */
-PVR_ERROR CallMenuHook(const PVR_MENUHOOK&, const PVR_MENUHOOK_DATA&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-// Channel
-PVR_ERROR OpenDialogChannelScan(void) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR OpenDialogChannelSettings(const PVR_CHANNEL&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR OpenDialogChannelAdd(const PVR_CHANNEL&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR DeleteChannel(const PVR_CHANNEL&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR RenameChannel(const PVR_CHANNEL&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-// Demux
-void DemuxAbort(void) {}
-void DemuxFlush(void) {}
-DemuxPacket* DemuxRead(void) { return NULL; }
-void DemuxReset(void) {}
-// LiveStream
-long long LengthLiveStream(void) {
-    //return g.pvr_hdhr ? g.pvr_hdhr->LengthLiveStream() : -1;
-    return -1;
-}
-long long SeekLiveStream(long long position, int whence)
-{
-    return g.pvr_hdhr ? g.pvr_hdhr->SeekLiveStream(position, whence) : position;
-}
-bool SeekTime(double time,bool backwards,double* startpts) {
-	std::cout << __FUNCTION__ << "(" << time << ',' << backwards << ",)" << std::endl;
-	return false;
-}
-bool IsRealTimeStream(void) {
-	//std::cout << __FUNCTION__ << std::endl;
-	return false;
-}
-PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times) {
-    return g.pvr_hdhr ? g.pvr_hdhr->GetStreamTimes(times) : PVR_ERROR_SERVER_ERROR;
-}
-// Recording
-bool OpenRecordedStream(const PVR_RECORDING&) { return false; }
-void CloseRecordedStream(void) {}
-int ReadRecordedStream(unsigned char* buf, unsigned int len) { return 0; }
-long long SeekRecordedStream(long long pos, int whence) { return 0; }
-long long LengthRecordedStream(void) { return 0; }
-PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR DeleteRecording(const PVR_RECORDING&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetRecordings(ADDON_HANDLE, bool) { return PVR_ERROR_NOT_IMPLEMENTED; }
-int GetRecordingsAmount(bool deleted) { return -1; }
-PVR_ERROR RenameRecording(const PVR_RECORDING&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int* size) { return PVR_ERROR_NOT_IMPLEMENTED; };
-PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING&, int count) { return PVR_ERROR_NOT_IMPLEMENTED; }
-int GetRecordingLastPlayedPosition(const PVR_RECORDING&) { return -1; }
-PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING&, int) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR DeleteAllRecordingsFromTrash() { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR UndeleteRecording(const PVR_RECORDING&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-// Timers
-PVR_ERROR AddTimer(const PVR_TIMER&) { return PVR_ERROR_NO_ERROR; }
-PVR_ERROR DeleteTimer(const PVR_TIMER&, bool) { return PVR_ERROR_NOT_IMPLEMENTED; }
-int GetTimersAmount(void) { return -1; }
-PVR_ERROR GetTimers(ADDON_HANDLE) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR UpdateTimer(const PVR_TIMER&) { return PVR_ERROR_NOT_IMPLEMENTED; }
-// Timeshift
-void PauseStream(bool bPaused) {}
-void SetSpeed(int) {};
-bool IsTimeshifting(void) { return false; }
-// EPG
-PVR_ERROR SetEPGTimeFrame(int days) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR IsEPGTagPlayable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int* count) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetEPGTagEdl(const EPG_TAG* epgTag, PVR_EDL_ENTRY edl[], int *size) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetStreamReadChunkSize(int* chunksize) { return PVR_ERROR_NOT_IMPLEMENTED; }
 
 } // extern "C"
 

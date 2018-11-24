@@ -56,22 +56,58 @@ public:
     }
     void AddLineupEntry(const Json::Value&, TunerDevice*);
 
-    PVR_ERROR PvrGetChannels(ADDON_HANDLE handle, bool bRadio);
-    int PvrGetChannelsAmount();
-    PVR_ERROR PvrGetEPGForChannel(ADDON_HANDLE handle,
-            const PVR_CHANNEL& channel,
-            time_t iStart,
-            time_t iEnd);
-    int PvrGetChannelGroupsAmount(void);
-    PVR_ERROR PvrGetChannelGroups(ADDON_HANDLE handle, bool bRadio);
-    PVR_ERROR PvrGetChannelGroupMembers(ADDON_HANDLE handle,
-            const PVR_CHANNEL_GROUP &group);
+    PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio);
+    int       GetChannelsAmount();
+    PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle,
+                  const PVR_CHANNEL& channel,
+                  time_t iStart,
+                  time_t iEnd);
+    int       GetChannelGroupsAmount(void);
+    PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio);
+    PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &group);
 
     bool OpenLiveStream(const PVR_CHANNEL& channel);
     void CloseLiveStream(void);
     int ReadLiveStream(unsigned char* buffer, unsigned int size);
     long long SeekLiveStream(long long position, int whence);
+    long long LengthLiveStream();
+    bool IsRealTimeStream();
+    bool SeekTime(double time,bool backwards,double* startpts);
     PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times);
+    PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus);
+    bool CanPauseStream(void);
+    bool CanSeekStream(void);
+    PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount);
+    PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed);
+    PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*);
+
+    bool OpenRecordedStream(const PVR_RECORDING&);
+    void CloseRecordedStream(void);
+    int ReadRecordedStream(unsigned char* buf, unsigned int len);
+    long long SeekRecordedStream(long long pos, int whence);
+    long long LengthRecordedStream(void);
+    PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*);
+    PVR_ERROR DeleteRecording(const PVR_RECORDING&);
+    PVR_ERROR GetRecordings(ADDON_HANDLE, bool deleted);
+    int GetRecordingsAmount(bool deleted);
+    PVR_ERROR RenameRecording(const PVR_RECORDING&);
+    PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int* size);
+    PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING&, int count);
+    int GetRecordingLastPlayedPosition(const PVR_RECORDING&);
+    PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING&, int);
+    PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*);
+    PVR_ERROR DeleteAllRecordingsFromTrash();
+    PVR_ERROR UndeleteRecording(const PVR_RECORDING&);
+
+    PVR_ERROR AddTimer(const PVR_TIMER&);
+    PVR_ERROR DeleteTimer(const PVR_TIMER&, bool);
+    int GetTimersAmount(void);
+    PVR_ERROR GetTimers(ADDON_HANDLE);
+    PVR_ERROR UpdateTimer(const PVR_TIMER&);
+
+    void PauseStream(bool bPaused);
+    void SetSpeed(int);
+    bool IsTimeshifting(void);
 
 private:
     void  _age_out(time_t);

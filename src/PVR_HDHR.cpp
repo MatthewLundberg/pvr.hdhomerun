@@ -568,11 +568,11 @@ void PVR_HDHR::UpdateGuide()
     }
 }
 
-int PVR_HDHR::PvrGetChannelsAmount()
+int PVR_HDHR::GetChannelsAmount()
 {
     return _lineup.size();
 }
-PVR_ERROR PVR_HDHR::PvrGetChannels(ADDON_HANDLE handle, bool radio)
+PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
 {
     if (radio)
         return PVR_ERROR_NO_ERROR;
@@ -615,7 +615,7 @@ PVR_ERROR PVR_HDHR::PvrGetChannels(ADDON_HANDLE handle, bool radio)
     return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
+PVR_ERROR PVR_HDHR::GetEPGForChannel(ADDON_HANDLE handle,
         const PVR_CHANNEL& channel, time_t start, time_t end
         )
 {
@@ -643,7 +643,7 @@ PVR_ERROR PVR_HDHR::PvrGetEPGForChannel(ADDON_HANDLE handle,
     return PVR_ERROR_NO_ERROR;
 }
 
-int PVR_HDHR::PvrGetChannelGroupsAmount()
+int PVR_HDHR::GetChannelGroupsAmount()
 {
     return 3;
 }
@@ -653,7 +653,7 @@ static const std::string HDChannels       = "HD channels";
 static const std::string SDChannels       = "SD channels";
 
 
-PVR_ERROR PVR_HDHR::PvrGetChannelGroups(ADDON_HANDLE handle, bool bRadio)
+PVR_ERROR PVR_HDHR::GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 {
     PVR_CHANNEL_GROUP channelGroup;
 
@@ -677,7 +677,7 @@ PVR_ERROR PVR_HDHR::PvrGetChannelGroups(ADDON_HANDLE handle, bool bRadio)
     return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR PVR_HDHR::PvrGetChannelGroupMembers(ADDON_HANDLE handle,
+PVR_ERROR PVR_HDHR::GetChannelGroupMembers(ADDON_HANDLE handle,
         const PVR_CHANNEL_GROUP &group)
 {
     Lock lock(this);
@@ -730,6 +730,180 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
     times->ptsBegin = 0;
     times->ptsEnd = 400 * 1000 * 1000;
     return PVR_ERROR_NO_ERROR;
+}
+long long PVR_HDHR::LengthLiveStream()
+{
+    // TODO
+    return -1;
+}
+bool PVR_HDHR::IsRealTimeStream()
+{
+    // TODO
+    return false;
+}
+bool PVR_HDHR::SeekTime(double time,bool backwards,double* startpts)
+{
+    // TODO
+    return false;
+}
+PVR_ERROR PVR_HDHR::SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
+{
+    // TODO
+    PVR_STRCPY(signalStatus.strAdapterName, "otherkids PVR");
+    PVR_STRCPY(signalStatus.strAdapterStatus, "OK");
+
+    return PVR_ERROR_NO_ERROR;
+}
+bool PVR_HDHR::CanPauseStream(void)
+{
+    // TODO
+    return true;
+}
+bool PVR_HDHR::CanSeekStream(void)
+{
+    // TODO
+    return true;
+}
+PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
+{
+    // TODO
+    *iPropertiesCount = 0;
+
+    return PVR_ERROR_NO_ERROR;
+}
+PVR_ERROR PVR_HDHR::GetDriveSpace(long long *iTotal, long long *iUsed)
+{
+    // TODO
+    *iTotal = 1024 * 1024 * 1024;
+    *iUsed = 0;
+    return PVR_ERROR_NO_ERROR;
+}
+PVR_ERROR PVR_HDHR::GetStreamProperties(PVR_STREAM_PROPERTIES*)
+{
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+
+bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING&)
+{
+    return false;
+}
+void PVR_HDHR::CloseRecordedStream(void)
+{
+}
+int PVR_HDHR::ReadRecordedStream(unsigned char* buf, unsigned int len)
+{
+    // TODO
+    return 0;
+}
+long long SeekRecordedStream(long long pos, int whence)
+{
+    // TODO
+    return 0;
+}
+long long PVR_HDHR::LengthRecordedStream(void)
+{
+    // TODO
+    return 0;
+}
+PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*)
+{
+    // TODO
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::DeleteRecording(const PVR_RECORDING&)
+{
+    // TODO
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::GetRecordings(ADDON_HANDLE, bool deleted)
+{
+    // TODO
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+int PVR_HDHR::GetRecordingsAmount(bool deleted)
+{
+    // TODO
+    return -1;
+}
+PVR_ERROR PVR_HDHR::RenameRecording(const PVR_RECORDING&)
+{
+    // TODO ?
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int* size)
+{
+    // TODO ?
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::SetRecordingPlayCount(const PVR_RECORDING&, int count)
+{
+    // TODO ?
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+int PVR_HDHR::GetRecordingLastPlayedPosition(const PVR_RECORDING&)
+{
+    // TODO ?
+    return -1;
+}
+PVR_ERROR PVR_HDHR::SetRecordingLastPlayedPosition(const PVR_RECORDING&, int)
+{
+    // TODO ?
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::SetRecordingLifetime(const PVR_RECORDING*)
+{
+    // TODO ?
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::DeleteAllRecordingsFromTrash()
+{
+    // TODO ?
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::UndeleteRecording(const PVR_RECORDING&)
+{
+    // TODO ?
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+
+PVR_ERROR PVR_HDHR::AddTimer(const PVR_TIMER&)
+{
+    // TODO
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::DeleteTimer(const PVR_TIMER&, bool)
+{
+    // TODO
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+int PVR_HDHR::GetTimersAmount(void)
+{
+    // TODO
+    return -1;
+}
+PVR_ERROR PVR_HDHR::GetTimers(ADDON_HANDLE)
+{
+    // TODO
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::UpdateTimer(const PVR_TIMER&)
+{
+    // TODO ?
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+
+void PVR_HDHR::PauseStream(bool bPaused)
+{
+    // TODO
+}
+void SetSpeed(int speed)
+{
+    // TODO
+}
+bool IsTimeshifting(void)
+{
+    // TODO
+    return false;
 }
 
 void PVR_HDHR_TCP::_close_live_stream()
