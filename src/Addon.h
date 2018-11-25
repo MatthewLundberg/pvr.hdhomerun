@@ -166,7 +166,7 @@ extern "C"
 	extern DLL_EXPORT PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING &recording,
 		int lastplayedposition);
 	extern DLL_EXPORT int GetRecordingLastPlayedPosition(const PVR_RECORDING &recording);
-	extern DLL_EXPORT PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int*);
+	extern DLL_EXPORT PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY*, int*);
 	extern DLL_EXPORT PVR_ERROR AddTimer(const PVR_TIMER &timer);
 	extern DLL_EXPORT PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete);
 	extern DLL_EXPORT PVR_ERROR UpdateTimer(const PVR_TIMER &timer);

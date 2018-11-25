@@ -109,6 +109,13 @@ public:
     void SetSpeed(int);
     bool IsTimeshifting(void);
 
+    PVR_ERROR SetEPGTimeFrame(int days) { return PVR_ERROR_NOT_IMPLEMENTED; }
+    PVR_ERROR IsEPGTagPlayable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+    PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
+    PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int* count) { return PVR_ERROR_NOT_IMPLEMENTED; }
+    PVR_ERROR GetEPGTagEdl(const EPG_TAG* epgTag, PVR_EDL_ENTRY edl[], int *size) { return PVR_ERROR_NOT_IMPLEMENTED; }
+    PVR_ERROR GetStreamReadChunkSize(int* chunksize) { return PVR_ERROR_NOT_IMPLEMENTED; }
+
 private:
     void  _age_out(time_t);
     bool  _guide_contains(time_t);

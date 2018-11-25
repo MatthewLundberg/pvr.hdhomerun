@@ -99,11 +99,14 @@ bool PVR_HDHR::DiscoverTunerDevices()
 
         if (dd.device_type == HDHOMERUN_DEVICE_TYPE_STORAGE)
         {
-            if (!g.Settings.record)
-                continue;
 
             const auto url = dd.base_url;
             discovered_urls.insert(url);
+            if (!g.Settings.record)
+            {
+                std::cout << "Record: " << g.Settings.record << " Not using " << url << std::endl;
+                continue;
+            }
 
             if (_storage_urls.find(url) == _storage_urls.end())
             {

@@ -222,6 +222,7 @@ void SetProtocol(const char* proto)
 
 namespace {
 
+// Convenience template, to allow specialization below.
 template<typename T> std::vector<T> split_vec(const std::string& s)
 {
 	std::vector<T> retval;
@@ -238,7 +239,8 @@ std::vector<std::string> split_vec(const std::string& s)
 	return svec;
 }
 template<>
-std::vector<uint32_t> split_vec(const std::string& s) {
+std::vector<uint32_t> split_vec(const std::string& s)
+{
 	std::vector<uint32_t> ivec;
 	auto svec = split_vec<std::string>(s);
 	std::transform(svec.begin(), svec.end(), std::back_inserter(ivec),
@@ -248,12 +250,54 @@ std::vector<uint32_t> split_vec(const std::string& s) {
 }
 
 template<typename T>
-std::set<T> split_set(const std::string& s) {
+std::set<T> split_set(const std::string& s)
+{
 	auto vec = split_vec<T>(s);
 	std::set<T> sset(vec.begin(), vec.end());
 	return sset;
 }
 
+// g.XBMC is non-null when readvalue is called.
+template<typename T>
+void readvalue(const char* name, T& t)
+{
+    g.XBMC->GetSetting(name, &t);
+}
+template<>
+void readvalue<bool>(const char* name, bool& t)
+{
+    char value[10240];
+    g.XBMC->GetSetting(name, value);
+    t = !strcmp(value, "true");
+}
+template<>
+void readvalue<std::vector<uint32_t>>(const char*name, std::vector<uint32_t>& t)
+{
+    char value[10240];
+    g.XBMC->GetSetting(name, value);
+    t = split_vec<uint32_t>(value);
+}
+template<>
+void readvalue<std::vector<std::string>>(const char* name, std::vector<std::string>& t)
+{
+    char value[10240];
+    g.XBMC->GetSetting(name, value);
+    t = split_vec<std::string>(value);
+}
+template<>
+void readvalue<std::set<uint32_t>>(const char* name, std::set<uint32_t>& t)
+{
+    char value[10240];
+    g.XBMC->GetSetting(name, value);
+    t = split_set<uint32_t>(value);
+}
+template<>
+void readvalue<std::set<std::string>>(const char* name, std::set<std::string>& t)
+{
+    char value[10240];
+    g.XBMC->GetSetting(name, value);
+    t = split_set<std::string>(value);
+}
 }
 
 extern "C"
@@ -264,29 +308,20 @@ void ADDON_ReadSettings(void)
     if (g.XBMC == nullptr)
         return;
 
-    g.XBMC->GetSetting("hide_protected", &g.Settings.hideProtectedChannels);
-    g.XBMC->GetSetting("mark_new",       &g.Settings.markNewProgram);
-    g.XBMC->GetSetting("debug",          &g.Settings.debugLog);
-    g.XBMC->GetSetting("hide_unknown",   &g.Settings.hideUnknownChannels);
-    g.XBMC->GetSetting("use_legacy",     &g.Settings.useLegacyDevices);
-    g.XBMC->GetSetting("extended",       &g.Settings.extendedGuide);
-    g.XBMC->GetSetting("guidedays",      &g.Settings.guideDays);
-    g.XBMC->GetSetting("channel_name",   &g.Settings.channelName);
-    g.XBMC->GetSetting("port",           &g.Settings.udpPort);
-    g.XBMC->GetSetting("record",         &g.Settings.record);
-    g.XBMC->GetSetting("recordforlive",  &g.Settings.recordforlive);
-
-    char preferred[1024] = "";
-    g.XBMC->GetSetting("preferred",      preferred);
-    g.Settings.preferredDevice = split_vec<uint32_t>(preferred);
-
-    char blacklist[1024] = "";
-    g.XBMC->GetSetting("blacklist",      blacklist);
-    g.Settings.blacklistDevice = split_set<uint32_t>(blacklist);
-
-    char hiddenchannels[4096] = "";
-    g.XBMC->GetSetting("hide_ch_no",     hiddenchannels);
-    g.Settings.hiddenChannels = split_set<std::string>(hiddenchannels);
+    readvalue("hide_protected", g.Settings.hideProtectedChannels);
+    readvalue("mark_new",       g.Settings.markNewProgram);
+    readvalue("debug",          g.Settings.debugLog);
+    readvalue("hide_unknown",   g.Settings.hideUnknownChannels);
+    readvalue("use_legacy",     g.Settings.useLegacyDevices);
+    readvalue("extended",       g.Settings.extendedGuide);
+    readvalue("guidedays",      g.Settings.guideDays);
+    readvalue("channel_name",   g.Settings.channelName);
+    readvalue("port",           g.Settings.udpPort);
+    readvalue("record",         g.Settings.record);
+    readvalue("recordforlive",  g.Settings.recordforlive);
+    readvalue("preferred",      g.Settings.preferredDevice);
+    readvalue("blacklist",      g.Settings.blacklistDevice);
+    readvalue("hide_ch_no",     g.Settings.hiddenChannels);
 
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
@@ -379,7 +414,16 @@ bool setvalue(T& t, const char* text, const char* name, const void* value)
     }
     return false;
 }
-
+template<> bool setvalue<bool>(bool& t, const char* text, const char* name, const void* value)
+{
+    if (strcmp(text, name) == 0)
+    {
+        const char* v = reinterpret_cast<const char*>(value);
+        t = !strcmp(v, "true");
+        return true;
+    }
+    return false;
+}
 } // namespace
 
 extern "C" {
@@ -527,29 +571,35 @@ const char *GetBackendHostname(void)
 #define PVR_RETR_3(name, typ, def, t0, t1, t2)     typ name(t0 v0, t1 v1, t2 v2)        { return g.pvr_hdhr ? g.pvr_hdhr->name(v0, v1, v2)     : def; }
 #define PVR_RETR_4(name, typ, def, t0, t1, t2, t3) typ name(t0 v0, t1 v1, t2 v2, t3 v3) { return g.pvr_hdhr ? g.pvr_hdhr->name(v0, v1, v2, v3) : def; }
 
+#define PVR_ERR_0(name)                 PVR_RETR_0(name, PVR_ERROR, PVR_ERROR_SERVER_ERROR)
+#define PVR_ERR_1(name, t0)             PVR_RETR_1(name, PVR_ERROR, PVR_ERROR_SERVER_ERROR, t0)
+#define PVR_ERR_2(name, t0, t1)         PVR_RETR_2(name, PVR_ERROR, PVR_ERROR_SERVER_ERROR, t0, t1)
+#define PVR_ERR_3(name, t0, t1, t2)     PVR_RETR_3(name, PVR_ERROR, PVR_ERROR_SERVER_ERROR, t0, t1, t2)
+#define PVR_ERR_4(name, t0, t1, t2, t3) PVR_RETR_4(name, PVR_ERROR, PVR_ERROR_SERVER_ERROR, t0, t1, t2, t3)
 
-PVR_RETR_2(GetDriveSpace,          PVR_ERROR,     PVR_ERROR_SERVER_ERROR, long long *, long long *)
-PVR_RETR_4(GetEPGForChannel,       PVR_ERROR,     PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, const PVR_CHANNEL&, time_t, time_t)
+
+PVR_ERR_2(GetDriveSpace,           long long *, long long *)
+PVR_ERR_4(GetEPGForChannel,        ADDON_HANDLE, const PVR_CHANNEL&, time_t, time_t)
 PVR_RETR_0(GetChannelsAmount,      int,           -1)
-PVR_RETR_2(GetChannels,            PVR_ERROR,     PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, bool)
+PVR_ERR_2(GetChannels,             ADDON_HANDLE, bool)
 PVR_RETR_0(GetChannelGroupsAmount, int,           -1)
-PVR_RETR_2(GetChannelGroups,       PVR_ERROR,     PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, bool)
-PVR_RETR_2(GetChannelGroupMembers, PVR_ERROR,     PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, const PVR_CHANNEL_GROUP &)
+PVR_ERR_2(GetChannelGroups,        ADDON_HANDLE, bool)
+PVR_ERR_2(GetChannelGroupMembers,  ADDON_HANDLE, const PVR_CHANNEL_GROUP &)
 PVR_RETR_1(OpenLiveStream,         bool,          false,                  const PVR_CHANNEL &)
 PVR_VOID_0(CloseLiveStream)
 PVR_RETR_2(ReadLiveStream,         int,           0,                      unsigned char *, unsigned int)
-PVR_RETR_1(SignalStatus,           PVR_ERROR,     PVR_ERROR_SERVER_ERROR, PVR_SIGNAL_STATUS&)
+PVR_ERR_1(SignalStatus,            PVR_SIGNAL_STATUS&)
 PVR_RETR_0(CanPauseStream,         bool,          false)
 PVR_RETR_0(CanSeekStream,          bool,          false)
-PVR_RETR_3(GetChannelStreamProperties, PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_CHANNEL*, PVR_NAMED_VALUE*, unsigned int*)
+PVR_ERR_3(GetChannelStreamProperties, const PVR_CHANNEL*, PVR_NAMED_VALUE*, unsigned int*)
 
 // LiveStream
 PVR_RETR_0(LengthLiveStream,    long long, -1)
 PVR_RETR_2(SeekLiveStream,      long long, v0, long long, int)
 PVR_RETR_3(SeekTime,            bool,      false, double, bool, double*)
 PVR_RETR_0(IsRealTimeStream,    bool,      false)
-PVR_RETR_1(GetStreamProperties, PVR_ERROR, PVR_ERROR_SERVER_ERROR, PVR_STREAM_PROPERTIES*)
-PVR_RETR_1(GetStreamTimes,      PVR_ERROR, PVR_ERROR_SERVER_ERROR, PVR_STREAM_TIMES*)
+PVR_ERR_1(GetStreamProperties,  PVR_STREAM_PROPERTIES*)
+PVR_ERR_1(GetStreamTimes,       PVR_STREAM_TIMES*)
 
 // Recording
 PVR_RETR_1(OpenRecordedStream,             bool,      false, const PVR_RECORDING&);
@@ -557,30 +607,38 @@ PVR_VOID_0(CloseRecordedStream)
 PVR_RETR_2(ReadRecordedStream,             int,       0,     unsigned char*, unsigned int);
 PVR_RETR_2(SeekRecordedStream,             long long, v0,    long long, int)
 PVR_RETR_0(LengthRecordedStream,           long long, 0)
-PVR_RETR_3(GetRecordingStreamProperties,   PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*)
-PVR_RETR_1(DeleteRecording,                PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&)
-PVR_RETR_2(GetRecordings,                  PVR_ERROR, PVR_ERROR_SERVER_ERROR, ADDON_HANDLE, bool)
+PVR_ERR_3(GetRecordingStreamProperties,    const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*)
+PVR_ERR_1(DeleteRecording,                 const PVR_RECORDING&)
+PVR_ERR_2(GetRecordings,                   ADDON_HANDLE, bool)
 PVR_RETR_1(GetRecordingsAmount,            int,       -1, bool)
-PVR_RETR_1(RenameRecording,                PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&)
-PVR_RETR_3(GetRecordingEdl,                PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&, PVR_EDL_ENTRY*, int*)
-PVR_RETR_2(SetRecordingPlayCount,          PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&, int)
+PVR_ERR_1(RenameRecording,                 const PVR_RECORDING&)
+PVR_ERR_3(GetRecordingEdl,                 const PVR_RECORDING&, PVR_EDL_ENTRY*, int*)
+PVR_ERR_2(SetRecordingPlayCount,           const PVR_RECORDING&, int)
 PVR_RETR_1(GetRecordingLastPlayedPosition, int,       -1, const PVR_RECORDING&)
-PVR_RETR_2(SetRecordingLastPlayedPosition, PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&, int)
-PVR_RETR_1(SetRecordingLifetime,           PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING*)
-PVR_RETR_0(DeleteAllRecordingsFromTrash,   PVR_ERROR, PVR_ERROR_SERVER_ERROR)
-PVR_RETR_1(UndeleteRecording,              PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_RECORDING&)
+PVR_ERR_2(SetRecordingLastPlayedPosition,  const PVR_RECORDING&, int)
+PVR_ERR_1(SetRecordingLifetime,            const PVR_RECORDING*)
+PVR_ERR_0(DeleteAllRecordingsFromTrash)
+PVR_ERR_1(UndeleteRecording,               const PVR_RECORDING&)
 
 // Timers
-PVR_RETR_1(AddTimer,                       PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_TIMER&)
-PVR_RETR_2(DeleteTimer,                    PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_TIMER&, bool)
-PVR_RETR_0(GetTimersAmount,                int,       -1);
-PVR_RETR_1(GetTimers,                      PVR_ERROR, PVR_ERROR_SERVER_ERROR, ADDON_HANDLE);
-PVR_RETR_1(UpdateTimer,                    PVR_ERROR, PVR_ERROR_SERVER_ERROR, const PVR_TIMER&)
+PVR_ERR_1(AddTimer,                        const PVR_TIMER&)
+PVR_ERR_2(DeleteTimer,                     const PVR_TIMER&, bool)
+PVR_RETR_0(GetTimersAmount,                int, -1);
+PVR_ERR_1(GetTimers,                       ADDON_HANDLE);
+PVR_ERR_1(UpdateTimer,                     const PVR_TIMER&)
 
 // Timeshift
 PVR_VOID_1(PauseStream,    bool)
 PVR_VOID_1(SetSpeed,       int)
 PVR_RETR_0(IsTimeshifting, bool, false)
+
+// EPG
+PVR_ERR_1(SetEPGTimeFrame,            int)
+PVR_ERR_2(IsEPGTagPlayable,           const EPG_TAG*, bool*)
+PVR_ERR_2(IsEPGTagRecordable,         const EPG_TAG*, bool*)
+PVR_ERR_3(GetEPGTagStreamProperties,  const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int*)
+PVR_ERR_3(GetEPGTagEdl,               const EPG_TAG*, PVR_EDL_ENTRY*, int*)
+PVR_ERR_1(GetStreamReadChunkSize,     int*)
 
 
 
@@ -601,13 +659,6 @@ void DemuxReset(void) {}
 
 
 
-// EPG
-PVR_ERROR SetEPGTimeFrame(int days) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR IsEPGTagPlayable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR IsEPGTagRecordable(const EPG_TAG*, bool*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int* count) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetEPGTagEdl(const EPG_TAG* epgTag, PVR_EDL_ENTRY edl[], int *size) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetStreamReadChunkSize(int* chunksize) { return PVR_ERROR_NOT_IMPLEMENTED; }
 
 
 // Timer definition is copied from djp952
