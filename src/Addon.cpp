@@ -264,13 +264,6 @@ void readvalue(const char* name, T& t)
     g.XBMC->GetSetting(name, &t);
 }
 template<>
-void readvalue<bool>(const char* name, bool& t)
-{
-    char value[10240];
-    g.XBMC->GetSetting(name, value);
-    t = !strcmp(value, "true");
-}
-template<>
 void readvalue<std::vector<uint32_t>>(const char*name, std::vector<uint32_t>& t)
 {
     char value[10240];
@@ -326,6 +319,8 @@ void ADDON_ReadSettings(void)
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
     SetProtocol(protocol);
+
+    std::cout << "Record: " << g.Settings.record << " " << g.Settings.recordforlive << std::endl;
 }
 
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
@@ -410,16 +405,6 @@ bool setvalue(T& t, const char* text, const char* name, const void* value)
     if (strcmp(text, name) == 0)
     {
         t = *(T*) value;
-        return true;
-    }
-    return false;
-}
-template<> bool setvalue<bool>(bool& t, const char* text, const char* name, const void* value)
-{
-    if (strcmp(text, name) == 0)
-    {
-        const char* v = reinterpret_cast<const char*>(value);
-        t = !strcmp(v, "true");
         return true;
     }
     return false;

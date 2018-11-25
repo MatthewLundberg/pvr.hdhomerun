@@ -20,7 +20,7 @@
 
   <!-- Tuner Settings -->
   <category label=32200>
-    <setting id="record"         visible="false" />
+    <setting id="record"         type="bool"   visible="false" />
     <setting id="recordforlive"  type="bool"   label="32206" default="true" visible="eq(-1,true)" />
     <setting id="protocol"       type="select" label="32201" values="TCP|UDP" default="TCP" visible="false + (eq(-1,false) | eq(-2,false))" />
     <setting id="port"           type="number" label="32205" default=5000 visible="eq(-1,1) + (eq(-2,false) | eq(-3, false))" />
