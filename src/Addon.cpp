@@ -319,8 +319,6 @@ void ADDON_ReadSettings(void)
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
     SetProtocol(protocol);
-
-    std::cout << "Record: " << g.Settings.record << " " << g.Settings.recordforlive << std::endl;
 }
 
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
