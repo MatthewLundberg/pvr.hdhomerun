@@ -31,6 +31,7 @@ set(PVRHDHOMERUN_SOURCES src/Addon.cpp
                          src/Guide.cpp
                          src/IntervalSet.cpp
                          src/PVR_HDHR.cpp
+                         src/Recording.cpp
                          src/Utils.cpp)
 
 set(PVRHDHOMERUN_HEADERS src/Addon.h
@@ -40,6 +41,7 @@ set(PVRHDHOMERUN_HEADERS src/Addon.h
                          src/Lockable.h
                          src/IntervalSet.h
                          src/PVR_HDHR.h
+                         src/Recording.h
                          src/Utils.h)
 
 if(WIN32)

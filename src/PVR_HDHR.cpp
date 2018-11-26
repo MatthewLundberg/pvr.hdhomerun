@@ -271,6 +271,12 @@ void PVR_HDHR::AddLineupEntry(const Json::Value& v, TunerDevice* device)
     _info[number].AddDevice(device, v["URL"].asString());
 }
 
+bool PVR_HDHR::UpdateRecordings()
+{
+    // TODO
+    return false;
+}
+
 bool PVR_HDHR::UpdateLineup()
 {
     KODI_LOG(LOG_DEBUG, "PVR_HDHR::UpdateLineup");

@@ -44,6 +44,7 @@ public:
 
     bool DiscoverTunerDevices();
     bool UpdateLineup();
+    bool UpdateRecordings();
     void UpdateGuide();
 
     bool Update()

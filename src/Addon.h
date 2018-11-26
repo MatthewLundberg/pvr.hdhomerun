@@ -74,6 +74,7 @@ struct SettingsType
     bool usegroups              = false;
     int deviceDiscoverInterval  = 300;
     int lineupUpdateInterval    = 300;
+    int recordUpdateInterval    = 120;       // 2 min   Refresh list from RECORD engine
     int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update
     int guideBasicInterval      = 3600;      // 1 hour  Refresh basic guide
     int guideBasicBeforeHour    = 300;       // 5 minutes before the hour ...

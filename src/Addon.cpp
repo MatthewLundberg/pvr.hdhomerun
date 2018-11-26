@@ -52,6 +52,7 @@ class UpdateThread: public P8PLATFORM::CThread, Lockable
     time_t _lastDiscover = 0;
     time_t _lastLineup   = 0;
     time_t _lastGuide    = 0;
+    time_t _lastRecord   = 0;
 
     bool   _running      = false;
 
@@ -63,6 +64,7 @@ public:
         _lastDiscover = 0;
         _lastLineup   = 0;
         _lastGuide    = 0;
+        _lastRecord   = 0;
         _running      = false;
     }
     void *Process()
@@ -123,12 +125,22 @@ public:
             bool updateDiscover = false;
             bool updateLineup   = false;
             bool updateGuide    = false;
+            bool updateRecord   = false;
+
+            time_t discover, lineup, guide, recordings;
+            {
+                Lock lock(this);
+                discover   = _lastDiscover;
+                lineup     = _lastLineup;
+                guide      = _lastGuide;
+                recordings = _lastRecord;
+            }
 
             if (g.pvr_hdhr)
             {
                 bool changed = false;
 
-                if (now >= _lastDiscover + g.Settings.deviceDiscoverInterval)
+                if (now >= discover + g.Settings.deviceDiscoverInterval)
                 {
                     bool discovered = g.pvr_hdhr->DiscoverTunerDevices();
                     if (discovered)
@@ -143,8 +155,12 @@ public:
                     }
                     updateDiscover = true;
                 }
-                else if (state == 1 || now >= _lastLineup + g.Settings.lineupUpdateInterval)
+                else if (state == 1 || now >= lineup + g.Settings.lineupUpdateInterval)
                 {
+                    if (g.pvr_hdhr->UpdateRecordings())
+                    {
+                        g.PVR->TriggerRecordingUpdate();
+                    }
                     if (g.pvr_hdhr->UpdateLineup())
                     {
                         state = 2;
@@ -157,7 +173,7 @@ public:
                     }
                     updateLineup = true;
                 }
-                else if (state == 2 || now >= _lastGuide + g.Settings.guideUpdateInterval)
+                else if (state == 2 || now >= guide + g.Settings.guideUpdateInterval)
                 {
                     state = 0;
                     g.pvr_hdhr->UpdateGuide();
@@ -169,7 +185,15 @@ public:
                 }
             }
 
-            if (updateDiscover || updateLineup || updateGuide)
+
+            if (now >= recordings + g.Settings.recordUpdateInterval)
+            {
+                bool changed = false;
+
+                updateRecord = true;
+            }
+
+            if (updateDiscover || updateLineup || updateGuide || updateRecord)
             {
                 Lock lock(this);
 
@@ -179,6 +203,8 @@ public:
                     _lastLineup = now;
                 if (updateGuide)
                     _lastGuide = now;
+                if (updateRecord)
+                    _lastRecord = now;
             }
         }
         return nullptr;
