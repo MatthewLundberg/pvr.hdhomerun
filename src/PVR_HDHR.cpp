@@ -273,8 +273,10 @@ void PVR_HDHR::AddLineupEntry(const Json::Value& v, TunerDevice* device)
 
 bool PVR_HDHR::UpdateRecordings()
 {
-    // TODO
-    return false;
+    bool updated = false;
+    for (const auto dev:_storage_devices)
+        updated |= dev->UpdateRecord();
+    return updated;
 }
 
 bool PVR_HDHR::UpdateLineup()

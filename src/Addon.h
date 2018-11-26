@@ -73,14 +73,14 @@ struct SettingsType
 
     bool usegroups              = false;
     int deviceDiscoverInterval  = 300;
-    int lineupUpdateInterval    = 300;
-    int recordUpdateInterval    = 120;       // 2 min   Refresh list from RECORD engine
-    int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update
+    int lineupUpdateInterval    = 300;       // 5 min   Refresh lineup (local traffic for DLNA devices, remote fetch for legacy)
+    int recordUpdateInterval    = 15;        // 15 sec  Refresh list from RECORD engine (local)
+    int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update (remote)
     int guideBasicInterval      = 3600;      // 1 hour  Refresh basic guide
     int guideBasicBeforeHour    = 300;       // 5 minutes before the hour ...
+    int guideRandom             = 300;       // ... but up to 5 minutes early
     int guideExtendedEach       = 3600 * 8;  // 8 hours How much is supplied at a time
     int guideExtendedHysteresis = 3600;      // 4 hours max unfilled guide...
-    int guideRandom             = 300;       // ... but up to 5 minutes early
 
     bool UseLegacyDevices()
     {

@@ -60,6 +60,7 @@ class StorageDevice : public Device
 {
 private:
     void _parse_discover_data(const Json::Value&) override;
+    bool _parse_record_data(const Json::Value&);
 
     std::string _storageID;
     std::string _storageURL;
@@ -73,6 +74,7 @@ public:
     {
         return _storageID == rhs._storageID;
     }
+    bool UpdateRecord();
 };
 StorageDevice* New_StorageDevice(const hdhomerun_discover_device_t* d);
 

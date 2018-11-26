@@ -22,8 +22,10 @@
 #include "Device.h"
 #include "Utils.h"
 #include "Addon.h"
+#include "Recording.h"
 #include <json/json.h>
 
+#include <iostream>
 
 namespace PVRHDHomeRun
 {
@@ -189,6 +191,32 @@ uint32_t Device::LocalIP() const
     }
 
     return 0;
+}
+
+bool StorageDevice::UpdateRecord()
+{
+    std::string contents;
+    if (GetFileContents(_storageURL, contents))
+    {
+        Json::Reader jsonReader;
+        Json::Value  contentsJson;
+        if (jsonReader.parse(contents, contentsJson))
+        {
+            return _parse_record_data(contentsJson);
+        }
+    }
+    return false;
+}
+
+bool StorageDevice::_parse_record_data(const Json::Value& json)
+{
+    std::set<RecordingEntry> recordings;
+
+    std::cout << __FUNCTION__ << std::endl;
+    for (auto& entry : json)
+    {
+        std::cout << entry["ProgramID"].asString() << std::endl;
+    }
 }
 
 } // namespace PVRHDHomeRun
