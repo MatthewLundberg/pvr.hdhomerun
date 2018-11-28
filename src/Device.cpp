@@ -233,7 +233,6 @@ bool StorageDevice::_parse_record_data(const Json::Value& json)
 {
     std::map<std::string, RecordingEntry> recordings;
 
-    std::cout << __FUNCTION__ << std::endl;
     for (const auto& j : json)
     {
         RecordingEntry entry(j);
