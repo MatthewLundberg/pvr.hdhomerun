@@ -26,6 +26,7 @@
 
 class RecordingEntry
 {
+public:
     RecordingEntry(const Json::Value&);
 
     std::string _category;
@@ -36,6 +37,7 @@ class RecordingEntry
     std::string _episodenum;
     std::string _episodetitle;
     std::string _image;
+    std::string _poster;
     std::string _programid;
     std::string _seriesid;
     std::string _synposis;
@@ -52,6 +54,9 @@ class RecordingEntry
     time_t _endtime;
 
     friend bool operator<(const RecordingEntry&, const RecordingEntry&);
+    friend bool operator==(const RecordingEntry&, const RecordingEntry&);
 };
 
 bool operator<(const RecordingEntry& x, const RecordingEntry&y);
+bool operator==(const RecordingEntry&, const RecordingEntry&);
+bool operator!=(const RecordingEntry&, const RecordingEntry&);

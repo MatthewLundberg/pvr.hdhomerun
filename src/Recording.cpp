@@ -31,6 +31,7 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
     _episodenum  = v["EpisodeNumber"].asString();
     _episodetitle= v["EpisodeTitle"].asString();
     _image       = v["ImageURL"].asString();
+    _poster      = v["PosterURL"].asString();
     _programid   = v["ProgramID"].asString();
     _seriesid    = v["SeriesID"].asString();
     _synposis    = v["Synopsis"].asString();
@@ -45,6 +46,38 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
     _rendtime    = v["RecordEndTime"].asUInt64();
     _starttime   = v["StartTime"].asUInt64();
     _endtime     = v["EndTime"].asUInt64();
+}
+
+bool operator==(const RecordingEntry& a, const RecordingEntry& b)
+{
+    return a._category      == b._category &&
+            a._affiliate    == b._affiliate &&
+            a._channelimg   == b._channelimg &&
+            a._channelname  == b._channelname &&
+            a._channelnum   == b._channelnum &&
+            a._episodenum   == b._episodenum &&
+            a._episodetitle == b._episodetitle &&
+            a._image        == b._image &&
+            a._poster       == b._poster &&
+            a._programid    == b._programid &&
+            a._seriesid     == b._seriesid &&
+            a._synposis     == b._synposis &&
+            a._title        == b._title &&
+            a._groupid      == b._groupid &&
+            a._grouptitle   == b._grouptitle &&
+            a._playurl      == b._playurl &&
+            a._cmdurl       == b._cmdurl &&
+
+            a._aired        == b._aired &&
+            a._rstarttime   == b._rstarttime &&
+            a._rendtime     == b._rendtime &&
+            a._starttime    == b._starttime &&
+            a._endtime      == b._endtime
+            ;
+}
+bool operator!=(const RecordingEntry& a, const RecordingEntry& b)
+{
+    return !(a==b);
 }
 
 bool operator<(const RecordingEntry& x, const RecordingEntry&y)

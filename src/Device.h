@@ -31,6 +31,7 @@
 #include <iterator>
 #include <set>
 #include <algorithm>
+#include "Recording.h"
 
 namespace PVRHDHomeRun
 {
@@ -65,6 +66,8 @@ private:
     std::string _storageID;
     std::string _storageURL;
     uint64_t    _freeSpace;
+
+    std::map<std::string, RecordingEntry> _records;
 public:
     bool operator<(const StorageDevice& rhs)
     {

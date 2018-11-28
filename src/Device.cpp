@@ -22,7 +22,6 @@
 #include "Device.h"
 #include "Utils.h"
 #include "Addon.h"
-#include "Recording.h"
 #include <json/json.h>
 
 #include <iostream>
@@ -208,15 +207,43 @@ bool StorageDevice::UpdateRecord()
     return false;
 }
 
+namespace {
+template<typename A, typename B> bool map_updated_oneway(const std::map<A,B>& a, const std::map<A,B>& b)
+{
+    for (const auto& p: a)
+    {
+        const auto& id = p.first;
+        const auto& op = b.find(id);
+        if (op == b.end())
+            return true;
+        const auto& aa = p.second;
+        const auto& bb = op->second;
+        if (aa != bb)
+            return true;
+    }
+    return false;
+}
+template<typename A, typename B> bool map_updated(const std::map<A,B>& a, const std::map<A,B>& b)
+{
+    return map_updated_oneway(a,b) || map_updated_oneway(b,a);
+}
+} // namespace
+
 bool StorageDevice::_parse_record_data(const Json::Value& json)
 {
-    std::set<RecordingEntry> recordings;
+    std::map<std::string, RecordingEntry> recordings;
 
     std::cout << __FUNCTION__ << std::endl;
-    for (auto& entry : json)
+    for (const auto& j : json)
     {
-        std::cout << entry["ProgramID"].asString() << std::endl;
+        RecordingEntry entry(j);
+        auto id = entry._programid; // Copy _programid to allow a move for everything else.
+        recordings.emplace(id, std::move(entry));
     }
+    bool needsupdate = map_updated(recordings, _records);
+    _records = std::move(recordings);
+
+    return needsupdate;
 }
 
 } // namespace PVRHDHomeRun
