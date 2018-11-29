@@ -22,6 +22,7 @@
 #include "Device.h"
 #include "Utils.h"
 #include "Addon.h"
+#include "Recording.h"
 #include <json/json.h>
 
 #include <iostream>
@@ -192,7 +193,7 @@ uint32_t Device::LocalIP() const
     return 0;
 }
 
-bool StorageDevice::UpdateRecord()
+void StorageDevice::UpdateRecord(Recording& r)
 {
     std::string contents;
     if (GetFileContents(_storageURL, contents))
@@ -201,48 +202,9 @@ bool StorageDevice::UpdateRecord()
         Json::Value  contentsJson;
         if (jsonReader.parse(contents, contentsJson))
         {
-            return _parse_record_data(contentsJson);
+            r.UpdateData(contentsJson, this);
         }
     }
-    return false;
-}
-
-namespace {
-template<typename A, typename B> bool map_equal_oneway(const std::map<A,B>& a, const std::map<A,B>& b)
-{
-    for (const auto& p: a)
-    {
-        const auto& id = p.first;
-        const auto& op = b.find(id);
-        if (op == b.end())
-            return false;
-        const auto& aa = p.second;
-        const auto& bb = op->second;
-        if (aa != bb)
-            return false;
-    }
-    return true;
-}
-template<typename A, typename B> bool operator==(const std::map<A,B>& a, const std::map<A,B>& b)
-{
-    return map_equal_oneway(a,b) && map_equal_oneway(b,a);
-}
-} // namespace
-
-bool StorageDevice::_parse_record_data(const Json::Value& json)
-{
-    std::map<std::string, RecordingEntry> recordings;
-
-    for (const auto& j : json)
-    {
-        RecordingEntry entry(j);
-        auto id = entry._programid; // Copy _programid to allow a move for everything else.
-        recordings.emplace(id, std::move(entry));
-    }
-    bool equal = (recordings == _records);
-    _records = std::move(recordings);
-
-    return !equal;
 }
 
 } // namespace PVRHDHomeRun

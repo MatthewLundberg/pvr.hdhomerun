@@ -20,6 +20,10 @@
  */
 
 #include "Recording.h"
+#include <iostream>
+
+namespace PVRHDHomeRun
+{
 
 RecordingEntry::RecordingEntry(const Json::Value& v)
 {
@@ -84,3 +88,61 @@ bool operator<(const RecordingEntry& x, const RecordingEntry&y)
 {
     return x._programid < y._programid;
 }
+
+void Recording::UpdateBegin()
+{
+    std::cout << __FUNCTION__ << std::endl;
+
+    _devices.clear();
+    _diff = false;
+}
+bool Recording::UpdateEnd()
+{
+    std::cout << __FUNCTION__ << std::endl;
+
+    // Look for now-missing items
+    auto ri = _records.begin();
+    while (ri != _records.end())
+    {
+        const auto& id = ri->first;
+        const auto& i = _devices.find(id);
+        if (i == _devices.end())
+        {
+            _diff = true;
+            ri = _records.erase(ri);
+        }
+        else
+            ++ ri;
+    }
+    return _diff;
+}
+
+void Recording::UpdateData(const Json::Value& json, const StorageDevice* device)
+{
+    for (const auto& j : json)
+    {
+        RecordingEntry entry(j);
+        const auto& id = entry._programid;
+        auto i = _records.find(id);
+        if (i == _records.end())
+        {
+            _diff = true;
+
+            auto id = entry._programid; // Copy _programid to allow a move for everything else.
+            _records.emplace(id, std::move(entry));
+        }
+        else
+        {
+            if ((i->second) != entry)
+            {
+                _diff = true;
+                i->second = entry;
+            }
+        }
+
+        _devices[id].insert(device);
+    }
+}
+
+
+} // namespace PVRHDHomeRun

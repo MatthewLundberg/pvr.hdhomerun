@@ -22,7 +22,14 @@
 
 #include <string>
 #include <cstdint>
+#include <set>
+#include <map>
 #include <json/json.h>
+
+namespace PVRHDHomeRun
+{
+
+class StorageDevice;
 
 class RecordingEntry
 {
@@ -52,11 +59,23 @@ public:
     time_t _rendtime;
     time_t _starttime;
     time_t _endtime;
-
-    friend bool operator<(const RecordingEntry&, const RecordingEntry&);
-    friend bool operator==(const RecordingEntry&, const RecordingEntry&);
 };
 
-bool operator<(const RecordingEntry& x, const RecordingEntry&y);
+bool operator<(const RecordingEntry&, const RecordingEntry&);
 bool operator==(const RecordingEntry&, const RecordingEntry&);
 bool operator!=(const RecordingEntry&, const RecordingEntry&);
+
+class Recording
+{
+    std::map<std::string, RecordingEntry> _records;
+    std::map<std::string, std::set<const StorageDevice*>> _devices;
+    bool _diff;
+
+public:
+    void UpdateBegin();
+    void UpdateData(const Json::Value&, const StorageDevice*);
+    bool UpdateEnd();
+};
+
+
+} // namespace PVRHDHomeRun

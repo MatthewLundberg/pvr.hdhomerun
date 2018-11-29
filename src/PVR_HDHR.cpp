@@ -273,10 +273,10 @@ void PVR_HDHR::AddLineupEntry(const Json::Value& v, TunerDevice* device)
 
 bool PVR_HDHR::UpdateRecordings()
 {
-    bool updated = false;
+    _recording.UpdateBegin();
     for (const auto dev:_storage_devices)
-        updated |= dev->UpdateRecord();
-    return updated;
+        dev->UpdateRecord(_recording);
+    return _recording.UpdateEnd();
 }
 
 bool PVR_HDHR::UpdateLineup()
@@ -784,9 +784,13 @@ PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_N
 }
 PVR_ERROR PVR_HDHR::GetDriveSpace(long long *iTotal, long long *iUsed)
 {
-    // TODO
-    *iTotal = 1024 * 1024 * 1024;
+    *iTotal = 0;
     *iUsed = 0;
+    if (_current_storage)
+    {
+        *iTotal = _current_storage->FreeSpace();
+        *iUsed = 0;
+    }
     return PVR_ERROR_NO_ERROR;
 }
 PVR_ERROR PVR_HDHR::GetStreamProperties(PVR_STREAM_PROPERTIES*)

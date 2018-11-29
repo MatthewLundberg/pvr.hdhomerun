@@ -31,7 +31,6 @@
 #include <iterator>
 #include <set>
 #include <algorithm>
-#include "Recording.h"
 
 namespace PVRHDHomeRun
 {
@@ -57,17 +56,16 @@ public:
     friend class Lineup;
 };
 
+class Recording;
 class StorageDevice : public Device
 {
 private:
     void _parse_discover_data(const Json::Value&) override;
-    bool _parse_record_data(const Json::Value&);
 
     std::string _storageID;
     std::string _storageURL;
     uint64_t    _freeSpace;
 
-    std::map<std::string, RecordingEntry> _records;
 public:
     bool operator<(const StorageDevice& rhs)
     {
@@ -77,7 +75,12 @@ public:
     {
         return _storageID == rhs._storageID;
     }
-    bool UpdateRecord();
+    void UpdateRecord(Recording&);
+
+    uint64_t FreeSpace()
+    {
+        return _freeSpace;
+    }
 };
 StorageDevice* New_StorageDevice(const hdhomerun_discover_device_t* d);
 

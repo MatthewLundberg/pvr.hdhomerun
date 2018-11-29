@@ -20,11 +20,6 @@
  *
  */
 
-#include "Lockable.h"
-#include "IntervalSet.h"
-#include "Guide.h"
-#include "Utils.h"
-#include "Info.h"
 #include <json/json.h>
 #include <cstring>
 #include <vector>
@@ -33,6 +28,12 @@
 #include <string>
 #include <mutex>
 #include <tuple>
+#include "Lockable.h"
+#include "IntervalSet.h"
+#include "Guide.h"
+#include "Utils.h"
+#include "Info.h"
+#include "Recording.h"
 
 namespace PVRHDHomeRun {
 
@@ -135,6 +136,7 @@ protected:
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
+    Recording                 _recording;
 public:
     std::set<TunerDevice*>    _tuner_devices;
     std::set<StorageDevice*>  _storage_devices;
