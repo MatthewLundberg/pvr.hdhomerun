@@ -138,8 +138,6 @@ public:
 
             if (g.pvr_hdhr)
             {
-                bool changed = false;
-
                 if (now >= discover + g.Settings.deviceDiscoverInterval)
                 {
                     bool discovered = g.pvr_hdhr->DiscoverTunerDevices();
@@ -155,12 +153,20 @@ public:
                     }
                     updateDiscover = true;
                 }
+                else if (state == 1 || now >= recordings + g.Settings.recordUpdateInterval)
+                {
+                    state = 0;
+
+                    if (now >= recordings + g.Settings.recordUpdateInterval)
+                    {
+                        if (g.pvr_hdhr->UpdateRecordings())
+                            g.PVR->TriggerRecordingUpdate();
+
+                        updateRecord = true;
+                    }
+                }
                 else if (state == 1 || now >= lineup + g.Settings.lineupUpdateInterval)
                 {
-                    if (g.pvr_hdhr->UpdateRecordings())
-                    {
-                        g.PVR->TriggerRecordingUpdate();
-                    }
                     if (g.pvr_hdhr->UpdateLineup())
                     {
                         state = 2;
@@ -176,21 +182,10 @@ public:
                 else if (state == 2 || now >= guide + g.Settings.guideUpdateInterval)
                 {
                     state = 0;
+
                     g.pvr_hdhr->UpdateGuide();
                     updateGuide = true;
                 }
-                else
-                {
-                    state = 0;
-                }
-            }
-
-
-            if (now >= recordings + g.Settings.recordUpdateInterval)
-            {
-                bool changed = false;
-
-                updateRecord = true;
             }
 
             if (updateDiscover || updateLineup || updateGuide || updateRecord)

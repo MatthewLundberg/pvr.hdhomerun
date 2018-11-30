@@ -75,6 +75,7 @@ public:
     void UpdateBegin();
     void UpdateData(const Json::Value&, const StorageDevice*);
     bool UpdateEnd();
+    size_t size();
 };
 
 

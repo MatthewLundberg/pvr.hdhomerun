@@ -89,17 +89,18 @@ bool operator<(const RecordingEntry& x, const RecordingEntry&y)
     return x._programid < y._programid;
 }
 
+size_t Recording::size()
+{
+    return _records.size();
+}
+
 void Recording::UpdateBegin()
 {
-    std::cout << __FUNCTION__ << std::endl;
-
     _devices.clear();
     _diff = false;
 }
 bool Recording::UpdateEnd()
 {
-    std::cout << __FUNCTION__ << std::endl;
-
     // Look for now-missing items
     auto ri = _records.begin();
     while (ri != _records.end())
@@ -114,6 +115,7 @@ bool Recording::UpdateEnd()
         else
             ++ ri;
     }
+
     return _diff;
 }
 
@@ -123,6 +125,8 @@ void Recording::UpdateData(const Json::Value& json, const StorageDevice* device)
     {
         RecordingEntry entry(j);
         const auto& id = entry._programid;
+        _devices[id].insert(device);
+
         auto i = _records.find(id);
         if (i == _records.end())
         {
@@ -139,8 +143,6 @@ void Recording::UpdateData(const Json::Value& json, const StorageDevice* device)
                 i->second = entry;
             }
         }
-
-        _devices[id].insert(device);
     }
 }
 

@@ -273,6 +273,8 @@ void PVR_HDHR::AddLineupEntry(const Json::Value& v, TunerDevice* device)
 
 bool PVR_HDHR::UpdateRecordings()
 {
+    Lock lock(this);
+
     _recording.UpdateBegin();
     for (const auto dev:_storage_devices)
         dev->UpdateRecord(_recording);
@@ -581,7 +583,9 @@ void PVR_HDHR::UpdateGuide()
 
 int PVR_HDHR::GetChannelsAmount()
 {
-    return _lineup.size();
+    auto sz = _lineup.size();
+    std::cout << __FUNCTION__ << " " << sz << std::endl;
+    return sz;
 }
 PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
 {
@@ -830,15 +834,19 @@ PVR_ERROR PVR_HDHR::DeleteRecording(const PVR_RECORDING&)
     // TODO
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR PVR_HDHR::GetRecordings(ADDON_HANDLE, bool deleted)
+PVR_ERROR PVR_HDHR::GetRecordings(ADDON_HANDLE handle, bool deleted)
 {
-    // TODO
+    Lock lock(this);
+    std::cout << __FUNCTION__ << std::endl;
+
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
 int PVR_HDHR::GetRecordingsAmount(bool deleted)
 {
-    // TODO
-    return -1;
+    Lock lock(this);
+    auto sz = static_cast<int>(_recording.size());
+    std::cout << __FUNCTION__ << " " << sz << std::endl;
+    return sz;
 }
 PVR_ERROR PVR_HDHR::RenameRecording(const PVR_RECORDING&)
 {
