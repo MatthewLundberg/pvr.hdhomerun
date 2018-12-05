@@ -83,7 +83,7 @@ public:
     PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed);
     PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES*);
 
-    bool OpenRecordedStream(const PVR_RECORDING&);
+    bool OpenRecordedStream(const PVR_RECORDING& rec);
     void CloseRecordedStream(void);
     int ReadRecordedStream(unsigned char* buf, unsigned int len);
     long long SeekRecordedStream(long long pos, int whence);
@@ -124,11 +124,14 @@ private:
     void  _insert_json_guide_data(const Json::Value&, const char* idstr);
     void  _fetch_guide_data(const uint32_t* = nullptr, time_t start=0);
 
-    virtual bool _open_live_stream(const PVR_CHANNEL& channel) = 0;
-    virtual int  _read_live_stream(unsigned char* buffer, unsigned int size) = 0;
-    virtual void _close_live_stream() = 0;
-    virtual int64_t _seek_live_stream(int64_t position, int whence);
-public:
+    virtual bool _open_stream(const PVR_CHANNEL& channel) { return false; };
+    virtual bool _open_stream(const PVR_RECORDING& recording) { return false; };
+    virtual int  _read_stream(unsigned char* buffer, unsigned int size) = 0;
+    virtual void _close_stream() = 0;
+    virtual int64_t _seek_stream(int64_t position, int whence);
+    virtual int64_t _length_stream();
+protected:
+    bool  _open_tcp_stream(const std::string&);
 
 protected:
     std::set<uint32_t>        _device_ids;
@@ -141,6 +144,7 @@ public:
     std::set<TunerDevice*>    _tuner_devices;
     std::set<StorageDevice*>  _storage_devices;
     StorageDevice*            _current_storage = nullptr;
+    const RecordingEntry*     _current_recording = nullptr;
 protected:
     Lockable _guide_lock;
     Lockable _stream_lock;
@@ -150,18 +154,17 @@ protected:
 
 class PVR_HDHR_TCP : public PVR_HDHR {
 private:
-    bool  _open_live_stream(const PVR_CHANNEL& channel) override;
-    bool  _open_tcp_stream(const std::string&);
-    int   _read_live_stream(unsigned char* buffer, unsigned int size) override;
-    void  _close_live_stream() override;
-    int64_t _seek_live_stream(int64_t position, int whence) override;
+    bool  _open_stream(const PVR_CHANNEL& channel) override;
+    int   _read_stream(unsigned char* buffer, unsigned int size) override;
+    void  _close_stream() override;
 };
 class PVR_HDHR_UDP : public PVR_HDHR {
 private:
-    bool  _open_live_stream(const PVR_CHANNEL& channel) override;
-    int   _read_live_stream(unsigned char* buffer, unsigned int size) override;
-    void  _close_live_stream() override;
+    bool  _open_stream(const PVR_CHANNEL& channel) override;
+    int   _read_stream(unsigned char* buffer, unsigned int size) override;
+    void  _close_stream() override;
 };
+
 
 PVR_HDHR* PVR_HDHR_Factory(int protocol);
 

@@ -52,6 +52,32 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
     _endtime     = v["EndTime"].asUInt64();
 }
 
+namespace {
+template<size_t N>
+void scp(char (&x)[N], const std::string& s)
+{
+    strcpy(x, s.substr(0,N-1).c_str());
+}
+}
+
+PVR_RECORDING RecordingEntry::_pvr_recording() const
+{
+    PVR_RECORDING x = {0};
+
+    scp(x.strRecordingId, _programid);
+    scp(x.strTitle,       _title);
+    scp(x.strEpisodeName, _episodetitle);
+    // x.iSeriesNumber =
+    // x.iEpisodeNumber =
+    scp(x.strPlot,        _synposis);
+    scp(x.strChannelName, _channelname);
+    scp(x.strIconPath,    _channelimg);
+    x.recordingTime = _rstarttime;
+    x.iDuration = _rendtime - _rstarttime;
+
+    return x;
+}
+
 bool operator==(const RecordingEntry& a, const RecordingEntry& b)
 {
     return a._category      == b._category &&

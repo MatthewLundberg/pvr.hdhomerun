@@ -25,6 +25,7 @@
 #include <set>
 #include <map>
 #include <json/json.h>
+#include <libXBMC_pvr.h>
 
 namespace PVRHDHomeRun
 {
@@ -59,6 +60,13 @@ public:
     time_t _rendtime;
     time_t _starttime;
     time_t _endtime;
+
+    operator PVR_RECORDING() const
+    {
+        return _pvr_recording();
+    }
+private:
+    PVR_RECORDING _pvr_recording() const;
 };
 
 bool operator<(const RecordingEntry&, const RecordingEntry&);
@@ -76,6 +84,9 @@ public:
     void UpdateData(const Json::Value&, const StorageDevice*);
     bool UpdateEnd();
     size_t size();
+
+    const std::map<std::string, RecordingEntry>& Records() const { return _records; };
+    const std::map<std::string, std::set<const StorageDevice*>>& Devices() const { return _devices; };
 };
 
 
