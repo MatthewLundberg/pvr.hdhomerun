@@ -25,7 +25,6 @@
 #include "Addon.h"
 #include "Utils.h"
 #include "PVR_HDHR.h"
-#include "Filesystem.h"
 #include <chrono>
 #include <functional>
 #include <algorithm>
@@ -960,11 +959,11 @@ void PVR_HDHR::PauseStream(bool bPaused)
 {
     // TODO
 }
-void SetSpeed(int speed)
+void PVR_HDHR::SetSpeed(int speed)
 {
     // TODO
 }
-bool IsTimeshifting(void)
+bool PVR_HDHR::IsTimeshifting(void)
 {
     // TODO
     return false;
@@ -1007,8 +1006,16 @@ int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
     Lock strlock(_stream_lock);
     //Lock lock(this);
 
+
+
     auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
-    std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " " << pos << std::endl;
+    std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " " << pos << " " << _bytesread << std::endl;
+
+    if (position > 0)
+    {
+        KODI_LOG(LOG_INFO, "_seek_stream(%d, %d)", (int) position, whence);
+    }
+    //auto sts = g.XBMC->CURLOpen(_filehandle, XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN );
     return pos;
 }
 int64_t PVR_HDHR::_length_stream()
@@ -1039,7 +1046,7 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
             }
             else
             {
-                sts = g.XBMC->CURLOpen(_filehandle, XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM);
+                sts = g.XBMC->CURLOpen(_filehandle, XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN );
             }
             if (!sts)
             {
