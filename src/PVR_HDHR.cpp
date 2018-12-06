@@ -855,8 +855,10 @@ long long PVR_HDHR::SeekRecordedStream(long long pos, int whence)
 }
 long long PVR_HDHR::LengthRecordedStream(void)
 {
-    if (_current_recording)
-        return _current_recording->_rendtime - _current_recording->_rstarttime;
+    if (_filehandle)
+    {
+        return g.XBMC->GetFileLength(_filehandle);
+    }
     return -1;
 }
 PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*)
@@ -1011,7 +1013,7 @@ int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
     auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
     std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " " << pos << " " << _bytesread << std::endl;
 
-    if (position > 0)
+    //if (position > 0)
     {
         KODI_LOG(LOG_INFO, "_seek_stream(%d, %d)", (int) position, whence);
     }
