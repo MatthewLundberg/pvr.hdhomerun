@@ -242,21 +242,13 @@ void SetProtocol(const char* proto)
 }
 
 namespace {
-
-// Convenience template, to allow specialization below.
-template<typename T> std::vector<T> split_vec(const std::string& s)
-{
-	std::vector<T> retval;
-	return retval;
-}
-
-template<>
-std::vector<std::string> split_vec(const std::string& s)
+template<typename T>
+std::vector<T> split_vec(const std::string& s)
 {
 	std::stringstream ss(s);
-	std::istream_iterator<std::string> begin(ss);
-	std::istream_iterator<std::string> end;
-	std::vector<std::string> svec(begin, end);
+	std::istream_iterator<T> begin(ss);
+	std::istream_iterator<T> end;
+	std::vector<T> svec(begin, end);
 	return svec;
 }
 template<>
@@ -274,7 +266,8 @@ template<typename T>
 std::set<T> split_set(const std::string& s)
 {
 	auto vec = split_vec<T>(s);
-	std::set<T> sset(vec.begin(), vec.end());
+	std::set<T> sset;
+	std::move(vec.begin(), vec.end(), std::inserter(sset, sset.end()));
 	return sset;
 }
 
