@@ -113,11 +113,8 @@ unsigned int GetGenreType(const T& arr)
 }
 
 GuideEntry::GuideEntry(const Json::Value& v)
+: Entry(v, false)
 {
-    _starttime       = v["StartTime"].asUInt();
-    _endtime         = v["EndTime"].asUInt();
-    _originalairdate = v["OriginalAirdate"].asUInt();
-
     _episodenumber   = v["EpisodeNumber"].asString();
     _episodetitle    = v["EpisodeTitle"].asString();
     _synopsis        = v["Synopsis"].asString();
@@ -134,7 +131,22 @@ GuideEntry::GuideEntry(const Json::Value& v)
         _title = v["Title"].asString();
     }
 }
-
+bool operator<(const GuideEntry& a, const GuideEntry& b)
+{
+    return static_cast<const Entry&>(a) < static_cast<const Entry&>(b);
+}
+bool operator==(const GuideEntry& a, const GuideEntry& b)
+{
+    return static_cast<const Entry&>(a) == static_cast<const Entry&>(b)
+            && a._starttime       == b._starttime
+            && a._endtime         == b._endtime
+            && a._originalairdate == b._originalairdate
+            && a._title           == b._title
+            && a._episodenumber   == b._episodenumber
+            && a._synopsis        == b._synopsis
+            && a._imageURL        == b._imageURL
+            && a._seriesID        == b._seriesID;
+}
 
 EPG_TAG GuideEntry::Epg_Tag(uint32_t number) const
 {

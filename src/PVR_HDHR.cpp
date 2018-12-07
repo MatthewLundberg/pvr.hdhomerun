@@ -718,14 +718,12 @@ PVR_ERROR PVR_HDHR::GetChannelGroupMembers(ADDON_HANDLE handle,
 bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
 {
     CloseLiveStream();
-    _bytesread = 0;
     return _open_stream(channel);
 }
 
 void PVR_HDHR::CloseLiveStream(void)
 {
     _close_stream();
-    _bytesread = 0;
 }
 
 int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
@@ -735,9 +733,14 @@ int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 
 PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
 {
-    if (_current_recording)
+    if (_current_entry)
     {
-        auto len = _current_recording->_rendtime - _current_recording->_rstarttime;
+        auto now = time(0);
+        auto endtime = _current_entry->_endtime;
+        if (endtime > now)
+            endtime = now;
+        auto len = endtime - _current_entry->_starttime;
+
         times->startTime = 0;
         times->ptsStart = 0;
         times->ptsBegin = 0;
@@ -755,8 +758,7 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
 
 long long PVR_HDHR::LengthLiveStream()
 {
-    // TODO
-    return -1;
+    return _length_stream();
 }
 
 bool PVR_HDHR::IsRealTimeStream()
@@ -836,14 +838,14 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
     auto sts = _open_tcp_stream(rec._playurl);
     if (sts)
     {
-        _current_recording = &rec;
+        _current_entry = &rec;
     }
     return sts;
 }
 void PVR_HDHR::CloseRecordedStream(void)
 {
     _close_stream();
-    _current_recording = nullptr;
+    _current_entry = nullptr;
 }
 int PVR_HDHR::ReadRecordedStream(unsigned char* buf, unsigned int len)
 {
@@ -855,11 +857,7 @@ long long PVR_HDHR::SeekRecordedStream(long long pos, int whence)
 }
 long long PVR_HDHR::LengthRecordedStream(void)
 {
-    if (_filehandle)
-    {
-        return g.XBMC->GetFileLength(_filehandle);
-    }
-    return -1;
+    return _length_stream();
 }
 PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*)
 {
@@ -991,8 +989,7 @@ int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
         auto bytes = g.XBMC->ReadFile(_filehandle, buffer, size);
         if (bytes <= 0)
             std::cout << __FUNCTION__ << " returned " << bytes << std::endl;
-        else
-            _bytesread += bytes;
+
         return bytes;
     }
     return 0;
@@ -1008,21 +1005,20 @@ int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
     Lock strlock(_stream_lock);
     //Lock lock(this);
 
-
-
     auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
-    std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " " << pos << " " << _bytesread << std::endl;
-
-    //if (position > 0)
-    {
-        KODI_LOG(LOG_INFO, "_seek_stream(%d, %d)", (int) position, whence);
-    }
-    //auto sts = g.XBMC->CURLOpen(_filehandle, XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN );
-    return pos;
+    std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " -> " << pos << std::endl;
+    return pos > 0 ? pos : 0;
 }
 int64_t PVR_HDHR::_length_stream()
 {
-    // TODO
+    Lock strlock(_stream_lock);
+
+    if (_filehandle)
+    {
+        auto len = g.XBMC->GetFileLength(_filehandle);
+        std::cout << __FUNCTION__ << " " << len << std::endl;
+        return len;
+    }
     return -1;
 }
 

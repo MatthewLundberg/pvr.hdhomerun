@@ -26,6 +26,7 @@ set(DEPLIBS ${kodiplatform_LIBRARIES}
             ${HDHOMERUN_LIBRARIES})
 
 set(PVRHDHOMERUN_SOURCES src/Addon.cpp
+                         src/Entry.cpp
                          src/Device.cpp
                          src/Info.cpp
                          src/Guide.cpp
@@ -35,6 +36,7 @@ set(PVRHDHOMERUN_SOURCES src/Addon.cpp
                          src/Utils.cpp)
 
 set(PVRHDHOMERUN_HEADERS src/Addon.h
+                         src/Entry.h
                          src/Device.h
                          src/Info.h
                          src/Guide.h

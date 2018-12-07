@@ -22,6 +22,7 @@
 
 #include "IntervalSet.h"
 #include "Addon.h"
+#include "Entry.h"
 #include <json/json.h>
 
 namespace PVRHDHomeRun
@@ -65,14 +66,12 @@ public:
     bool operator==(const GuideNumber&) const;
 };
 
-class GuideEntry
+class GuideEntry : public Entry
 {
 public:
     GuideEntry(const Json::Value&);
 
-    time_t      _starttime;
-    time_t      _endtime;
-    time_t      _originalairdate;
+
     std::string _title;
     std::string _episodenumber;
     std::string _episodetitle;
@@ -82,24 +81,6 @@ public:
     uint32_t    _genre;
     uint32_t    _id;
 
-    bool operator<(const GuideEntry& rhs) const
-    {
-        return _starttime < rhs._starttime;
-    }
-    bool operator==(const GuideEntry& rhs) const
-    {
-        return
-                _starttime         == rhs._starttime
-               && _endtime         == rhs._endtime
-               && _originalairdate == rhs._originalairdate
-               && _title           == rhs._title
-               && _episodenumber   == rhs._episodenumber
-               && _synopsis        == rhs._synopsis
-               && _imageURL        == rhs._imageURL
-               && _seriesID        == rhs._seriesID
-                ;
-    }
-
 public:
     operator Interval() const
     {
@@ -107,6 +88,9 @@ public:
     }
     EPG_TAG Epg_Tag(uint32_t number) const;
 };
+
+bool operator<(const GuideEntry&, const GuideEntry&);
+bool operator==(const GuideEntry&, const GuideEntry&);
 
 class Guide
 {

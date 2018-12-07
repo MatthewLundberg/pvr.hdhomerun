@@ -26,6 +26,7 @@ namespace PVRHDHomeRun
 {
 
 RecordingEntry::RecordingEntry(const Json::Value& v)
+: Entry(v, true)
 {
     _category    = v["Category"].asString();
     _affiliate   = v["ChannelAffiliate"].asString();
@@ -45,9 +46,6 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
     _playurl     = v["PlayURL"].asString();
     _cmdurl      = v["CmdURL"].asString();
 
-    _aired       = v["OriginalAirdate"].asUInt64();
-    _rstarttime  = v["RecordStartTime"].asUInt64();
-    _rendtime    = v["RecordEndTime"].asUInt64();
     _starttime   = v["StartTime"].asUInt64();
     _endtime     = v["EndTime"].asUInt64();
 }
@@ -58,6 +56,15 @@ void scp(char (&x)[N], const std::string& s)
 {
     strcpy(x, s.substr(0,N-1).c_str());
 }
+}
+
+time_t RecordingEntry::rstarttime() const
+{
+    return (static_cast<const Entry*>(this))->_starttime;
+}
+time_t RecordingEntry::rendtime() const
+{
+    return (static_cast<const Entry*>(this))->_endtime;
 }
 
 PVR_RECORDING RecordingEntry::_pvr_recording() const
@@ -72,15 +79,16 @@ PVR_RECORDING RecordingEntry::_pvr_recording() const
     scp(x.strPlot,        _synposis);
     scp(x.strChannelName, _channelname);
     scp(x.strIconPath,    _channelimg);
-    x.recordingTime = _rstarttime;
-    x.iDuration = _rendtime - _rstarttime;
+    x.recordingTime = rstarttime();
+    x.iDuration = rendtime() - rstarttime();
 
     return x;
 }
 
 bool operator==(const RecordingEntry& a, const RecordingEntry& b)
 {
-    return a._category      == b._category &&
+    return static_cast<const Entry&>(a) == static_cast<const Entry&>(b) &&
+            a._category     == b._category &&
             a._affiliate    == b._affiliate &&
             a._channelimg   == b._channelimg &&
             a._channelname  == b._channelname &&
@@ -98,9 +106,6 @@ bool operator==(const RecordingEntry& a, const RecordingEntry& b)
             a._playurl      == b._playurl &&
             a._cmdurl       == b._cmdurl &&
 
-            a._aired        == b._aired &&
-            a._rstarttime   == b._rstarttime &&
-            a._rendtime     == b._rendtime &&
             a._starttime    == b._starttime &&
             a._endtime      == b._endtime
             ;

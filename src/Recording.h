@@ -20,6 +20,7 @@
  *
  */
 
+#include "Entry.h"
 #include <string>
 #include <cstdint>
 #include <set>
@@ -32,7 +33,7 @@ namespace PVRHDHomeRun
 
 class StorageDevice;
 
-class RecordingEntry
+class RecordingEntry : public Entry
 {
 public:
     RecordingEntry(const Json::Value&);
@@ -55,11 +56,11 @@ public:
     std::string _playurl;
     std::string _cmdurl;
 
-    time_t _aired;
-    time_t _rstarttime;
-    time_t _rendtime;
     time_t _starttime;
     time_t _endtime;
+
+    time_t rstarttime() const;
+    time_t rendtime() const;
 
     operator PVR_RECORDING() const
     {
