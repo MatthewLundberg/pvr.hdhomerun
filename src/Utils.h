@@ -49,12 +49,22 @@ int DbgPrintf(const char* szFormat, ...);
             g.XBMC->Log((addon_log_t)level, __VA_ARGS__);               \
     } while (0)
 
-#define PVR_STRCPY(dest, source) do { strncpy(dest, source, sizeof(dest)-1); dest[sizeof(dest)-1] = '\0'; } while(0)
-#define PVR_STRCLR(dest) memset(dest, 0, sizeof(dest))
 
 namespace PVRHDHomeRun
 {
 
+template<int N>
+void pvr_strcpy(char (&dest)[N], const std::string& src)
+{
+    strncpy(dest, src.c_str(), N-1);
+    dest[N-1] = '\0';
+}
+template<int N>
+void pvr_strcpy(char (&dest)[N], const char* src)
+{
+    strncpy(dest, src, N-1);
+    dest[N-1] = '\0';
+}
 
 bool GetFileContents(const std::string& url, std::string& strContent);
 
