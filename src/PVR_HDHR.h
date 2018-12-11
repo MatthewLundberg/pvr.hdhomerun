@@ -140,11 +140,15 @@ protected:
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
     Recording                 _recording;
+    uint32_t                  _sessionid = 0;
+    size_t                    _filesize = 0;
+
 public:
     std::set<TunerDevice*>    _tuner_devices;
     std::set<StorageDevice*>  _storage_devices;
     StorageDevice*            _current_storage = nullptr;
     const Entry*              _current_entry   = nullptr;
+    bool                      _live_stream = false;
 protected:
     Lockable _guide_lock;
     Lockable _stream_lock;

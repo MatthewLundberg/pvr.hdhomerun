@@ -32,9 +32,14 @@ class Entry
 public:
     Entry(const Json::Value&, bool recording);
 
-    time_t _originalairdate;
-    time_t _starttime;
-    time_t _endtime;
+    time_t _starttime = 0;
+    time_t _endtime   = 0;
+    time_t _originalairdate = 0;
+    int         _season;
+    int         _episode;
+    std::string _episodenumber;
+    std::string _episodetitle;
+
 };
 
 bool operator==(const Entry&, const Entry&);

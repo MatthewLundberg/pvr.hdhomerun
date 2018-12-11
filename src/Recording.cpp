@@ -20,6 +20,7 @@
  */
 
 #include "Recording.h"
+#include "Utils.h"
 #include <iostream>
 
 namespace PVRHDHomeRun
@@ -33,8 +34,6 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
     _channelimg  = v["ChannelImageURL"].asString();
     _channelname = v["ChannelName"].asString();
     _channelnum  = v["ChannelNumber"].asString();
-    _episodenum  = v["EpisodeNumber"].asString();
-    _episodetitle= v["EpisodeTitle"].asString();
     _image       = v["ImageURL"].asString();
     _poster      = v["PosterURL"].asString();
     _programid   = v["ProgramID"].asString();
@@ -71,16 +70,17 @@ PVR_RECORDING RecordingEntry::_pvr_recording() const
 {
     PVR_RECORDING x = {0};
 
-    scp(x.strRecordingId, _programid);
-    scp(x.strTitle,       _title);
-    scp(x.strEpisodeName, _episodetitle);
-    // x.iSeriesNumber =
-    // x.iEpisodeNumber =
-    scp(x.strPlot,        _synposis);
-    scp(x.strChannelName, _channelname);
-    scp(x.strIconPath,    _channelimg);
-    x.recordingTime = rstarttime();
-    x.iDuration = rendtime() - rstarttime();
+    pvr_strcpy(x.strRecordingId, _programid);
+    pvr_strcpy(x.strTitle,       _title);
+    pvr_strcpy(x.strEpisodeName, _episodetitle);
+    x.iSeriesNumber = _season;
+    x.iEpisodeNumber = _episode;
+    pvr_strcpy(x.strPlot,        _synposis);
+    pvr_strcpy(x.strChannelName, _channelname);
+    pvr_strcpy(x.strIconPath,    _channelimg);
+    pvr_strcpy(x.strDirectory,   _grouptitle);
+    x.recordingTime = _starttime;
+    x.iDuration = _endtime - _starttime;
 
     return x;
 }
@@ -93,8 +93,6 @@ bool operator==(const RecordingEntry& a, const RecordingEntry& b)
             a._channelimg   == b._channelimg &&
             a._channelname  == b._channelname &&
             a._channelnum   == b._channelnum &&
-            a._episodenum   == b._episodenum &&
-            a._episodetitle == b._episodetitle &&
             a._image        == b._image &&
             a._poster       == b._poster &&
             a._programid    == b._programid &&

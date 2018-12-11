@@ -31,6 +31,7 @@
 #include <iterator>
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <iterator>
 #include <numeric>
 #include <iostream>
@@ -619,8 +620,8 @@ PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
             static const std::string empty{""};
             name = &empty;
         }
-        PVR_STRCPY(pvrChannel.strChannelName, name->c_str());
-        PVR_STRCPY(pvrChannel.strIconPath, guide.ImageURL().c_str());
+        pvr_strcpy(pvrChannel.strChannelName, name->c_str());
+        pvr_strcpy(pvrChannel.strIconPath, guide.ImageURL().c_str());
 
         g.PVR->TransferChannelEntry(handle, &pvrChannel);
     }
@@ -675,15 +676,15 @@ PVR_ERROR PVR_HDHR::GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
     memset(&channelGroup, 0, sizeof(channelGroup));
 
     channelGroup.iPosition = 1;
-    PVR_STRCPY(channelGroup.strGroupName, FavoriteChannels.c_str());
+    pvr_strcpy(channelGroup.strGroupName, FavoriteChannels.c_str());
     g.PVR->TransferChannelGroup(handle, &channelGroup);
 
     channelGroup.iPosition++;
-    PVR_STRCPY(channelGroup.strGroupName, HDChannels.c_str());
+    pvr_strcpy(channelGroup.strGroupName, HDChannels.c_str());
     g.PVR->TransferChannelGroup(handle, &channelGroup);
 
     channelGroup.iPosition++;
-    PVR_STRCPY(channelGroup.strGroupName, SDChannels.c_str());
+    pvr_strcpy(channelGroup.strGroupName, SDChannels.c_str());
     g.PVR->TransferChannelGroup(handle, &channelGroup);
 
     return PVR_ERROR_NO_ERROR;
@@ -707,7 +708,7 @@ PVR_ERROR PVR_HDHR::GetChannelGroupMembers(ADDON_HANDLE handle,
             continue;
 
         PVR_CHANNEL_GROUP_MEMBER channelGroupMember = {0};
-        PVR_STRCPY(channelGroupMember.strGroupName, group.strGroupName);
+        pvr_strcpy(channelGroupMember.strGroupName, group.strGroupName);
         channelGroupMember.iChannelUniqueId = number.ID();
 
         g.PVR->TransferChannelGroupMember(handle, &channelGroupMember);
@@ -717,8 +718,15 @@ PVR_ERROR PVR_HDHR::GetChannelGroupMembers(ADDON_HANDLE handle,
 
 bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
 {
-    CloseLiveStream();
-    return _open_stream(channel);
+    Lock lock(this);
+
+    _close_stream();
+    auto sts = _open_stream(channel);
+    if (sts)
+    {
+        _live_stream = true;
+    }
+    return sts;
 }
 
 void PVR_HDHR::CloseLiveStream(void)
@@ -733,7 +741,9 @@ int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 
 PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
 {
-    if (_current_entry)
+    Lock lock(this);
+
+    if (_current_entry && _filesize)
     {
         auto now = time(0);
         auto endtime = _current_entry->_endtime;
@@ -742,17 +752,15 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
         auto len = endtime - _current_entry->_starttime;
 
         times->startTime = 0;
-        times->ptsStart = 0;
-        times->ptsBegin = 0;
+        times->ptsStart  = 0;
+        times->ptsBegin  = 0;
         times->ptsEnd = len * 1000 * 1000;
     }
     else
     {
-        times->startTime = 0;
-        times->ptsStart = 0;
-        times->ptsBegin = 0;
-        times->ptsEnd = 400 * 1000 * 1000;
+        return PVR_ERROR_NOT_IMPLEMENTED;
     }
+
     return PVR_ERROR_NO_ERROR;
 }
 
@@ -763,31 +771,28 @@ long long PVR_HDHR::LengthLiveStream()
 
 bool PVR_HDHR::IsRealTimeStream()
 {
-    // TODO
-    return false;
+    return _live_stream;
 }
 bool PVR_HDHR::SeekTime(double time,bool backwards,double* startpts)
 {
-    // TODO
+    std::cout << __FUNCTION__ << "(" << time << "," << backwards << ",)" << std::endl;
     return false;
 }
 PVR_ERROR PVR_HDHR::SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 {
     // TODO
-    PVR_STRCPY(signalStatus.strAdapterName, "otherkids PVR");
-    PVR_STRCPY(signalStatus.strAdapterStatus, "OK");
+    pvr_strcpy(signalStatus.strAdapterName, "otherkids PVR");
+    pvr_strcpy(signalStatus.strAdapterStatus, "OK");
 
     return PVR_ERROR_NO_ERROR;
 }
 bool PVR_HDHR::CanPauseStream(void)
 {
-    // TODO
-    return true;
+    return _filesize != 0;
 }
 bool PVR_HDHR::CanSeekStream(void)
 {
-    // TODO
-    return true;
+    return _filesize != 0;
 }
 PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
 {
@@ -819,6 +824,8 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
 
     std::cout << __FUNCTION__ << std::endl;
 
+    _close_stream();
+
     const auto& id = pvrrec.strRecordingId;
     const auto prec = _recording.Records().find(id);
     if (prec == _recording.Records().end())
@@ -839,7 +846,9 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
     if (sts)
     {
         _current_entry = &rec;
+        _live_stream = false;
     }
+
     return sts;
 }
 void PVR_HDHR::CloseRecordedStream(void)
@@ -871,20 +880,26 @@ PVR_ERROR PVR_HDHR::DeleteRecording(const PVR_RECORDING&)
 }
 PVR_ERROR PVR_HDHR::GetRecordings(ADDON_HANDLE handle, bool deleted)
 {
-    Lock lock(this);
-    std::cout << __FUNCTION__ << std::endl;
-
-    for (auto& r: _recording.Records())
+    if (!deleted)
     {
-        PVR_RECORDING prec = r.second;
-        g.PVR->TransferRecordingEntry(handle, &prec);
-        std::cout << "  " << r.second._title << std::endl;
+        Lock lock(this);
+        std::cout << __FUNCTION__ << std::endl;
+
+        for (auto& r: _recording.Records())
+        {
+            PVR_RECORDING prec = r.second;
+            g.PVR->TransferRecordingEntry(handle, &prec);
+            std::cout << "  " << r.second._title << std::endl;
+        }
     }
 
     return PVR_ERROR_NO_ERROR;
 }
 int PVR_HDHR::GetRecordingsAmount(bool deleted)
 {
+    if (deleted)
+        return 0;
+
     Lock lock(this);
     return static_cast<int>(_recording.size());
 }
@@ -976,7 +991,7 @@ void PVR_HDHR_TCP::_close_stream()
 
     g.XBMC->CloseFile(_filehandle);
     _filehandle = nullptr;
-    _current_storage = nullptr;
+    _filesize = 0;
 }
 
 int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
@@ -986,28 +1001,25 @@ int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
 
     if (_filehandle)
     {
-        auto bytes = g.XBMC->ReadFile(_filehandle, buffer, size);
-        if (bytes <= 0)
-            std::cout << __FUNCTION__ << " returned " << bytes << std::endl;
-
-        return bytes;
+        return g.XBMC->ReadFile(_filehandle, buffer, size);
     }
     return 0;
 }
 
 long long PVR_HDHR::SeekLiveStream(long long position, int whence)
 {
-    return _seek_stream(position, whence);
+    //return _seek_stream(position, whence);
+    return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
 {
     Lock strlock(_stream_lock);
-    //Lock lock(this);
+    Lock lock(this);
 
     auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
     std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " -> " << pos << std::endl;
-    return pos > 0 ? pos : 0;
+    return pos;
 }
 int64_t PVR_HDHR::_length_stream()
 {
@@ -1053,6 +1065,11 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
             }
         }
     }
+    if (_filehandle)
+    {
+        auto len = g.XBMC->GetFileLength(_filehandle);
+        std::cout << __FUNCTION__ << " file length: " << len << std::endl;
+    }
 
     KODI_LOG(LOG_DEBUG, "Attempt to open TCP stream from url %s : %s",
             url.c_str(),
@@ -1079,16 +1096,21 @@ bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
     {
         for (auto device : _storage_devices)
         {
-            std::string url = device->BaseURL();
-            url += "/auto/v" + info._guidenumber;
+            auto sessionid = ++ _sessionid;
+            std::stringstream ss;
+            ss << device->BaseURL() << "/auto/v" + info._guidenumber;
+            ss << "?SessionID=0x" << std::hex << std::setw(8) << std::setfill('0') << sessionid;
+            auto url = ss.str();
             if (_open_tcp_stream(url))
             {
                 _current_storage = device;
+                std::cout << __FUNCTION__ << " Recorder used: " << url << std::endl;
                 return true;
             }
         }
         KODI_LOG(LOG_INFO, "Failed to tune channel %s from storage, falling back to tuner device", info._guidenumber.c_str());
     }
+    std::cout << "Failed to tune from recorder." << std::endl;
 
     for (auto id : g.Settings.preferredDevice)
     {

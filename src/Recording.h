@@ -43,8 +43,6 @@ public:
     std::string _channelimg;
     std::string _channelname;
     std::string _channelnum;
-    std::string _episodenum;
-    std::string _episodetitle;
     std::string _image;
     std::string _poster;
     std::string _programid;

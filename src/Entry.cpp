@@ -27,7 +27,6 @@ namespace PVRHDHomeRun
 
 Entry::Entry(const Json::Value& v, bool recording)
 {
-    _originalairdate = v["OriginalAirdate"].asUInt64();
     if (recording)
     {
         _starttime  = v["RecordStartTime"].asUInt64();
@@ -38,13 +37,29 @@ Entry::Entry(const Json::Value& v, bool recording)
         _starttime       = v["StartTime"].asUInt();
         _endtime         = v["EndTime"].asUInt();
     }
+    _originalairdate = v["OriginalAirdate"].asUInt64();
+    _episodenumber   = v["EpisodeNumber"].asString();
+    _episodetitle    = v["EpisodeTitle"].asString();
+
+
+    if (_episodenumber[0] == 'S') {
+        auto e = _episodenumber.find('E');
+        if (e != std::string::npos) {
+            auto season  = _episodenumber.substr(1, e);
+            auto episode = _episodenumber.substr(e+1);
+            _season  = std::stoi(season);
+            _episode = std::stoi(episode);
+        }
+    }
 }
 
 bool operator==(const Entry& a, const Entry& b)
 {
     return a._starttime == b._starttime &&
             a._endtime == b._endtime &&
-            a._originalairdate == b._originalairdate;
+            a._originalairdate == b._originalairdate &&
+            a._episodenumber == b._episodenumber &&
+            a._episodetitle == b._episodetitle;
 }
 bool operator<(const Entry& a, const Entry& b)
 {

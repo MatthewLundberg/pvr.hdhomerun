@@ -115,8 +115,6 @@ unsigned int GetGenreType(const T& arr)
 GuideEntry::GuideEntry(const Json::Value& v)
 : Entry(v, false)
 {
-    _episodenumber   = v["EpisodeNumber"].asString();
-    _episodetitle    = v["EpisodeTitle"].asString();
     _synopsis        = v["Synopsis"].asString();
     _imageURL        = v["ImageURL"].asString();
     _seriesID        = v["SeriesID"].asString();
@@ -138,9 +136,6 @@ bool operator<(const GuideEntry& a, const GuideEntry& b)
 bool operator==(const GuideEntry& a, const GuideEntry& b)
 {
     return static_cast<const Entry&>(a) == static_cast<const Entry&>(b)
-            && a._starttime       == b._starttime
-            && a._endtime         == b._endtime
-            && a._originalairdate == b._originalairdate
             && a._title           == b._title
             && a._episodenumber   == b._episodenumber
             && a._synopsis        == b._synopsis
@@ -163,16 +158,8 @@ EPG_TAG GuideEntry::Epg_Tag(uint32_t number) const
     tag.strPlot            = _synopsis.c_str();
     tag.strIconPath        = _imageURL.c_str();
     tag.iGenreType         = _genre;
-
-    if (_episodenumber[0] == 'S') {
-        auto e = _episodenumber.find('E');
-        if (e != std::string::npos) {
-            auto season  = _episodenumber.substr(1, e);
-            auto episode = _episodenumber.substr(e+1);
-            tag.iSeriesNumber  = std::stoi(season);
-            tag.iEpisodeNumber = std::stoi(episode);
-        }
-    }
+    tag.iSeriesNumber      = _season;
+    tag.iEpisodeNumber     = _episode;
 
     return tag;
 }

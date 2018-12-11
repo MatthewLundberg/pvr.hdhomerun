@@ -73,8 +73,6 @@ public:
 
 
     std::string _title;
-    std::string _episodenumber;
-    std::string _episodetitle;
     std::string _synopsis;
     std::string _imageURL;
     std::string _seriesID;
