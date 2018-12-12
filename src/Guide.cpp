@@ -84,34 +84,6 @@ std::string GuideNumber::extendedName() const
             + "_guidename("   + _guidename   + ") ";
 }
 
-template<typename T>
-unsigned int GetGenreType(const T& arr)
-{
-    unsigned int nGenreType = 0;
-
-    for (auto& i : arr)
-    {
-        auto str = i.asString();
-
-        if (str == "News")
-            nGenreType |= EPG_EVENT_CONTENTMASK_NEWSCURRENTAFFAIRS;
-        else if (str == "Comedy")
-            nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
-        else if (str == "Movie" || str == "Drama")
-            nGenreType |= EPG_EVENT_CONTENTMASK_MOVIEDRAMA;
-        else if (str == "Food")
-            nGenreType |= EPG_EVENT_CONTENTMASK_LEISUREHOBBIES;
-        else if (str == "Talk Show")
-            nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
-        else if (str == "Game Show")
-            nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
-        else if (str == "Sport" || str == "Sports")
-            nGenreType |= EPG_EVENT_CONTENTMASK_SPORTS;
-    }
-
-    return nGenreType;
-}
-
 GuideEntry::GuideEntry(const Json::Value& v)
 : Entry(v, false)
 {
