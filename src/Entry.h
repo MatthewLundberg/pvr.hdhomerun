@@ -32,11 +32,11 @@ class Entry
 public:
     Entry(const Json::Value&, bool recording);
 
-    time_t _starttime = 0;
-    time_t _endtime   = 0;
+    time_t _starttime       = 0;
+    time_t _endtime         = 0;
     time_t _originalairdate = 0;
-    int         _season;
-    int         _episode;
+    int         _season     = 0;
+    int         _episode    = 0;
     std::string _episodenumber;
     std::string _episodetitle;
 
@@ -44,6 +44,34 @@ public:
 
 bool operator==(const Entry&, const Entry&);
 bool operator<(const Entry&, const Entry&);
+
+template<typename T>
+unsigned int GetGenreType(const T& arr)
+{
+    unsigned int nGenreType = 0;
+
+    for (auto& i : arr)
+    {
+        auto str = i.asString();
+
+        if (str == "News")
+            nGenreType |= EPG_EVENT_CONTENTMASK_NEWSCURRENTAFFAIRS;
+        else if (str == "Comedy")
+            nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
+        else if (str == "Movie" || str == "Drama")
+            nGenreType |= EPG_EVENT_CONTENTMASK_MOVIEDRAMA;
+        else if (str == "Food")
+            nGenreType |= EPG_EVENT_CONTENTMASK_LEISUREHOBBIES;
+        else if (str == "Talk Show")
+            nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
+        else if (str == "Game Show")
+            nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
+        else if (str == "Sport" || str == "Sports")
+            nGenreType |= EPG_EVENT_CONTENTMASK_SPORTS;
+    }
+
+    return nGenreType;
+}
 
 
 }
