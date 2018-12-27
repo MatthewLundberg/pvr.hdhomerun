@@ -620,8 +620,8 @@ PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
             static const std::string empty{""};
             name = &empty;
         }
-        pvr_strcpy(pvrChannel.strChannelName, name->c_str());
-        pvr_strcpy(pvrChannel.strIconPath, guide.ImageURL().c_str());
+        pvr_strcpy(pvrChannel.strChannelName, *name);
+        pvr_strcpy(pvrChannel.strIconPath, guide.ImageURL());
 
         g.PVR->TransferChannelEntry(handle, &pvrChannel);
     }
@@ -676,15 +676,15 @@ PVR_ERROR PVR_HDHR::GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
     memset(&channelGroup, 0, sizeof(channelGroup));
 
     channelGroup.iPosition = 1;
-    pvr_strcpy(channelGroup.strGroupName, FavoriteChannels.c_str());
+    pvr_strcpy(channelGroup.strGroupName, FavoriteChannels);
     g.PVR->TransferChannelGroup(handle, &channelGroup);
 
     channelGroup.iPosition++;
-    pvr_strcpy(channelGroup.strGroupName, HDChannels.c_str());
+    pvr_strcpy(channelGroup.strGroupName, HDChannels);
     g.PVR->TransferChannelGroup(handle, &channelGroup);
 
     channelGroup.iPosition++;
-    pvr_strcpy(channelGroup.strGroupName, SDChannels.c_str());
+    pvr_strcpy(channelGroup.strGroupName, SDChannels);
     g.PVR->TransferChannelGroup(handle, &channelGroup);
 
     return PVR_ERROR_NO_ERROR;
@@ -1104,13 +1104,11 @@ bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
             if (_open_tcp_stream(url))
             {
                 _current_storage = device;
-                std::cout << __FUNCTION__ << " Recorder used: " << url << std::endl;
                 return true;
             }
         }
         KODI_LOG(LOG_INFO, "Failed to tune channel %s from storage, falling back to tuner device", info._guidenumber.c_str());
     }
-    std::cout << "Failed to tune from recorder." << std::endl;
 
     for (auto id : g.Settings.preferredDevice)
     {

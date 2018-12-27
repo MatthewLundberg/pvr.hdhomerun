@@ -71,10 +71,6 @@ class GuideEntry : public Entry
 public:
     GuideEntry(const Json::Value&);
 
-
-    std::string _title;
-    std::string _synopsis;
-    std::string _imageURL;
     std::string _seriesID;
     uint32_t    _genre;
     uint32_t    _id;

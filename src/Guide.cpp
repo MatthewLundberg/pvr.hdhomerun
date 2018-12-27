@@ -85,21 +85,10 @@ std::string GuideNumber::extendedName() const
 }
 
 GuideEntry::GuideEntry(const Json::Value& v)
-: Entry(v, false)
+: Entry(v)
 {
-    _synopsis        = v["Synopsis"].asString();
-    _imageURL        = v["ImageURL"].asString();
     _seriesID        = v["SeriesID"].asString();
     _genre           = GetGenreType(v["Filter"]);
-    bool recording = v.isMember("RecordingRule") && v["RecordingRule"].asBool();
-    if (recording)
-    {
-        _title = std::string("* ") + v["Title"].asString();
-    }
-    else
-    {
-        _title = v["Title"].asString();
-    }
 }
 bool operator<(const GuideEntry& a, const GuideEntry& b)
 {
@@ -108,10 +97,7 @@ bool operator<(const GuideEntry& a, const GuideEntry& b)
 bool operator==(const GuideEntry& a, const GuideEntry& b)
 {
     return static_cast<const Entry&>(a) == static_cast<const Entry&>(b)
-            && a._title           == b._title
             && a._episodenumber   == b._episodenumber
-            && a._synopsis        == b._synopsis
-            && a._imageURL        == b._imageURL
             && a._seriesID        == b._seriesID;
 }
 

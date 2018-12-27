@@ -25,22 +25,27 @@ namespace PVRHDHomeRun
 {
 
 
-Entry::Entry(const Json::Value& v, bool recording)
+Entry::Entry(const Json::Value& v)
 {
-    if (recording)
-    {
-        _starttime  = v["RecordStartTime"].asUInt64();
-        _endtime    = v["RecordEndTime"].asUInt64();
-    }
-    else
-    {
-        _starttime       = v["StartTime"].asUInt();
-        _endtime         = v["EndTime"].asUInt();
-    }
+    _starttime       = v["StartTime"].asUInt64();
+    _endtime         = v["EndTime"].asUInt64();
     _originalairdate = v["OriginalAirdate"].asUInt64();
     _episodenumber   = v["EpisodeNumber"].asString();
     _episodetitle    = v["EpisodeTitle"].asString();
 
+    _synopsis        = v["Synopsis"].asString();
+    _imageURL        = v["ImageURL"].asString();
+
+    // Remove this hack once the timer rules are sent to Kodi.
+    bool recording = v.isMember("RecordingRule") && v["RecordingRule"].asBool();
+    if (recording)
+    {
+        _title = std::string("* ") + v["Title"].asString();
+    }
+    else
+    {
+        _title = v["Title"].asString();
+    }
 
     if (_episodenumber[0] == 'S') {
         auto e = _episodenumber.find('E');
@@ -55,11 +60,14 @@ Entry::Entry(const Json::Value& v, bool recording)
 
 bool operator==(const Entry& a, const Entry& b)
 {
-    return a._starttime == b._starttime &&
-            a._endtime == b._endtime &&
+    return a._starttime        == b._starttime &&
+            a._endtime         == b._endtime &&
             a._originalairdate == b._originalairdate &&
-            a._episodenumber == b._episodenumber &&
-            a._episodetitle == b._episodetitle;
+            a._imageURL        == b._imageURL &&
+            a._synopsis        == b._synopsis &&
+            a._title           == b._title &&
+            a._episodenumber   == b._episodenumber &&
+            a._episodetitle    == b._episodetitle;
 }
 bool operator<(const Entry& a, const Entry& b)
 {

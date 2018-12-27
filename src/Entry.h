@@ -23,6 +23,7 @@
 #include <string>
 #include <cstdint>
 #include <json/json.h>
+#include <xbmc_epg_types.h>
 
 namespace PVRHDHomeRun
 {
@@ -30,7 +31,7 @@ namespace PVRHDHomeRun
 class Entry
 {
 public:
-    Entry(const Json::Value&, bool recording);
+    Entry(const Json::Value&);
 
     time_t _starttime       = 0;
     time_t _endtime         = 0;
@@ -40,10 +41,52 @@ public:
     std::string _episodenumber;
     std::string _episodetitle;
 
+    std::string _title;
+    std::string _synopsis;
+    std::string _imageURL;
+
 };
 
 bool operator==(const Entry&, const Entry&);
 bool operator<(const Entry&, const Entry&);
+
+class ChannelNumber
+{
+private:
+    static const uint32_t SubchannelLimit = 10000;
+public:
+    ChannelNumber(const Json::Value&);
+    ChannelNumber(const ChannelNumber&) = default;
+    ChannelNumber(uint32_t id)
+    {
+        _channel = id / SubchannelLimit;
+         id %= SubchannelLimit;
+         _subchannel = id;
+    }
+    virtual ~ChannelNumber() = default;
+
+    std::string _channelnumber;
+    std::string _channelname;
+
+    uint32_t _channel;
+    uint32_t _subchannel;
+
+    std::string extendedName() const;
+    std::string toString() const;
+
+    uint32_t ID() const
+    {
+        // _subchannel < 1000, _nameidx < 100
+        return (_channel * SubchannelLimit) + _subchannel;
+    }
+    operator uint32_t() const
+    {
+        return ID();
+    }
+};
+
+bool operator<(const ChannelNumber&, const ChannelNumber&);
+bool operator==(const ChannelNumber&, const ChannelNumber&);
 
 template<typename T>
 unsigned int GetGenreType(const T& arr)

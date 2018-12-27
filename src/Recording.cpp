@@ -27,26 +27,23 @@ namespace PVRHDHomeRun
 {
 
 RecordingEntry::RecordingEntry(const Json::Value& v)
-: Entry(v, true)
+: Entry(v)
 {
     _category    = v["Category"].asString();
     _affiliate   = v["ChannelAffiliate"].asString();
     _channelimg  = v["ChannelImageURL"].asString();
     _channelname = v["ChannelName"].asString();
     _channelnum  = v["ChannelNumber"].asString();
-    _image       = v["ImageURL"].asString();
     _poster      = v["PosterURL"].asString();
     _programid   = v["ProgramID"].asString();
     _seriesid    = v["SeriesID"].asString();
-    _synposis    = v["Synopsis"].asString();
-    _title       = v["Title"].asString();
     _groupid     = v["DisplayGroupID"].asString();
     _grouptitle  = v["DisplayGroupTitle"].asString();
     _playurl     = v["PlayURL"].asString();
     _cmdurl      = v["CmdURL"].asString();
 
-    _starttime   = v["StartTime"].asUInt64();
-    _endtime     = v["EndTime"].asUInt64();
+    _recordstarttime = v["RecordStartTime"].asUInt64();
+    _recordendtime   = v["RecordEndTime"].asUInt64();
 }
 
 namespace {
@@ -75,9 +72,9 @@ PVR_RECORDING RecordingEntry::_pvr_recording() const
     pvr_strcpy(x.strEpisodeName, _episodetitle);
     x.iSeriesNumber = _season;
     x.iEpisodeNumber = _episode;
-    pvr_strcpy(x.strPlot,        _synposis);
-    pvr_strcpy(x.strChannelName, _channelname);
-    pvr_strcpy(x.strIconPath,    _channelimg);
+    pvr_strcpy(x.strPlot,        _synopsis);
+    pvr_strcpy(x.strChannelName, _channelname + " " + _channelnum);
+    pvr_strcpy(x.strIconPath,    _imageURL); // _channelimg
     pvr_strcpy(x.strDirectory,   _grouptitle);
     x.recordingTime = _starttime;
     x.iDuration = _endtime - _starttime;
@@ -93,12 +90,9 @@ bool operator==(const RecordingEntry& a, const RecordingEntry& b)
             a._channelimg   == b._channelimg &&
             a._channelname  == b._channelname &&
             a._channelnum   == b._channelnum &&
-            a._image        == b._image &&
             a._poster       == b._poster &&
             a._programid    == b._programid &&
             a._seriesid     == b._seriesid &&
-            a._synposis     == b._synposis &&
-            a._title        == b._title &&
             a._groupid      == b._groupid &&
             a._grouptitle   == b._grouptitle &&
             a._playurl      == b._playurl &&

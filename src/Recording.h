@@ -43,19 +43,16 @@ public:
     std::string _channelimg;
     std::string _channelname;
     std::string _channelnum;
-    std::string _image;
     std::string _poster;
     std::string _programid;
     std::string _seriesid;
-    std::string _synposis;
-    std::string _title;
     std::string _groupid;
     std::string _grouptitle;
     std::string _playurl;
     std::string _cmdurl;
 
-    time_t _starttime;
-    time_t _endtime;
+    time_t _recordstarttime;
+    time_t _recordendtime;
 
     time_t rstarttime() const;
     time_t rendtime() const;
@@ -88,5 +85,20 @@ public:
     const std::map<std::string, std::set<const StorageDevice*>>& Devices() const { return _devices; };
 };
 
+class RecordingRule
+{
+    std::string _recordingruleid;
+    std::string _seriesid;
+    std::string _title;
+    std::string _synopsis;
+    std::string _imageurl;
+    std::string _posterurl;
+    std::string _filtertags;
+    time_t      _datetimeonly = 0;
+    std::string _channelonly;
+    int         _startpadding = 0;
+    int         _endpadding   = 0;
+    uint32_t    _genre        = 0;
+};
 
 } // namespace PVRHDHomeRun
