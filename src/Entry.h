@@ -50,44 +50,6 @@ public:
 bool operator==(const Entry&, const Entry&);
 bool operator<(const Entry&, const Entry&);
 
-class ChannelNumber
-{
-private:
-    static const uint32_t SubchannelLimit = 10000;
-public:
-    ChannelNumber(const Json::Value&);
-    ChannelNumber(const ChannelNumber&) = default;
-    ChannelNumber(uint32_t id)
-    {
-        _channel = id / SubchannelLimit;
-         id %= SubchannelLimit;
-         _subchannel = id;
-    }
-    virtual ~ChannelNumber() = default;
-
-    std::string _channelnumber;
-    std::string _channelname;
-
-    uint32_t _channel;
-    uint32_t _subchannel;
-
-    std::string extendedName() const;
-    std::string toString() const;
-
-    uint32_t ID() const
-    {
-        // _subchannel < 1000, _nameidx < 100
-        return (_channel * SubchannelLimit) + _subchannel;
-    }
-    operator uint32_t() const
-    {
-        return ID();
-    }
-};
-
-bool operator<(const ChannelNumber&, const ChannelNumber&);
-bool operator==(const ChannelNumber&, const ChannelNumber&);
-
 template<typename T>
 unsigned int GetGenreType(const T& arr)
 {

@@ -61,10 +61,10 @@ public:
     {
         return ID();
     }
-
-    bool operator<(const GuideNumber&) const;
-    bool operator==(const GuideNumber&) const;
 };
+
+bool operator<(const GuideNumber&, const GuideNumber&);
+bool operator==(const GuideNumber&, const GuideNumber&);
 
 class GuideEntry : public Entry
 {

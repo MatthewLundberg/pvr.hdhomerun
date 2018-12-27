@@ -43,15 +43,15 @@ GuideNumber::GuideNumber(const Json::Value& v)
      }
 }
 
-bool GuideNumber::operator<(const GuideNumber& rhs) const
+bool operator<(const GuideNumber& a, const GuideNumber& b)
 {
-    if (_channel < rhs._channel)
+    if (a._channel < b._channel)
     {
         return true;
     }
-    else if (_channel == rhs._channel)
+    else if (a._channel == b._channel)
     {
-        if (_subchannel < rhs._subchannel)
+        if (a._subchannel < b._subchannel)
         {
             return true;
         }
@@ -59,10 +59,10 @@ bool GuideNumber::operator<(const GuideNumber& rhs) const
 
     return false;
 }
-bool GuideNumber::operator==(const GuideNumber& rhs) const
+bool operator==(const GuideNumber& a, const GuideNumber& b)
 {
-    bool ret = (_channel == rhs._channel)
-            && (_subchannel == rhs._subchannel)
+    bool ret = (a._channel    == b._channel)
+            && (a._subchannel == b._subchannel)
             ;
     return ret;
 }
