@@ -73,17 +73,16 @@ void IntervalSet::_rebalance()
         }
     }
 }
-void IntervalSet::Add(const Interval& o, bool rebalance)
+void IntervalSet::Add(const Interval& o)
 {
     _intervals.insert(o);
-    if (rebalance)
-        _rebalance();
+    _rebalance();
 }
 void IntervalSet::Add(const IntervalSet& set)
 {
     for (auto& o : set._intervals)
     {
-        Add(o, false);
+        _intervals.insert(o);
     }
     _rebalance();
 }

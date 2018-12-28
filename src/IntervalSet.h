@@ -75,7 +75,7 @@ public:
         _intervals.insert(i);
     }
 
-    void Add(const Interval&, bool rebalance = true);
+    void Add(const Interval&);
     void Add(const IntervalSet&);
 
     void Remove(const Interval&);
