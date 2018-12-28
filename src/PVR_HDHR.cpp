@@ -562,7 +562,7 @@ void PVR_HDHR::UpdateGuide()
                 // TODO - get iterator from IntervalSet
                 // Keep a separate set of start times.  Inserting into the guide modifies Requests.
                 std::set<time_t> starts;
-                for (auto& i : guide.Requests()._intervals)
+                for (const auto& i : guide.Requests().Intervals())
                 {
                     auto start = i.Start();
                     if (start == last.Start())

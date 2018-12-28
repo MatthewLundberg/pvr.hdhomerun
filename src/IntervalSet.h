@@ -117,6 +117,10 @@ public:
     {
         return _intervals.size();
     }
+    const std::set<Interval>& Intervals() const
+    {
+        return _intervals;
+    }
 private:
     void _rebalance();
     std::set<Interval> _intervals;
