@@ -117,7 +117,7 @@ public:
     {
         return _intervals.size();
     }
-
+private:
     void _rebalance();
     std::set<Interval> _intervals;
 };
