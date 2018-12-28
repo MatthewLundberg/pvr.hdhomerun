@@ -62,7 +62,6 @@ private:
 
 bool operator<(const RecordingEntry&, const RecordingEntry&);
 bool operator==(const RecordingEntry&, const RecordingEntry&);
-bool operator!=(const RecordingEntry&, const RecordingEntry&);
 
 class Recording
 {

@@ -68,10 +68,14 @@ bool operator==(const GuideNumber&, const GuideNumber&);
 
 class GuideEntry : public Entry
 {
+private:
+    uint32_t _id;
+    friend class Guide;
+    friend bool operator<(const GuideEntry&, const GuideEntry&);
+    friend bool operator==(const GuideEntry&, const GuideEntry&);
 public:
     GuideEntry(const Json::Value&);
 
-    uint32_t    _id;
 
 public:
     operator Interval() const

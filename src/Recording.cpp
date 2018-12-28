@@ -81,10 +81,6 @@ bool operator==(const RecordingEntry& a, const RecordingEntry& b)
             a._endtime      == b._endtime
             ;
 }
-bool operator!=(const RecordingEntry& a, const RecordingEntry& b)
-{
-    return !(a==b);
-}
 
 bool operator<(const RecordingEntry& x, const RecordingEntry&y)
 {

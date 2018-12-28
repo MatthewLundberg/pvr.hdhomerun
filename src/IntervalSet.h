@@ -39,10 +39,6 @@ public:
     {
         return (t >= _start) && (t < _end);
     }
-    bool operator<(const Interval& rhs) const
-    {
-        return _start < rhs._start;
-    }
     time_t Start() const
     {
         return _start;
@@ -61,10 +57,15 @@ public:
     {
         return toString();
     }
-
+private:
     time_t _start;
     time_t _end;
+    friend bool operator<(const Interval&, const Interval&);
+    friend class IntervalSet;
 };
+
+bool operator<(const Interval&, const Interval&);
+
 class IntervalSet
 {
 public:

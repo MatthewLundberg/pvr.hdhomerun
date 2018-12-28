@@ -166,5 +166,10 @@ time_t IntervalSet::Length() const
     );
 }
 
+bool operator<(const Interval& a, const Interval& b)
+{
+    return a._start < b._start;
+}
+
 } //namespace PVRHDHomeRun
 

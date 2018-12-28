@@ -193,6 +193,23 @@ uint32_t Device::LocalIP() const
     return 0;
 }
 
+bool operator==(const StorageDevice& a, const StorageDevice& b)
+{
+    return a._storageID == b._storageID;
+}
+bool operator<(const StorageDevice& a, const StorageDevice& b)
+{
+    return a._storageID < b._storageID;
+}
+bool operator==(const TunerDevice& a, const TunerDevice& b)
+{
+    return a.DeviceID() == b.DeviceID();
+}
+bool operator<(const TunerDevice& a, const TunerDevice& b)
+{
+    return a.DeviceID() < b.DeviceID();
+}
+
 void StorageDevice::UpdateRecord(Recording& r)
 {
     std::string contents;

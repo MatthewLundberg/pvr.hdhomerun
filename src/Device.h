@@ -66,15 +66,9 @@ private:
     std::string _storageURL;
     uint64_t    _freeSpace;
 
+    friend bool operator<(const StorageDevice&, const StorageDevice&);
+    friend bool operator==(const StorageDevice&, const StorageDevice&);
 public:
-    bool operator<(const StorageDevice& rhs)
-    {
-        return _storageID < rhs._storageID;
-    }
-    bool operator==(const StorageDevice& rhs)
-    {
-        return _storageID == rhs._storageID;
-    }
     void UpdateRecord(Recording&);
 
     uint64_t FreeSpace()
@@ -82,6 +76,9 @@ public:
         return _freeSpace;
     }
 };
+bool operator<(const StorageDevice&, const StorageDevice&);
+bool operator==(const StorageDevice&, const StorageDevice&);
+
 StorageDevice* New_StorageDevice(const hdhomerun_discover_device_t* d);
 
 // The tuner box has an ID, lineup, guide, and one or more tuners.
@@ -121,16 +118,11 @@ private:
 
     std::vector<std::unique_ptr<Tuner>> _tuners;
 public:
-    bool operator<(const TunerDevice& rhs) const
-    {
-        return DeviceID() < rhs.DeviceID();
-    }
-    bool operator==(const TunerDevice& rhs) const
-    {
-    	return DeviceID() == rhs.DeviceID();
-    }
     friend class Tuner;
 };
+bool operator==(const TunerDevice&, const TunerDevice&);
+bool operator<(const TunerDevice&, const TunerDevice&);
+
 
 TunerDevice* New_TunerDevice(const hdhomerun_discover_device_t* d);
 
