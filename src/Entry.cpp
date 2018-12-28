@@ -35,6 +35,8 @@ Entry::Entry(const Json::Value& v)
 
     _synopsis        = v["Synopsis"].asString();
     _imageURL        = v["ImageURL"].asString();
+    _posterURL       = v["PosterURL"].asString();
+    _seriesID        = v["SeriesID"].asString();
 
     // Remove this hack once the timer rules are sent to Kodi.
     bool recording = v.isMember("RecordingRule") && v["RecordingRule"].asBool();
@@ -56,6 +58,8 @@ Entry::Entry(const Json::Value& v)
             _episode = std::stoi(episode);
         }
     }
+
+    _genre = GetGenreType(v["Filter"]);
 }
 
 bool operator==(const Entry& a, const Entry& b)
@@ -64,6 +68,8 @@ bool operator==(const Entry& a, const Entry& b)
             a._endtime         == b._endtime &&
             a._originalairdate == b._originalairdate &&
             a._imageURL        == b._imageURL &&
+            a._posterURL       == b._posterURL &&
+            a._seriesID        == b._seriesID &&
             a._synopsis        == b._synopsis &&
             a._title           == b._title &&
             a._episodenumber   == b._episodenumber &&

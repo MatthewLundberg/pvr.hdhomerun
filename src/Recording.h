@@ -43,9 +43,7 @@ public:
     std::string _channelimg;
     std::string _channelname;
     std::string _channelnum;
-    std::string _poster;
     std::string _programid;
-    std::string _seriesid;
     std::string _groupid;
     std::string _grouptitle;
     std::string _playurl;
@@ -53,9 +51,6 @@ public:
 
     time_t _recordstarttime;
     time_t _recordendtime;
-
-    time_t rstarttime() const;
-    time_t rendtime() const;
 
     operator PVR_RECORDING() const
     {

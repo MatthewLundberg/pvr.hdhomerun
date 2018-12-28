@@ -87,8 +87,6 @@ std::string GuideNumber::extendedName() const
 GuideEntry::GuideEntry(const Json::Value& v)
 : Entry(v)
 {
-    _seriesID        = v["SeriesID"].asString();
-    _genre           = GetGenreType(v["Filter"]);
 }
 bool operator<(const GuideEntry& a, const GuideEntry& b)
 {
@@ -97,8 +95,7 @@ bool operator<(const GuideEntry& a, const GuideEntry& b)
 bool operator==(const GuideEntry& a, const GuideEntry& b)
 {
     return static_cast<const Entry&>(a) == static_cast<const Entry&>(b)
-            && a._episodenumber   == b._episodenumber
-            && a._seriesID        == b._seriesID;
+            && a._id == b._id;
 }
 
 EPG_TAG GuideEntry::Epg_Tag(uint32_t number) const

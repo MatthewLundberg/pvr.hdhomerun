@@ -34,9 +34,7 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
     _channelimg  = v["ChannelImageURL"].asString();
     _channelname = v["ChannelName"].asString();
     _channelnum  = v["ChannelNumber"].asString();
-    _poster      = v["PosterURL"].asString();
     _programid   = v["ProgramID"].asString();
-    _seriesid    = v["SeriesID"].asString();
     _groupid     = v["DisplayGroupID"].asString();
     _grouptitle  = v["DisplayGroupTitle"].asString();
     _playurl     = v["PlayURL"].asString();
@@ -44,23 +42,6 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
 
     _recordstarttime = v["RecordStartTime"].asUInt64();
     _recordendtime   = v["RecordEndTime"].asUInt64();
-}
-
-namespace {
-template<size_t N>
-void scp(char (&x)[N], const std::string& s)
-{
-    strcpy(x, s.substr(0,N-1).c_str());
-}
-}
-
-time_t RecordingEntry::rstarttime() const
-{
-    return (static_cast<const Entry*>(this))->_starttime;
-}
-time_t RecordingEntry::rendtime() const
-{
-    return (static_cast<const Entry*>(this))->_endtime;
 }
 
 PVR_RECORDING RecordingEntry::_pvr_recording() const
@@ -90,9 +71,7 @@ bool operator==(const RecordingEntry& a, const RecordingEntry& b)
             a._channelimg   == b._channelimg &&
             a._channelname  == b._channelname &&
             a._channelnum   == b._channelnum &&
-            a._poster       == b._poster &&
             a._programid    == b._programid &&
-            a._seriesid     == b._seriesid &&
             a._groupid      == b._groupid &&
             a._grouptitle   == b._grouptitle &&
             a._playurl      == b._playurl &&
@@ -156,7 +135,7 @@ void Recording::UpdateData(const Json::Value& json, const StorageDevice* device)
             _diff = true;
 
             auto id = entry._programid; // Copy _programid to allow a move for everything else.
-            _records.emplace(id, std::move(entry));
+            _records.emplace(std::move(id), std::move(entry));
         }
         else
         {
