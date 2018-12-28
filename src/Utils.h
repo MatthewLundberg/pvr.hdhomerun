@@ -27,6 +27,7 @@
  */
 
 #include <string>
+#include <json/json.h>
 
 #if defined(TARGET_WINDOWS) && defined(DEBUG)
 #define USE_DBG_CONSOLE
@@ -72,7 +73,8 @@ bool operator!=(const T& a, const T& b)
     return !(a==b);
 }
 
-bool GetFileContents(const std::string& url, std::string& strContent);
+bool GetFileContents(const std::string& url, std::string& content);
+bool StringToJson(const std::string& in, Json::Value& out, std::string& err);
 
 std::string EncodeURL(const std::string& strUrl);
 std::string FormatIP(uint32_t);

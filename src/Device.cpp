@@ -65,9 +65,9 @@ void Device::Refresh(const hdhomerun_discover_device_t* d)
     std::string baseURL{BaseURL()};
     if (GetFileContents(baseURL + "/discover.json", discoverResults))
     {
-        Json::Reader jsonReader;
-        Json::Value  discoverJson;
-        if (jsonReader.parse(discoverResults, discoverJson))
+        Json::Value discoverJson;
+        std::string err;
+        if (StringToJson(discoverResults, discoverJson, err))
         {
             _parse_discover_data(discoverJson);
         }
@@ -215,9 +215,9 @@ void StorageDevice::UpdateRecord(Recording& r)
     std::string contents;
     if (GetFileContents(_storageURL, contents))
     {
-        Json::Reader jsonReader;
-        Json::Value  contentsJson;
-        if (jsonReader.parse(contents, contentsJson))
+        Json::Value contentsJson;
+        std::string err;
+        if (StringToJson(contents, contentsJson, err))
         {
             r.UpdateData(contentsJson, this);
         }

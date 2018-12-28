@@ -28,6 +28,7 @@
 #include "Utils.h"
 
 #include <string>
+#include <memory>
 #include <p8-platform/util/StringUtils.h>
 
 #include "Addon.h"
@@ -65,7 +66,6 @@ bool GetFileContents(const std::string& url, std::string& strContent)
     void* fileHandle;
 
     strContent.clear();
-
     fileHandle = g.XBMC->OpenFile(url.c_str(), 0);
 
     if (fileHandle == nullptr)
@@ -85,6 +85,13 @@ bool GetFileContents(const std::string& url, std::string& strContent)
     g.XBMC->CloseFile(fileHandle);
 
     return true;
+}
+
+bool StringToJson(const std::string& in, Json::Value& out, std::string& err)
+{
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> const reader(builder.newCharReader());
+    return reader->parse(in.c_str(), in.c_str() + in.size(), &out, &err);
 }
 
 std::string EncodeURL(const std::string& strUrl)

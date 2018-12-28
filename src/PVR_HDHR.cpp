@@ -306,10 +306,10 @@ bool PVR_HDHR::UpdateLineup()
         }
 
         Json::Value lineupJson;
-        Json::Reader jsonReader;
-        if (!jsonReader.parse(lineupStr, lineupJson))
+        std::string err;
+        if (!StringToJson(lineupStr, lineupJson, err))
         {
-            KODI_LOG(LOG_ERROR, "Cannot parse JSON value returned from %s", device->LineupURL().c_str());
+            KODI_LOG(LOG_ERROR, "Cannot parse JSON value returned from %s - %s", device->LineupURL().c_str(), err.c_str());
             continue;
         }
 
@@ -456,11 +456,11 @@ void PVR_HDHR::_fetch_guide_data(const uint32_t* number, time_t start)
     if (guidedata.substr(0,4) == "null")
         return;
 
-    Json::Reader jsonreader;
-    Json::Value  jsondeviceguide;
-    if (!jsonreader.parse(guidedata, jsondeviceguide))
+    Json::Value jsondeviceguide;
+    std::string err;
+    if (!StringToJson(guidedata, jsondeviceguide, err))
     {
-        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %s", idstring.c_str());
+        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %s - %s", idstring.c_str(), err.c_str());
         return;
     }
     _insert_json_guide_data(jsondeviceguide, idstring.c_str());
@@ -883,13 +883,11 @@ PVR_ERROR PVR_HDHR::GetRecordings(ADDON_HANDLE handle, bool deleted)
     if (!deleted)
     {
         Lock lock(this);
-        std::cout << __FUNCTION__ << std::endl;
 
         for (auto& r: _recording.Records())
         {
             PVR_RECORDING prec = r.second;
             g.PVR->TransferRecordingEntry(handle, &prec);
-            std::cout << "  " << r.second._title << std::endl;
         }
     }
 
