@@ -438,9 +438,8 @@ void PVR_HDHR::_fetch_guide_data(const uint32_t* number, time_t start)
 
         if (start)
         {
-            auto start_s = std::to_string(start);
             URL.append("&Start=");
-            URL.append(start_s);
+            URL.append(std::to_string(start));
         }
     }
     KODI_LOG(LOG_DEBUG, "Requesting guide for %s: %s %s",
