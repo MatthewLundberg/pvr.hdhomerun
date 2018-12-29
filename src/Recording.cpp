@@ -34,8 +34,8 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
     _channelimg  = v["ChannelImageURL"].asString();
     _channelname = v["ChannelName"].asString();
     _channelnum  = v["ChannelNumber"].asString();
-    _programid   = v["ProgramID"].asString();
-    _groupid     = v["DisplayGroupID"].asString();
+    _programID   = v["ProgramID"].asString();
+    _groupID     = v["DisplayGroupID"].asString();
     _grouptitle  = v["DisplayGroupTitle"].asString();
     _playurl     = v["PlayURL"].asString();
     _cmdurl      = v["CmdURL"].asString();
@@ -48,13 +48,13 @@ PVR_RECORDING RecordingEntry::_pvr_recording() const
 {
     PVR_RECORDING x = {0};
 
-    pvr_strcpy(x.strRecordingId, _programid);
+    pvr_strcpy(x.strRecordingId, _programID);
     pvr_strcpy(x.strTitle,       _title);
     pvr_strcpy(x.strEpisodeName, _episodetitle);
     x.iSeriesNumber = _season;
     x.iEpisodeNumber = _episode;
     pvr_strcpy(x.strPlot,        _synopsis);
-    pvr_strcpy(x.strChannelName, _channelname + " " + _channelnum);
+    pvr_strcpy(x.strChannelName, _channelnum + " " + _affiliate); // TODO - allow choice
     pvr_strcpy(x.strIconPath,    _imageURL); // _channelimg
     pvr_strcpy(x.strDirectory,   _grouptitle);
     x.recordingTime = _starttime;
@@ -71,20 +71,34 @@ bool operator==(const RecordingEntry& a, const RecordingEntry& b)
             a._channelimg   == b._channelimg &&
             a._channelname  == b._channelname &&
             a._channelnum   == b._channelnum &&
-            a._programid    == b._programid &&
-            a._groupid      == b._groupid &&
+            a._programID    == b._programID &&
+            a._groupID      == b._groupID &&
             a._grouptitle   == b._grouptitle &&
             a._playurl      == b._playurl &&
             a._cmdurl       == b._cmdurl &&
 
-            a._starttime    == b._starttime &&
-            a._endtime      == b._endtime
-            ;
+            a._recordstarttime == b._recordstarttime &&
+            a._recordendtime   == b._recordendtime;
 }
 
 bool operator<(const RecordingEntry& x, const RecordingEntry&y)
 {
-    return x._programid < y._programid;
+    return x._programID < y._programID;
+}
+
+bool operator==(const RecordingRule& a, const RecordingRule& b)
+{
+    return static_cast<const Entry&>(a) == static_cast<const Entry&>(b) &&
+            a._recordingruleID == b._recordingruleID &&
+            a._datetimeonly    == b._datetimeonly &&
+            a._channelonly     == b._channelonly &&
+            a._startpadding    == b._startpadding &&
+            a._endpadding      == b._endpadding;
+}
+
+bool operator<(const RecordingRule& a, const RecordingRule& b)
+{
+    return a._recordingruleID < b._recordingruleID;
 }
 
 size_t Recording::size()
@@ -97,32 +111,18 @@ void Recording::UpdateBegin()
     _devices.clear();
     _diff = false;
 }
-bool Recording::UpdateEnd()
-{
-    // Look for now-missing items
-    auto ri = _records.begin();
-    while (ri != _records.end())
-    {
-        const auto& id = ri->first;
-        const auto& i = _devices.find(id);
-        if (i == _devices.end())
-        {
-            _diff = true;
-            ri = _records.erase(ri);
-        }
-        else
-            ++ ri;
-    }
 
-    return _diff;
+bool Recording::UpdateEntryEnd()
+{
+    return _update_end(_records);
 }
 
-void Recording::UpdateData(const Json::Value& json, const StorageDevice* device)
+void Recording::UpdateEntry(const Json::Value& json, const StorageDevice* device)
 {
     for (const auto& j : json)
     {
         RecordingEntry entry(j);
-        const auto& id = entry._programid;
+        const auto& id = entry._programID;
         _devices[id].insert(device);
 
         auto i = _records.find(id);
@@ -130,7 +130,7 @@ void Recording::UpdateData(const Json::Value& json, const StorageDevice* device)
         {
             _diff = true;
 
-            auto id = entry._programid; // Copy _programid to allow a move for everything else.
+            auto id = entry._programID; // Copy _programID to allow a move for everything else.
             _records.emplace(std::move(id), std::move(entry));
         }
         else
@@ -144,5 +144,14 @@ void Recording::UpdateData(const Json::Value& json, const StorageDevice* device)
     }
 }
 
+RecordingRule::RecordingRule(const Json::Value& v)
+: Entry(v)
+{
+    _recordingruleID = v["RecordingRuleID"].asString();
+    _datetimeonly    = v["DateTimeOnly"].asUInt64();
+    _channelonly     = v["ChannelOnly"].asString();
+    _startpadding    = v["StartPadding"].asInt();
+    _endpadding      = v["EndPadding"].asInt();
+}
 
 } // namespace PVRHDHomeRun

@@ -210,7 +210,7 @@ bool operator<(const TunerDevice& a, const TunerDevice& b)
     return a.DeviceID() < b.DeviceID();
 }
 
-void StorageDevice::UpdateRecord(Recording& r)
+void StorageDevice::UpdateRecordEntry(Recording& r)
 {
     std::string contents;
     if (GetFileContents(_storageURL, contents))
@@ -219,7 +219,7 @@ void StorageDevice::UpdateRecord(Recording& r)
         std::string err;
         if (StringToJson(contents, contentsJson, err))
         {
-            r.UpdateData(contentsJson, this);
+            r.UpdateEntry(contentsJson, this);
         }
     }
 }

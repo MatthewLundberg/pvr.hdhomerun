@@ -43,8 +43,8 @@ public:
     std::string _channelimg;
     std::string _channelname;
     std::string _channelnum;
-    std::string _programid;
-    std::string _groupid;
+    std::string _programID;
+    std::string _groupID;
     std::string _grouptitle;
     std::string _playurl;
     std::string _cmdurl;
@@ -63,36 +63,53 @@ private:
 bool operator<(const RecordingEntry&, const RecordingEntry&);
 bool operator==(const RecordingEntry&, const RecordingEntry&);
 
-class Recording
+class RecordingRule : public Entry
 {
-    std::map<std::string, RecordingEntry> _records;
-    std::map<std::string, std::set<const StorageDevice*>> _devices;
-    bool _diff;
-
 public:
-    void UpdateBegin();
-    void UpdateData(const Json::Value&, const StorageDevice*);
-    bool UpdateEnd();
-    size_t size();
+    RecordingRule(const Json::Value& json);
+    std::string _recordingruleID;
 
-    const std::map<std::string, RecordingEntry>& Records() const { return _records; };
-    const std::map<std::string, std::set<const StorageDevice*>>& Devices() const { return _devices; };
-};
-
-class RecordingRule
-{
-    std::string _recordingruleid;
-    std::string _seriesid;
-    std::string _title;
-    std::string _synopsis;
-    std::string _imageurl;
-    std::string _posterurl;
-    std::string _filtertags;
     time_t      _datetimeonly = 0;
     std::string _channelonly;
     int         _startpadding = 0;
     int         _endpadding   = 0;
-    uint32_t    _genre        = 0;
+};
+
+bool operator<(const RecordingRule&, const RecordingRule&);
+bool operator==(const RecordingRule&, const RecordingRule&);
+
+class Recording
+{
+    std::map<std::string, RecordingEntry> _records;
+
+    // Used to determine if records need to be removed
+    std::map<std::string, std::set<const StorageDevice*>> _devices;
+    bool _diff;
+    template<typename T> bool _update_end(T& c)
+    {
+        auto it = c.begin();
+        while (it != c.end())
+        {
+            const auto& id = it->first;
+            const auto& dev = _devices.find(id);
+            if (dev == _devices.end())
+            {
+                _diff = true;
+                it = c.erase(it);
+            }
+            else
+                ++ it;
+        }
+        return _diff;
+    }
+
+public:
+    void UpdateBegin();
+    void UpdateEntry(const Json::Value&, const StorageDevice*);
+    bool UpdateEntryEnd();
+    size_t size();
+
+    const std::map<std::string, RecordingEntry>& Records() const { return _records; };
 };
 
 } // namespace PVRHDHomeRun

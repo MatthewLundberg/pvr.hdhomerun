@@ -277,8 +277,8 @@ bool PVR_HDHR::UpdateRecordings()
 
     _recording.UpdateBegin();
     for (const auto dev:_storage_devices)
-        dev->UpdateRecord(_recording);
-    return _recording.UpdateEnd();
+        dev->UpdateRecordEntry(_recording);
+    return _recording.UpdateEntryEnd();
 }
 
 bool PVR_HDHR::UpdateLineup()

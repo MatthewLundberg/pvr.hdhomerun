@@ -69,7 +69,7 @@ private:
     friend bool operator<(const StorageDevice&, const StorageDevice&);
     friend bool operator==(const StorageDevice&, const StorageDevice&);
 public:
-    void UpdateRecord(Recording&);
+    void UpdateRecordEntry(Recording&);
 
     uint64_t FreeSpace()
     {
