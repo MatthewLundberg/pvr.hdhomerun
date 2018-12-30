@@ -210,18 +210,4 @@ bool operator<(const TunerDevice& a, const TunerDevice& b)
     return a.DeviceID() < b.DeviceID();
 }
 
-void StorageDevice::UpdateRecordEntry(Recording& r)
-{
-    std::string contents;
-    if (GetFileContents(_storageURL, contents))
-    {
-        Json::Value contentsJson;
-        std::string err;
-        if (StringToJson(contents, contentsJson, err))
-        {
-            r.UpdateEntry(contentsJson, this);
-        }
-    }
-}
-
 } // namespace PVRHDHomeRun

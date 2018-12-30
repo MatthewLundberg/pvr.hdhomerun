@@ -32,6 +32,7 @@ class Entry
 {
 public:
     Entry(const Json::Value&);
+    virtual ~Entry() = default;
 
     time_t _starttime       = 0;
     time_t _endtime         = 0;
@@ -75,7 +76,6 @@ public:
 
         return nGenreType;
     }
-
 };
 
 bool operator==(const Entry&, const Entry&);

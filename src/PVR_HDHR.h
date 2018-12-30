@@ -47,14 +47,16 @@ public:
     bool UpdateLineup();
     bool UpdateRecordings();
     void UpdateGuide();
+    bool UpdateRules();
 
     bool Update()
     {
         bool newDevice  = DiscoverTunerDevices();
         bool newLineup = UpdateLineup();
         UpdateGuide();
+        bool newRules = UpdateRules();
 
-        return newDevice || newLineup;
+        return newDevice || newLineup || newRules;
     }
     void AddLineupEntry(const Json::Value&, TunerDevice*);
 

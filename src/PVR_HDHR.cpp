@@ -276,9 +276,54 @@ bool PVR_HDHR::UpdateRecordings()
     Lock lock(this);
 
     _recording.UpdateBegin();
-    for (const auto dev:_storage_devices)
-        dev->UpdateRecordEntry(_recording);
+    for (const auto dev: _storage_devices)
+    {
+        std::string s;
+        if (GetFileContents(dev->StorageURL(), s))
+        {
+            Json::Value json;
+            std::string err;
+            if (StringToJson(s, json, err))
+            {
+                _recording.UpdateEntry(json);
+            }
+        }
+    }
     return _recording.UpdateEntryEnd();
+}
+
+bool PVR_HDHR::UpdateRules()
+{
+    Lock lock(this);
+
+    _recording.UpdateBegin();
+    TunerSet* ts = this;
+    if (ts->DeviceCount())
+    {
+        std::string URL{"http://api.hdhomerun.com/api/recording_rules?DeviceAuth="};
+        auto authstring = ts->AuthString();
+        URL.append(EncodeURL(authstring));
+
+        std::string rulestring;
+        if (!GetFileContents(URL, rulestring))
+        {
+            KODI_LOG(LOG_ERROR, "Error requesting recording rules from %s", URL.c_str());
+        }
+        else
+        {
+            Json::Value rulesjson;
+            std::string err;
+            if (!StringToJson(rulestring, rulesjson, err))
+            {
+                KODI_LOG(LOG_ERROR, "Error parsing JSON guilde data for %s - %s", URL.c_str(), err.c_str());
+            }
+            else
+            {
+                 _recording.UpdateRule(rulesjson);
+            }
+        }
+    }
+    return _recording.UpdateRuleEnd();
 }
 
 bool PVR_HDHR::UpdateLineup()
@@ -427,8 +472,7 @@ void PVR_HDHR::_fetch_guide_data(const uint32_t* number, time_t start)
     std::string URL{"http://my.hdhomerun.com/api/guide.php?DeviceAuth="};
     auto authstring = ts->AuthString();
     auto idstring   = ts->IDString();
-    auto auth = EncodeURL(authstring);
-    URL.append(auth);
+    URL.append(EncodeURL(authstring));
 
     if (number)
     {
@@ -818,8 +862,8 @@ PVR_ERROR PVR_HDHR::GetStreamProperties(PVR_STREAM_PROPERTIES*)
 
 bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
 {
-    Lock strlock(_stream_lock);
     Lock lock(this);
+    Lock strlock(_stream_lock);
 
     std::cout << __FUNCTION__ << std::endl;
 
@@ -983,10 +1027,11 @@ bool PVR_HDHR::IsTimeshifting(void)
 
 void PVR_HDHR_TCP::_close_stream()
 {
-    Lock strlock(_stream_lock);
     Lock lock(this);
+    Lock strlock(_stream_lock);
 
-    g.XBMC->CloseFile(_filehandle);
+    if (_filehandle)
+        g.XBMC->CloseFile(_filehandle);
     _filehandle = nullptr;
     _filesize = 0;
 }
@@ -994,11 +1039,13 @@ void PVR_HDHR_TCP::_close_stream()
 int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
 {
     Lock strlock(_stream_lock);
-    Lock lock(this);
 
     if (_filehandle)
     {
-        return g.XBMC->ReadFile(_filehandle, buffer, size);
+        auto sz = g.XBMC->ReadFile(_filehandle, buffer, size);
+        //static uint64_t i=0;
+        //std::cout << __FUNCTION__ << " " << size << " " << sz << " " << i++ << std::endl;
+        return sz;
     }
     return 0;
 }
@@ -1012,11 +1059,14 @@ long long PVR_HDHR::SeekLiveStream(long long position, int whence)
 int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
 {
     Lock strlock(_stream_lock);
-    Lock lock(this);
 
-    auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
-    std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " -> " << pos << std::endl;
-    return pos;
+    if (_filehandle)
+    {
+        auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
+        //std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " -> " << pos << std::endl;
+        return pos;
+    }
+    return -1;
 }
 int64_t PVR_HDHR::_length_stream()
 {
@@ -1025,7 +1075,7 @@ int64_t PVR_HDHR::_length_stream()
     if (_filehandle)
     {
         auto len = g.XBMC->GetFileLength(_filehandle);
-        std::cout << __FUNCTION__ << " " << len << std::endl;
+        //std::cout << __FUNCTION__ << " " << len << std::endl;
         return len;
     }
     return -1;
@@ -1033,8 +1083,8 @@ int64_t PVR_HDHR::_length_stream()
 
 bool PVR_HDHR::_open_tcp_stream(const std::string& url)
 {
-    Lock strlock(_stream_lock);
     Lock lock(this);
+    Lock strlock(_stream_lock);
 
     _filehandle = nullptr;
     if (url.size())
@@ -1077,8 +1127,8 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
 
 bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
 {
-    Lock strlock(_stream_lock);
     Lock lock(this);
+    Lock strlock(_stream_lock);
 
     auto id = channel.iUniqueId;
     const auto& entry = _lineup.find(id);
@@ -1124,8 +1174,8 @@ bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
 
 bool PVR_HDHR_UDP::_open_stream(const PVR_CHANNEL& channel)
 {
-    Lock strlock(_stream_lock);
     Lock lock(this);
+    Lock strlock(_stream_lock);
     return false;
 }
 
@@ -1137,8 +1187,8 @@ int PVR_HDHR_UDP::_read_stream(unsigned char* buffer, unsigned int size)
 
 void PVR_HDHR_UDP::_close_stream()
 {
-    Lock strlock(_stream_lock);
     Lock lock(this);
+    Lock strlock(_stream_lock);
 }
 
 }; // namespace PVRHDHomeRun

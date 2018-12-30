@@ -69,8 +69,14 @@ private:
     friend bool operator<(const StorageDevice&, const StorageDevice&);
     friend bool operator==(const StorageDevice&, const StorageDevice&);
 public:
-    void UpdateRecordEntry(Recording&);
-
+    const std::string& StorageID() const
+    {
+        return _storageID;
+    }
+    const std::string& StorageURL() const
+    {
+        return _storageURL;
+    }
     uint64_t FreeSpace()
     {
         return _freeSpace;

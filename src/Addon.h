@@ -75,6 +75,7 @@ struct SettingsType
     int deviceDiscoverInterval  = 300;
     int lineupUpdateInterval    = 300;       // 5 min   Refresh lineup (local traffic for DLNA devices, remote fetch for legacy)
     int recordUpdateInterval    = 30;        // 30 sec  Refresh list from RECORD engine (local)
+    int ruleUpdateInterval      = 3600;      // 1 hour  Refresh recording rules (remote)
     int guideUpdateInterval     = 60;        // 1 min   Check guide for the need to update (remote)
     int guideBasicInterval      = 3600;      // 1 hour  Refresh basic guide
     int guideBasicBeforeHour    = 300;       // 5 minutes before the hour ...

@@ -27,7 +27,7 @@ namespace PVRHDHomeRun
 {
 
 RecordingEntry::RecordingEntry(const Json::Value& v)
-: Entry(v)
+: StringEntry(v)
 {
     _category    = v["Category"].asString();
     _affiliate   = v["ChannelAffiliate"].asString();
@@ -108,44 +108,32 @@ size_t Recording::size()
 
 void Recording::UpdateBegin()
 {
-    _devices.clear();
-    _diff = false;
+    _update_begin();
 }
 
+void Recording::UpdateEntry(const Json::Value& json)
+{
+    _update(_records, json);
+}
 bool Recording::UpdateEntryEnd()
 {
     return _update_end(_records);
 }
 
-void Recording::UpdateEntry(const Json::Value& json, const StorageDevice* device)
+void Recording::UpdateRule(const Json::Value& json)
 {
-    for (const auto& j : json)
-    {
-        RecordingEntry entry(j);
-        const auto& id = entry._programID;
-        _devices[id].insert(device);
-
-        auto i = _records.find(id);
-        if (i == _records.end())
-        {
-            _diff = true;
-
-            auto id = entry._programID; // Copy _programID to allow a move for everything else.
-            _records.emplace(std::move(id), std::move(entry));
-        }
-        else
-        {
-            if ((i->second) != entry)
-            {
-                _diff = true;
-                i->second = entry;
-            }
-        }
-    }
+    _update(_rules, json);
+}
+bool Recording::UpdateRuleEnd()
+{
+    std::cout << __FUNCTION__ << " #rules: " << _rules.size() << std::endl;
+    return _update_end(_rules);
 }
 
+
+
 RecordingRule::RecordingRule(const Json::Value& v)
-: Entry(v)
+: StringEntry(v)
 {
     _recordingruleID = v["RecordingRuleID"].asString();
     _datetimeonly    = v["DateTimeOnly"].asUInt64();

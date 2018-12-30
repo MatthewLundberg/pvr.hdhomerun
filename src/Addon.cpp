@@ -53,6 +53,7 @@ class UpdateThread: public P8PLATFORM::CThread, Lockable
     time_t _lastLineup   = 0;
     time_t _lastGuide    = 0;
     time_t _lastRecord   = 0;
+    time_t _lastRules    = 0;
 
     bool   _running      = false;
 
@@ -65,6 +66,7 @@ public:
         _lastLineup   = 0;
         _lastGuide    = 0;
         _lastRecord   = 0;
+        _lastRules    = 0;
         _running      = false;
     }
     void *Process()
@@ -126,14 +128,16 @@ public:
             bool updateLineup   = false;
             bool updateGuide    = false;
             bool updateRecord   = false;
+            bool updateRules    = false;
 
-            time_t discover, lineup, guide, recordings;
+            time_t discover, lineup, guide, recordings, rules;
             {
                 Lock lock(this);
                 discover   = _lastDiscover;
                 lineup     = _lastLineup;
                 guide      = _lastGuide;
                 recordings = _lastRecord;
+                rules      = _lastRules;
             }
 
             if (g.pvr_hdhr)
@@ -153,7 +157,7 @@ public:
                     }
                     updateDiscover = true;
                 }
-                else if (state == 1 || now >= recordings + g.Settings.recordUpdateInterval)
+                else if (state == 1 || now >= recordings + g.Settings.recordUpdateInterval || rules + g.Settings.ruleUpdateInterval)
                 {
                     state = 0;
 
@@ -163,6 +167,13 @@ public:
                             g.PVR->TriggerRecordingUpdate();
 
                         updateRecord = true;
+                    }
+                    if (now >= rules + g.Settings.ruleUpdateInterval)
+                    {
+                        if (g.pvr_hdhr->UpdateRules())
+                            ; // g.PVR->Trigger? TODO
+
+                        updateRules = true;
                     }
                 }
                 else if (state == 1 || now >= lineup + g.Settings.lineupUpdateInterval)
@@ -200,6 +211,8 @@ public:
                     _lastGuide = now;
                 if (updateRecord)
                     _lastRecord = now;
+                if (updateRules)
+                    _lastRules = now;
             }
         }
         return nullptr;

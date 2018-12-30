@@ -33,7 +33,15 @@ namespace PVRHDHomeRun
 
 class StorageDevice;
 
-class RecordingEntry : public Entry
+class StringEntry : public Entry
+{
+public:
+    StringEntry(const Json::Value& v) : Entry(v) {};
+    virtual ~StringEntry() = default;
+    virtual const std::string& ID() const = 0;
+};
+
+class RecordingEntry : public StringEntry
 {
 public:
     RecordingEntry(const Json::Value&);
@@ -52,6 +60,11 @@ public:
     time_t _recordstarttime;
     time_t _recordendtime;
 
+    const std::string& ID() const override
+    {
+        return _programID;
+    }
+
     operator PVR_RECORDING() const
     {
         return _pvr_recording();
@@ -63,7 +76,7 @@ private:
 bool operator<(const RecordingEntry&, const RecordingEntry&);
 bool operator==(const RecordingEntry&, const RecordingEntry&);
 
-class RecordingRule : public Entry
+class RecordingRule : public StringEntry
 {
 public:
     RecordingRule(const Json::Value& json);
@@ -73,6 +86,11 @@ public:
     std::string _channelonly;
     int         _startpadding = 0;
     int         _endpadding   = 0;
+
+    const std::string& ID() const override
+    {
+        return _recordingruleID;
+    }
 };
 
 bool operator<(const RecordingRule&, const RecordingRule&);
@@ -81,18 +99,24 @@ bool operator==(const RecordingRule&, const RecordingRule&);
 class Recording
 {
     std::map<std::string, RecordingEntry> _records;
+    std::map<std::string, RecordingRule>  _rules;
 
     // Used to determine if records need to be removed
-    std::map<std::string, std::set<const StorageDevice*>> _devices;
+    std::set<std::string> _ids_in_use;
     bool _diff;
+    void _update_begin()
+    {
+        _ids_in_use.clear();
+        _diff = false;
+    }
     template<typename T> bool _update_end(T& c)
     {
         auto it = c.begin();
         while (it != c.end())
         {
             const auto& id = it->first;
-            const auto& dev = _devices.find(id);
-            if (dev == _devices.end())
+            const auto& dev = _ids_in_use.find(id);
+            if (dev == _ids_in_use.end())
             {
                 _diff = true;
                 it = c.erase(it);
@@ -102,11 +126,38 @@ class Recording
         }
         return _diff;
     }
+    template<typename T> void _update(T& c, const Json::Value& json)
+    {
+        for (const auto& j: json)
+        {
+            typename T::value_type::second_type entry(j);
+            const auto& id = entry.ID();
+            _ids_in_use.insert(id);
+
+            auto i = c.find(id);
+            if (i == c.end())
+            {
+                _diff = true;
+                auto idc = id; // copy ID to allow a move for the structure
+                c.emplace(std::move(idc), std::move(entry));
+            }
+            else
+            {
+                if ((i->second) != entry)
+                {
+                    _diff = true;
+                    i->second = entry;
+                }
+            }
+        }
+    }
 
 public:
     void UpdateBegin();
-    void UpdateEntry(const Json::Value&, const StorageDevice*);
+    void UpdateEntry(const Json::Value&);
     bool UpdateEntryEnd();
+    void UpdateRule(const Json::Value&);
+    bool UpdateRuleEnd();
     size_t size();
 
     const std::map<std::string, RecordingEntry>& Records() const { return _records; };
