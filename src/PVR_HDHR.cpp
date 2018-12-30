@@ -91,8 +91,8 @@ bool PVR_HDHR::DiscoverTunerDevices()
     bool storage_added   = false;
     bool storage_removed = false;
 
-    Lock guidelock(_guide_lock);
     Lock lock(this);
+    Lock guidelock(_guide_lock);
     for (size_t i=0; i<device_count; i++)
     {
         auto& dd = discover_devices[i];
@@ -405,8 +405,8 @@ bool PVR_HDHR::UpdateLineup()
 
 void PVR_HDHR::_age_out(time_t now)
 {
-    Lock guidelock(_guide_lock);
     Lock lock(this);
+    Lock guidelock(_guide_lock);
 
     for (auto& mapentry : _guide)
     {
@@ -675,8 +675,8 @@ PVR_ERROR PVR_HDHR::GetEPGForChannel(ADDON_HANDLE handle,
         const PVR_CHANNEL& channel, time_t start, time_t end
         )
 {
-    Lock guidelock(_guide_lock);
     Lock lock(this);
+    Lock guidelock(_guide_lock);
 
     auto& guide = _guide[channel.iUniqueId];
 

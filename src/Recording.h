@@ -143,6 +143,7 @@ class Recording
             }
             else
             {
+                using namespace std::rel_ops;
                 if ((i->second) != entry)
                 {
                     _diff = true;
