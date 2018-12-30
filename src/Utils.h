@@ -67,12 +67,6 @@ void pvr_strcpy(char (&dest)[N], const char* src)
     dest[N-1] = '\0';
 }
 
-//template<typename T>
-//bool operator!=(const T& a, const T& b)
-//{
-//    return !(a==b);
-//}
-
 bool GetFileContents(const std::string& url, std::string& content);
 bool StringToJson(const std::string& in, Json::Value& out, std::string& err);
 
