@@ -9,7 +9,7 @@ msgstr ""
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Kodi Translation Team\n"
-"Language-Team: English (United States) (http://www.transifex.com/projects/p/kodi-main/language/en_US/)\n"
+"Language-Team: English (Great Britain) (http://www.transifex.com/projects/p/kodi-main/language/en_GB/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -73,12 +73,12 @@ msgid "Network Settings"
 msgstr "Network Settings"
 
 msgctxt "#32201"
-msgid "Network Protocol"
-msgstr "Network Protocol"
+msgid "Use SD Record Engine"
+msgstr "Use SD Record Engine"
 
 msgctxt "#32202"
-msgid "Use legacy hardware"
-msgstr "Use legacy hardware"
+msgid "Use Record Engine for Live TV"
+msgstr "Use Record Engine for Live TV"
 
 msgctxt "#32203"
 msgid "Preferred Tuners"
@@ -89,24 +89,17 @@ msgid "Blacklist Tuners"
 msgstr "Blacklist Tuners"
 
 msgctxt "#32205"
+msgid "Network Protocol"
+msgstr "Network Protocol"
+
+msgctxt "#32206"
 msgid "Port"
 msgstr "Port"
 
-msgctxt "#32206"
-msgid "Use Record Engine for Live TV"
-msgstr "Use Record Engine for Live TV"
+msgctxt "#32207"
+msgid "Use legacy hardware"
+msgstr "Use legacy hardware"
 
 
 
-msgctxt "#32300"
-msgid "Record Engine"
-msgstr "Record Engine"
-
-msgctxt "#32301"
-msgid "Use SD Record Engine"
-msgstr "Use SD Record Engine"
-
-msgctxt "#32302"
-msgid "Use Record Engine for Live TV"
-msgstr "Use Record Engine for Live TV"
 
