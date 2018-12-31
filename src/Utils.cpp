@@ -108,7 +108,7 @@ std::string EncodeURL(const std::string& strUrl)
         else
         {
 			char replacement[4];
-			sprintf(replacement, "%%%02X", (int)c);
+			sprintf(replacement, "%%%02X", ((int)c & 0xff));
             str += replacement;
         }
     }
