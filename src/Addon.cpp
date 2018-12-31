@@ -144,8 +144,7 @@ public:
             {
                 if (state == 0)
                 {
-                    std::cout << "state 0\n";
-                    // Tuner discover state
+                    // Tuner discover
                     if (now >= discover + g.Settings.deviceDiscoverInterval)
                     {
                         bool discovered = g.pvr_hdhr->DiscoverTunerDevices();
@@ -167,7 +166,6 @@ public:
 
                 if (state == 1)
                 {
-                    std::cout << "state 1\n";
                     if (now >= lineup + g.Settings.lineupUpdateInterval)
                     {
                         if (g.pvr_hdhr->UpdateLineup())
@@ -191,7 +189,6 @@ public:
 
                 if (state == 2)
                 {
-                    std::cout << "state 2\n" << now << " " << rules << " " << g.Settings.ruleUpdateInterval << std::endl;
                     if (now >= rules + g.Settings.ruleUpdateInterval)
                     {
                          if (g.pvr_hdhr->UpdateRules()) {}
@@ -205,10 +202,8 @@ public:
 
                 if (state == 3)
                 {
-                    std::cout << "state 3\n" << guide << std::endl;
                     if (now >= guide + g.Settings.guideUpdateInterval)
                     {
-                        std::cout << "update guide\n";
                         g.pvr_hdhr->UpdateGuide();
 
                         updateGuide = true;
@@ -347,7 +342,7 @@ void ADDON_ReadSettings(void)
         return;
 
     readvalue("hide_protected", g.Settings.hideProtectedChannels);
-    readvalue("mark_new",       g.Settings.markNewProgram);
+    //readvalue("mark_new",       g.Settings.markNewProgram);
     readvalue("debug",          g.Settings.debugLog);
     readvalue("hide_unknown",   g.Settings.hideUnknownChannels);
     readvalue("use_legacy",     g.Settings.useLegacyDevices);
@@ -460,8 +455,8 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     if (setvalue(g.Settings.hideProtectedChannels, "hide_protected", name, value))
         return ADDON_STATUS_NEED_RESTART;
 
-    if (setvalue(g.Settings.markNewProgram, "mark_new", name, value))
-        return ADDON_STATUS_OK;
+    //if (setvalue(g.Settings.markNewProgram, "mark_new", name, value))
+    //    return ADDON_STATUS_OK;
 
     if (setvalue(g.Settings.debugLog, "debug", name, value))
         return ADDON_STATUS_OK;

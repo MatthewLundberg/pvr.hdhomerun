@@ -57,7 +57,7 @@ struct SettingsType
 
     bool hideProtectedChannels  = true;
     bool debugLog               = false;
-    bool markNewProgram         = false;
+    //bool markNewProgram         = false;
     bool useLegacyDevices       = false;
     bool hideUnknownChannels    = true;
     CHANNEL_NAME channelName    = AFFILIATE;
