@@ -142,64 +142,82 @@ public:
 
             if (g.pvr_hdhr)
             {
-                if (now >= discover + g.Settings.deviceDiscoverInterval)
+                if (state == 0)
                 {
-                    bool discovered = g.pvr_hdhr->DiscoverTunerDevices();
-                    if (discovered)
+                    std::cout << "state 0\n";
+                    // Tuner discover state
+                    if (now >= discover + g.Settings.deviceDiscoverInterval)
                     {
-                        KODI_LOG(LOG_DEBUG, "PVR::DiscoverDevices returned true, try again");
-                        now = 0;
-                        state = 0;
+                        bool discovered = g.pvr_hdhr->DiscoverTunerDevices();
+                        if (discovered)
+                        {
+                            KODI_LOG(LOG_DEBUG, "PVR::DiscoverDevices returned true, try again");
+                            now = 0;
+                            state = 0;
+                        }
+                        else
+                        {
+                            state = 1;
+                        }
+                        updateDiscover = true;
                     }
                     else
-                    {
                         state = 1;
-                    }
-                    updateDiscover = true;
                 }
-                else if (state == 1 || now >= recordings + g.Settings.recordUpdateInterval || rules + g.Settings.ruleUpdateInterval)
-                {
-                    state = 0;
 
-                    if (now >= recordings + g.Settings.recordUpdateInterval)
+                if (state == 1)
+                {
+                    std::cout << "state 1\n";
+                    if (now >= lineup + g.Settings.lineupUpdateInterval)
+                    {
+                        if (g.pvr_hdhr->UpdateLineup())
+                        {
+                            g.PVR->TriggerChannelUpdate();
+                            g.PVR->TriggerChannelGroupsUpdate();
+                        }
+
+                        updateLineup = true;
+                    }
+                    else if (now >= recordings + g.Settings.recordUpdateInterval)
                     {
                         if (g.pvr_hdhr->UpdateRecordings())
                             g.PVR->TriggerRecordingUpdate();
 
                         updateRecord = true;
                     }
+                    else
+                        state = 2;
+                }
+
+                if (state == 2)
+                {
+                    std::cout << "state 2\n" << now << " " << rules << " " << g.Settings.ruleUpdateInterval << std::endl;
                     if (now >= rules + g.Settings.ruleUpdateInterval)
                     {
-                        if (g.pvr_hdhr->UpdateRules())
+                         if (g.pvr_hdhr->UpdateRules()) {}
                             ; // g.PVR->Trigger? TODO
 
-                        updateRules = true;
-                    }
-                }
-                else if (state == 1 || now >= lineup + g.Settings.lineupUpdateInterval)
-                {
-                    if (g.pvr_hdhr->UpdateLineup())
-                    {
-                        state = 2;
-                        g.PVR->TriggerChannelUpdate();
-                        g.PVR->TriggerChannelGroupsUpdate();
+                         updateRules = true;
                     }
                     else
-                    {
-                        state = 0;
-                    }
-                    updateLineup = true;
+                        state = 3;
                 }
-                else if (state == 2 || now >= guide + g.Settings.guideUpdateInterval)
-                {
-                    state = 0;
 
-                    g.pvr_hdhr->UpdateGuide();
-                    updateGuide = true;
+                if (state == 3)
+                {
+                    std::cout << "state 3\n" << guide << std::endl;
+                    if (now >= guide + g.Settings.guideUpdateInterval)
+                    {
+                        std::cout << "update guide\n";
+                        g.pvr_hdhr->UpdateGuide();
+
+                        updateGuide = true;
+                    }
+                    state = 0;
                 }
             }
 
-            if (updateDiscover || updateLineup || updateGuide || updateRecord)
+            if (updateDiscover || updateLineup || updateGuide || updateRecord || updateRules)
             {
                 Lock lock(this);
 
@@ -388,11 +406,8 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
     }
     KODI_LOG(LOG_DEBUG, "Done with new-style Lineup");
 
-    if (g.pvr_hdhr)
-    {
-        g.pvr_hdhr->Update();
-        g_UpdateThread.CreateThread(false);
-    }
+    g.pvr_hdhr->Update();
+    g_UpdateThread.CreateThread(false);
 
     g.currentStatus = ADDON_STATUS_OK;
     g.isCreated = true;

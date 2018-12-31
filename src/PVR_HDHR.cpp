@@ -543,23 +543,19 @@ void PVR_HDHR::UpdateGuide()
 
     if (!_guide_contains(now))
     {
-        std::cout << "Guide does not contain now - ";
         do_basic = true;
     }
     int guide_early = g.Settings.guideBasicBeforeHour + distribution(generator);
     if (now % g.Settings.guideBasicInterval >= g.Settings.guideBasicInterval - guide_early && now - basic_update_time > guide_early)
     {
-        std::cout << guide_early << " seconds til the hour - ";
         do_basic = true;
     }
     if (basic_update_time + g.Settings.guideBasicInterval < now)
     {
-        std::cout << "update based on interval - ";
         do_basic = true;
     }
     if (do_basic)
     {
-        std::cout << "Update basic guide\n";
         _fetch_guide_data();
         basic_update_time = now;
         return;
