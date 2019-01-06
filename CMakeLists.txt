@@ -50,6 +50,7 @@ set(PVRHDHOMERUN_HEADERS src/Addon.h
                          src/IntervalSet.h
                          src/PVR_HDHR.h
                          src/Recording.h
+                         src/UniqueID.h
                          src/Utils.h)
 
 if(WIN32)

@@ -132,7 +132,7 @@ bool Guide::AddEntry(GuideEntry& v, uint32_t number)
     auto it = _entries.find(v);
     if (it == _entries.end())
     {
-        v._id = _nextidx ++;
+        v._id = _sequence.acquire();
         newentry = true;
     }
     else
@@ -163,6 +163,7 @@ void Guide::_age_out(uint32_t number, time_t limit)
         {
             _times.Remove(entry);
             it = _entries.erase(it);
+            _sequence.release(entry._id);
         }
         else
             it ++;

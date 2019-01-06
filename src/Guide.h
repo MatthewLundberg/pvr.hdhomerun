@@ -23,6 +23,7 @@
 #include "IntervalSet.h"
 #include "Addon.h"
 #include "Entry.h"
+#include "UniqueID.h"
 #include <json/json.h>
 
 namespace PVRHDHomeRun
@@ -135,7 +136,7 @@ private:
     std::string          _affiliate;
     std::string          _imageURL;
     std::set<GuideEntry> _entries;
-    uint32_t             _nextidx = 1;
+    UniqueID<uint32_t>   _sequence;
 
     IntervalSet          _times;
     IntervalSet          _requests;

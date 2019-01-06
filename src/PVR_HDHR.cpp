@@ -433,7 +433,7 @@ void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
         if (_guide.find(number) == _guide.end())
         {
             KODI_LOG(LOG_DEBUG, "Inserting guide for channel %u", number.ID());
-            _guide[number] = jsonchannelguide;
+            _guide.emplace(number, jsonchannelguide);
         }
 
         Guide& channelguide = _guide[number];
