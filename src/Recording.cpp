@@ -63,6 +63,16 @@ PVR_RECORDING RecordingEntry::_pvr_recording() const
     return x;
 }
 
+time_t RecordingEntry::StartTime() const
+{
+    return _recordstarttime;
+}
+
+time_t RecordingEntry::EndTime() const
+{
+    return _recordendtime;
+}
+
 bool operator==(const RecordingEntry& a, const RecordingEntry& b)
 {
     return static_cast<const Entry&>(a) == static_cast<const Entry&>(b) &&

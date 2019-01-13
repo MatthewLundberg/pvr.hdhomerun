@@ -60,6 +60,9 @@ public:
     time_t _recordstarttime;
     time_t _recordendtime;
 
+    time_t StartTime() const override;
+    time_t EndTime() const override;
+
     const std::string& ID() const override
     {
         return _programID;

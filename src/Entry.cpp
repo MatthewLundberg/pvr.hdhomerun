@@ -62,6 +62,16 @@ Entry::Entry(const Json::Value& v)
     _genre = GetGenreType(v["Filter"]);
 }
 
+time_t Entry::StartTime() const
+{
+    return _starttime;
+}
+
+time_t Entry::EndTime() const
+{
+    return _endtime;
+}
+
 bool operator==(const Entry& a, const Entry& b)
 {
     return a._starttime        == b._starttime &&

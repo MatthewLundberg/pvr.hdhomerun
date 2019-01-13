@@ -764,6 +764,8 @@ bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
     if (sts)
     {
         _live_stream = true;
+        _starttime = time(0);
+        _endtime   = std::numeric_limits<time_t>::max();
     }
     return sts;
 }
@@ -782,15 +784,15 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
 {
     Lock lock(this);
 
-    if (_current_entry && _filesize)
+    if (_using_sd_record && _starttime && _endtime)
     {
         auto now = time(0);
-        auto endtime = _current_entry->_endtime;
+        auto endtime = _endtime;
         if (endtime > now)
             endtime = now;
-        auto len = endtime - _current_entry->_starttime;
+        auto len = endtime - _starttime;
 
-        times->startTime = 0;
+        times->startTime = _starttime;
         times->ptsStart  = 0;
         times->ptsBegin  = 0;
         times->ptsEnd = len * 1000 * 1000;
@@ -810,6 +812,7 @@ long long PVR_HDHR::LengthLiveStream()
 
 bool PVR_HDHR::IsRealTimeStream()
 {
+    Lock lock(this);
     return _live_stream;
 }
 bool PVR_HDHR::SeekTime(double time,bool backwards,double* startpts)
@@ -827,11 +830,14 @@ PVR_ERROR PVR_HDHR::SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 }
 bool PVR_HDHR::CanPauseStream(void)
 {
-    return _filesize != 0;
+    //return _filesize != 0;
+    return true;
 }
 bool PVR_HDHR::CanSeekStream(void)
 {
-    return _filesize != 0;
+    //std::cout << __FUNCTION__ << std::endl;
+    //return _filesize != 0;
+    return true;
 }
 PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
 {
@@ -886,6 +892,10 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
     {
         _current_entry = &rec;
         _live_stream = false;
+
+        _using_sd_record = true;
+        _starttime = rec.StartTime();
+        _endtime   = rec.EndTime();
     }
 
     return sts;
@@ -1029,7 +1039,9 @@ void PVR_HDHR_TCP::_close_stream()
     if (_filehandle)
         g.XBMC->CloseFile(_filehandle);
     _filehandle = nullptr;
-    _filesize = 0;
+    _using_sd_record = false;
+    _starttime = 0;
+    _endtime = 0;
 }
 
 int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
@@ -1048,8 +1060,8 @@ int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
 
 long long PVR_HDHR::SeekLiveStream(long long position, int whence)
 {
-    //return _seek_stream(position, whence);
-    return PVR_ERROR_NOT_IMPLEMENTED;
+    return _seek_stream(position, whence);
+    //return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
@@ -1147,11 +1159,14 @@ bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
             if (_open_tcp_stream(url))
             {
                 _current_storage = device;
+                _using_sd_record = true;
                 return true;
             }
         }
         KODI_LOG(LOG_INFO, "Failed to tune channel %s from storage, falling back to tuner device", info._guidenumber.c_str());
     }
+    std::cout << "Using direct tuning" << std::endl;
+    _using_sd_record = false;
 
     for (auto id : g.Settings.preferredDevice)
     {

@@ -49,6 +49,9 @@ public:
     std::string _seriesID;
     uint32_t    _genre;
 
+    virtual time_t StartTime() const;
+    virtual time_t EndTime() const;
+
     template<typename T>
     static uint32_t GetGenreType(const T& arr)
     {
