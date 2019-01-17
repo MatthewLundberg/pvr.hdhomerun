@@ -32,7 +32,7 @@ namespace PVRHDHomeRun
 class GuideNumber
 {
 private:
-    static const uint32_t SubchannelLimit = 10000;
+    static const uint32_t SubchannelLimit = 100000;
 public:
     GuideNumber(const Json::Value&);
     GuideNumber(const GuideNumber&) = default;
@@ -55,7 +55,6 @@ public:
 
     uint32_t ID() const
     {
-        // _subchannel < 1000, _nameidx < 100
         return (_channel * SubchannelLimit) + _subchannel;
     }
     operator uint32_t() const

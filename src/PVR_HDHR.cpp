@@ -686,12 +686,6 @@ PVR_ERROR PVR_HDHR::GetEPGForChannel(ADDON_HANDLE handle,
         g.PVR->TransferEpgEntry(handle, &tag);
     }
 
-   if (channel.iUniqueId == 130002)
-   {
-        auto& times    = guide.Times();
-        std::cout << "PvrGetEPGForChannel " << channel.iUniqueId << " start " << FormatTime(start) << " end " << FormatTime(end) << " times " << times.toString() << " requests " << guide.Requests().toString() << "\n";
-   }
-
     return PVR_ERROR_NO_ERROR;
 }
 
