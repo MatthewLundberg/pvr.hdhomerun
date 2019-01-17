@@ -37,7 +37,7 @@
 
 namespace PVRHDHomeRun {
 
-class PVR_HDHR : public Lockable, public HasTunerSet<PVR_HDHR>
+class PVR_HDHR : public HasTunerSet<PVR_HDHR>
 {
 public:
     PVR_HDHR() = default;
@@ -155,6 +155,7 @@ public:
     const Entry*              _current_entry   = nullptr;
     bool                      _live_stream = false;
 protected:
+    Lockable _pvr_lock;
     Lockable _guide_lock;
     Lockable _stream_lock;
     void* _filehandle = nullptr;

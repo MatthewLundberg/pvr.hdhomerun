@@ -91,7 +91,7 @@ bool PVR_HDHR::DiscoverTunerDevices()
     bool storage_added   = false;
     bool storage_removed = false;
 
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     Lock guidelock(_guide_lock);
     for (size_t i=0; i<device_count; i++)
     {
@@ -273,7 +273,7 @@ void PVR_HDHR::AddLineupEntry(const Json::Value& v, TunerDevice* device)
 
 bool PVR_HDHR::UpdateRecordings()
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
 
     _recording.UpdateBegin();
     for (const auto dev: _storage_devices)
@@ -294,7 +294,7 @@ bool PVR_HDHR::UpdateRecordings()
 
 bool PVR_HDHR::UpdateRules()
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
 
     _recording.UpdateBegin();
     TunerSet* ts = this;
@@ -330,7 +330,7 @@ bool PVR_HDHR::UpdateLineup()
 {
     KODI_LOG(LOG_DEBUG, "PVR_HDHR::UpdateLineup");
 
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     std::set<GuideNumber> prior;
     std::copy(_lineup.begin(), _lineup.end(), std::inserter(prior, prior.begin()));
 
@@ -405,7 +405,7 @@ bool PVR_HDHR::UpdateLineup()
 
 void PVR_HDHR::_age_out(time_t now)
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     Lock guidelock(_guide_lock);
 
     for (auto& mapentry : _guide)
@@ -418,7 +418,7 @@ void PVR_HDHR::_age_out(time_t now)
 
 void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const char* idstr)
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
 
     if (jsondeviceguide.type() != Json::arrayValue)
     {
@@ -629,7 +629,7 @@ PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
     if (radio)
         return PVR_ERROR_NO_ERROR;
 
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     for (auto& number: _lineup)
     {
         PVR_CHANNEL pvrChannel = {0};
@@ -671,7 +671,7 @@ PVR_ERROR PVR_HDHR::GetEPGForChannel(ADDON_HANDLE handle,
         const PVR_CHANNEL& channel, time_t start, time_t end
         )
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     Lock guidelock(_guide_lock);
 
     auto& guide = _guide[channel.iUniqueId];
@@ -732,7 +732,7 @@ PVR_ERROR PVR_HDHR::GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 PVR_ERROR PVR_HDHR::GetChannelGroupMembers(ADDON_HANDLE handle,
         const PVR_CHANNEL_GROUP &group)
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
 
     for (const auto& number: _lineup)
     {
@@ -757,7 +757,7 @@ PVR_ERROR PVR_HDHR::GetChannelGroupMembers(ADDON_HANDLE handle,
 
 bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
 
     _close_stream();
     auto sts = _open_stream(channel);
@@ -782,23 +782,25 @@ int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 
 PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
 
+    //std::cout << __FUNCTION__ << " " << _using_sd_record << " " << _starttime << " " << _endtime << std::endl;
     if (_using_sd_record && _starttime && _endtime)
     {
         auto now = time(0);
-        auto endtime = _endtime;
-        if (endtime > now)
-            endtime = now;
-        auto len = endtime - _starttime;
+        auto end = std::min(_endtime, now);
+        auto len = end - _starttime;
 
         times->startTime = _starttime;
         times->ptsStart  = 0;
         times->ptsBegin  = 0;
         times->ptsEnd = len * 1000 * 1000;
+
+        //std::cout << __FUNCTION__ << " len: " << len << std::endl;
     }
     else
     {
+        //std::cout << __FUNCTION__ << " not impl" << std::endl;
         return PVR_ERROR_NOT_IMPLEMENTED;
     }
 
@@ -812,7 +814,8 @@ long long PVR_HDHR::LengthLiveStream()
 
 bool PVR_HDHR::IsRealTimeStream()
 {
-    Lock lock(this);
+    //std::cout << __FUNCTION__ << " " << _live_stream << std::endl;
+    Lock pvrlock(_pvr_lock);
     return _live_stream;
 }
 bool PVR_HDHR::SeekTime(double time,bool backwards,double* startpts)
@@ -830,14 +833,11 @@ PVR_ERROR PVR_HDHR::SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 }
 bool PVR_HDHR::CanPauseStream(void)
 {
-    //return _filesize != 0;
-    return true;
+    return _using_sd_record;
 }
 bool PVR_HDHR::CanSeekStream(void)
 {
-    //std::cout << __FUNCTION__ << std::endl;
-    //return _filesize != 0;
-    return true;
+    return _using_sd_record;
 }
 PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
 {
@@ -864,7 +864,7 @@ PVR_ERROR PVR_HDHR::GetStreamProperties(PVR_STREAM_PROPERTIES*)
 
 bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
     std::cout << __FUNCTION__ << std::endl;
@@ -891,7 +891,9 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
     if (sts)
     {
         _current_entry = &rec;
-        _live_stream = false;
+
+        auto len = _length_stream();
+        _live_stream = len == 0;
 
         _using_sd_record = true;
         _starttime = rec.StartTime();
@@ -902,6 +904,7 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
 }
 void PVR_HDHR::CloseRecordedStream(void)
 {
+    std::cout << __FUNCTION__ << std::endl;
     _close_stream();
     _current_entry = nullptr;
 }
@@ -931,7 +934,7 @@ PVR_ERROR PVR_HDHR::GetRecordings(ADDON_HANDLE handle, bool deleted)
 {
     if (!deleted)
     {
-        Lock lock(this);
+        Lock pvrlock(_pvr_lock);
 
         for (auto& r: _recording.Records())
         {
@@ -947,7 +950,7 @@ int PVR_HDHR::GetRecordingsAmount(bool deleted)
     if (deleted)
         return 0;
 
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     return static_cast<int>(_recording.size());
 }
 PVR_ERROR PVR_HDHR::RenameRecording(const PVR_RECORDING&)
@@ -965,14 +968,14 @@ PVR_ERROR PVR_HDHR::SetRecordingPlayCount(const PVR_RECORDING&, int count)
     // TODO ?
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-int PVR_HDHR::GetRecordingLastPlayedPosition(const PVR_RECORDING&)
+int PVR_HDHR::GetRecordingLastPlayedPosition(const PVR_RECORDING& rec)
 {
-    // TODO ?
+    std::cout << __FUNCTION__ << " " << rec.strTitle << std::endl;
     return -1;
 }
-PVR_ERROR PVR_HDHR::SetRecordingLastPlayedPosition(const PVR_RECORDING&, int)
+PVR_ERROR PVR_HDHR::SetRecordingLastPlayedPosition(const PVR_RECORDING& rec, int i)
 {
-    // TODO ?
+    std::cout << __FUNCTION__ << " " << rec.strTitle << " " << i << std::endl;
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
 PVR_ERROR PVR_HDHR::SetRecordingLifetime(const PVR_RECORDING*)
@@ -1019,7 +1022,7 @@ PVR_ERROR PVR_HDHR::UpdateTimer(const PVR_TIMER&)
 
 void PVR_HDHR::PauseStream(bool bPaused)
 {
-    // TODO
+    std::cout << __FUNCTION__ << " " << bPaused << std::endl;
 }
 void PVR_HDHR::SetSpeed(int speed)
 {
@@ -1033,7 +1036,7 @@ bool PVR_HDHR::IsTimeshifting(void)
 
 void PVR_HDHR_TCP::_close_stream()
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
     if (_filehandle)
@@ -1050,10 +1053,7 @@ int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
 
     if (_filehandle)
     {
-        auto sz = g.XBMC->ReadFile(_filehandle, buffer, size);
-        //static uint64_t i=0;
-        //std::cout << __FUNCTION__ << " " << size << " " << sz << " " << i++ << std::endl;
-        return sz;
+        return g.XBMC->ReadFile(_filehandle, buffer, size);
     }
     return 0;
 }
@@ -1061,7 +1061,6 @@ int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
 long long PVR_HDHR::SeekLiveStream(long long position, int whence)
 {
     return _seek_stream(position, whence);
-    //return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
@@ -1070,8 +1069,9 @@ int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
 
     if (_filehandle)
     {
+        std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')';
         auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
-        //std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')' << " -> " << pos << std::endl;
+        std::cout  << " -> " << pos << std::endl;
         return pos;
     }
     return -1;
@@ -1083,7 +1083,7 @@ int64_t PVR_HDHR::_length_stream()
     if (_filehandle)
     {
         auto len = g.XBMC->GetFileLength(_filehandle);
-        //std::cout << __FUNCTION__ << " " << len << std::endl;
+        std::cout << __FUNCTION__ << " " << len << std::endl;
         return len;
     }
     return -1;
@@ -1091,7 +1091,7 @@ int64_t PVR_HDHR::_length_stream()
 
 bool PVR_HDHR::_open_tcp_stream(const std::string& url)
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
     _filehandle = nullptr;
@@ -1120,11 +1120,6 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
             }
         }
     }
-    if (_filehandle)
-    {
-        auto len = g.XBMC->GetFileLength(_filehandle);
-        std::cout << __FUNCTION__ << " file length: " << len << std::endl;
-    }
 
     KODI_LOG(LOG_DEBUG, "Attempt to open TCP stream from url %s : %s",
             url.c_str(),
@@ -1135,7 +1130,7 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
 
 bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
     auto id = channel.iUniqueId;
@@ -1185,7 +1180,7 @@ bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
 
 bool PVR_HDHR_UDP::_open_stream(const PVR_CHANNEL& channel)
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
     return false;
 }
@@ -1198,7 +1193,7 @@ int PVR_HDHR_UDP::_read_stream(unsigned char* buffer, unsigned int size)
 
 void PVR_HDHR_UDP::_close_stream()
 {
-    Lock lock(this);
+    Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 }
 
