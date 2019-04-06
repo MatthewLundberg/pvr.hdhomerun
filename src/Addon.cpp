@@ -585,7 +585,7 @@ const char *GetBackendHostname(void)
 #define PVR_VOID_1(name, t0)     void name(t0 v0)        { if (g.pvr_hdhr) g.pvr_hdhr->name(v0); }
 #define PVR_VOID_2(name, t0, t1) void name(t0 v0, t1 v1) { if (g.pvr_hdhr) g.pvr_hdhr->name(v0, v1); }
 
-#define PVR_RETR_0(name, typ, def)                 decltype(def) name(void)                       { return g.pvr_hdhr ? g.pvr_hdhr->name()               : def; }
+#define PVR_RETR_0(name, typ, def)                 typ name(void)                       { return g.pvr_hdhr ? g.pvr_hdhr->name()               : def; }
 #define PVR_RETR_1(name, typ, def, t0)             typ name(t0 v0)                      { return g.pvr_hdhr ? g.pvr_hdhr->name(v0)             : def; }
 #define PVR_RETR_2(name, typ, def, t0, t1)         typ name(t0 v0, t1 v1)               { return g.pvr_hdhr ? g.pvr_hdhr->name(v0, v1)         : def; }
 #define PVR_RETR_3(name, typ, def, t0, t1, t2)     typ name(t0 v0, t1 v1, t2 v2)        { return g.pvr_hdhr ? g.pvr_hdhr->name(v0, v1, v2)     : def; }
@@ -614,7 +614,7 @@ PVR_RETR_0(CanSeekStream,          bool,          false)
 PVR_ERR_3(GetChannelStreamProperties, const PVR_CHANNEL*, PVR_NAMED_VALUE*, unsigned int*)
 
 // LiveStream
-PVR_RETR_0(LengthLiveStream,    long long, (long long) -1)
+PVR_RETR_0(LengthLiveStream,    long long, -1)
 PVR_RETR_2(SeekLiveStream,      long long, v0, long long, int)
 PVR_RETR_3(SeekTime,            bool,      false, double, bool, double*)
 PVR_RETR_0(IsRealTimeStream,    bool,      false)
@@ -626,7 +626,7 @@ PVR_RETR_1(OpenRecordedStream,             bool,      false, const PVR_RECORDING
 PVR_VOID_0(CloseRecordedStream)
 PVR_RETR_2(ReadRecordedStream,             int,       0,     unsigned char*, unsigned int);
 PVR_RETR_2(SeekRecordedStream,             long long, v0,    long long, int)
-PVR_RETR_0(LengthRecordedStream,           long long, (long long) 0)
+PVR_RETR_0(LengthRecordedStream,           long long, 0)
 PVR_ERR_3(GetRecordingStreamProperties,    const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*)
 PVR_ERR_1(DeleteRecording,                 const PVR_RECORDING&)
 PVR_ERR_2(GetRecordings,                   ADDON_HANDLE, bool)
