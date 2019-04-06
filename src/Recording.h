@@ -56,6 +56,7 @@ public:
     std::string _grouptitle;
     std::string _playurl;
     std::string _cmdurl;
+    int64_t     _resume = 0;
 
     time_t _recordstarttime;
     time_t _recordendtime;
@@ -74,6 +75,9 @@ public:
     }
 private:
     PVR_RECORDING _pvr_recording() const;
+    bool Scan();
+    bool _complete = false;
+    friend class Recording;
 };
 
 bool operator<(const RecordingEntry&, const RecordingEntry&);
@@ -165,6 +169,7 @@ public:
     size_t size();
 
     const std::map<std::string, RecordingEntry>& Records() const { return _records; };
+    RecordingEntry* getEntry(const std::string&);
 };
 
 } // namespace PVRHDHomeRun

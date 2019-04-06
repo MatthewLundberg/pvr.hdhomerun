@@ -21,6 +21,9 @@
 
 #include "Recording.h"
 #include "Utils.h"
+#include "Addon.h"
+#include "Filesystem.h"
+#include "IFileTypes.h"
 #include <iostream>
 
 namespace PVRHDHomeRun
@@ -39,6 +42,7 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
     _grouptitle  = v["DisplayGroupTitle"].asString();
     _playurl     = v["PlayURL"].asString();
     _cmdurl      = v["CmdURL"].asString();
+    _resume      = v["Resume"].asInt64();
 
     _recordstarttime = v["RecordStartTime"].asUInt64();
     _recordendtime   = v["RecordEndTime"].asUInt64();
@@ -127,6 +131,7 @@ void Recording::UpdateEntry(const Json::Value& json)
 }
 bool Recording::UpdateEntryEnd()
 {
+    std::cout << __FUNCTION__ << " #entries: " << _records.size() << std::endl;
     return _update_end(_records);
 }
 
@@ -140,7 +145,17 @@ bool Recording::UpdateRuleEnd()
     return _update_end(_rules);
 }
 
-
+RecordingEntry* Recording::getEntry(const std::string& id)
+{
+    auto it = _records.find(id);
+    if (it == _records.end())
+    {
+        KODI_LOG(LOG_ERROR, "Cannot find recording ID: %s", id.c_str());
+        return nullptr;
+    }
+    auto& rec = it->second;
+    return &rec;
+}
 
 RecordingRule::RecordingRule(const Json::Value& v)
 : StringEntry(v)

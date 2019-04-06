@@ -51,6 +51,7 @@ public:
 
     virtual time_t StartTime() const;
     virtual time_t EndTime() const;
+    virtual size_t Length() const;
 
     template<typename T>
     static uint32_t GetGenreType(const T& arr)

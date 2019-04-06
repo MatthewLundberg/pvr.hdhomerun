@@ -72,6 +72,11 @@ time_t Entry::EndTime() const
     return _endtime;
 }
 
+size_t Entry::Length() const
+{
+    return 0;
+}
+
 bool operator==(const Entry& a, const Entry& b)
 {
     return a._starttime        == b._starttime &&

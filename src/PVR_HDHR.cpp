@@ -778,7 +778,7 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
 {
     Lock pvrlock(_pvr_lock);
 
-    //std::cout << __FUNCTION__ << " " << _using_sd_record << " " << _starttime << " " << _endtime << std::endl;
+    std::cout << __FUNCTION__ << " " << _using_sd_record << " " << _starttime << " " << _endtime << std::endl;
     if (_using_sd_record && _starttime && _endtime)
     {
         auto now = time(0);
@@ -932,7 +932,8 @@ PVR_ERROR PVR_HDHR::GetRecordings(ADDON_HANDLE handle, bool deleted)
 
         for (auto& r: _recording.Records())
         {
-            PVR_RECORDING prec = r.second;
+            auto& rec = r.second;
+            PVR_RECORDING prec = rec;
             g.PVR->TransferRecordingEntry(handle, &prec);
         }
     }
@@ -962,15 +963,23 @@ PVR_ERROR PVR_HDHR::SetRecordingPlayCount(const PVR_RECORDING&, int count)
     // TODO ?
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-int PVR_HDHR::GetRecordingLastPlayedPosition(const PVR_RECORDING& rec)
+int PVR_HDHR::GetRecordingLastPlayedPosition(const PVR_RECORDING& pvrrec)
 {
-    std::cout << __FUNCTION__ << " " << rec.strTitle << std::endl;
-    return -1;
+    std::cout << __FUNCTION__ << " " << pvrrec.strTitle << std::endl;
+    Lock pvrlock(_pvr_lock);
+    auto rec = _recording.getEntry(pvrrec.strRecordingId);
+    return rec ? rec->_resume : 0;
 }
-PVR_ERROR PVR_HDHR::SetRecordingLastPlayedPosition(const PVR_RECORDING& rec, int i)
+PVR_ERROR PVR_HDHR::SetRecordingLastPlayedPosition(const PVR_RECORDING& pvrrec, int i)
 {
-    std::cout << __FUNCTION__ << " " << rec.strTitle << " " << i << std::endl;
-    return PVR_ERROR_NOT_IMPLEMENTED;
+    std::cout << __FUNCTION__ << " " << pvrrec.strTitle << " " << i << std::endl;
+    Lock pvrlock(_pvr_lock);
+    auto rec = _recording.getEntry(pvrrec.strRecordingId);
+    if (rec)
+    {
+        rec->_resume = i;
+    }
+    return PVR_ERROR_NO_ERROR;
 }
 PVR_ERROR PVR_HDHR::SetRecordingLifetime(const PVR_RECORDING*)
 {
@@ -988,9 +997,36 @@ PVR_ERROR PVR_HDHR::UndeleteRecording(const PVR_RECORDING&)
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR PVR_HDHR::AddTimer(const PVR_TIMER&)
+#define TP(x) "  " << #x << " " << t.x << std::endl
+PVR_ERROR PVR_HDHR::AddTimer(const PVR_TIMER& t)
 {
-    // TODO
+    std::cout << __FUNCTION__ << std::endl <<
+            TP(iParentClientIndex) <<
+            TP(startTime) <<
+            TP(endTime) <<
+            TP(bStartAnyTime) <<
+            TP(bEndAnyTime) <<
+            TP(state) <<
+            TP(iTimerType) <<
+            TP(strTitle) <<
+            TP(strEpgSearchString) <<
+            TP(bFullTextEpgSearch) <<
+            TP(strDirectory) <<
+            TP(strSummary) <<
+            TP(iPriority) <<
+            TP(iLifetime) <<
+            TP(iMaxRecordings) <<
+            TP(iRecordingGroup) <<
+            TP(firstDay) <<
+            TP(iWeekdays) <<
+            TP(iPreventDuplicateEpisodes) <<
+            TP(iEpgUid) <<
+            TP(iMarginStart) <<
+            TP(iMarginEnd) <<
+            TP(iGenreType) <<
+            TP(iGenreSubType) <<
+            TP(strSeriesLink);
+
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
 PVR_ERROR PVR_HDHR::DeleteTimer(const PVR_TIMER&, bool)
@@ -1074,11 +1110,19 @@ int64_t PVR_HDHR::_length_stream()
 {
     Lock strlock(_stream_lock);
 
+    //if (_current_entry)
+    //{
+    //    return _current_entry->Length();
+    //}
+    //else
     if (_filehandle)
     {
         auto len = g.XBMC->GetFileLength(_filehandle);
         std::cout << __FUNCTION__ << " " << len << std::endl;
-        return len;
+        //int num;
+        //auto pvs = g.XBMC->GetFilePropertyValues(_filehandle, )
+        //std::cout << "  pos: " << g.XBMC->GetFilePosition(_filehandle) << std::endl;
+        return len ? len : -1;
     }
     return -1;
 }
@@ -1105,13 +1149,44 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
             }
             else
             {
-                sts = g.XBMC->CURLOpen(_filehandle, XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN );
+                sts = g.XBMC->CURLOpen(_filehandle, XFILE::READ_NO_CACHE | XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN );
             }
             if (!sts)
             {
                 g.XBMC->CloseFile(_filehandle);
                 _filehandle = nullptr;
             }
+
+            const char* dur_s = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "X-Content-Duration");
+            const char* bps_s = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "X-Content-BitsPerSecond");
+            const char* cr_s  = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "Content-Range");
+            const char* ar_s  = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "Accept-Ranges");
+
+            _duration = 0;
+            if (dur_s)
+            {
+                _duration = std::atoi(dur_s);
+                free(const_cast<char*>(dur_s));
+            }
+            _bps = 0;
+            if (bps_s)
+            {
+                _bps = std::atoi(bps_s);
+                free(const_cast<char*>(bps_s));
+            }
+
+            std::cout << " Len: " << _length << " dur: " << _duration << " bps: " << _bps /* << " Len: " << Length() */ << std::endl;
+            if (cr_s)
+            {
+                std::cout << "CR: " << cr_s << std::endl;
+                free(const_cast<char*>(cr_s));
+            }
+            if (ar_s)
+            {
+                std::cout << "AR: " << ar_s << std::endl;
+                free(const_cast<char*>(ar_s));
+            }
+
         }
     }
 

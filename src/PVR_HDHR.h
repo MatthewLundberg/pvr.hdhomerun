@@ -148,6 +148,10 @@ protected:
     time_t                    _starttime = 0;
     time_t                    _endtime   = 0;
 
+    size_t _length   = 0;
+    size_t _duration = 0;
+    size_t _bps      = 0;
+
 public:
     std::set<TunerDevice*>    _tuner_devices;
     std::set<StorageDevice*>  _storage_devices;
