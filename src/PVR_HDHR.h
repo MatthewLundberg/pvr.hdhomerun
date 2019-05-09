@@ -143,6 +143,7 @@ protected:
     std::map<uint32_t, Guide> _guide;
     Recording                 _recording;
     uint32_t                  _sessionid = 0;
+    size_t                    _filesize = 0;
 
     bool                      _using_sd_record = false;
     time_t                    _starttime = 0;

@@ -778,8 +778,7 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
 {
     Lock pvrlock(_pvr_lock);
 
-    std::cout << __FUNCTION__ << " " << _using_sd_record << " " << _starttime << " " << _endtime << std::endl;
-    if (_using_sd_record && _starttime && _endtime)
+    if (_using_sd_record && _filesize) // no filesize && _starttime && _endtime)
     {
         auto now = time(0);
         auto end = std::min(_endtime, now);
@@ -827,11 +826,13 @@ PVR_ERROR PVR_HDHR::SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 }
 bool PVR_HDHR::CanPauseStream(void)
 {
-    return _using_sd_record;
+    //return _using_sd_record;
+    return _filesize != 0;
 }
 bool PVR_HDHR::CanSeekStream(void)
 {
-    return _using_sd_record;
+    //return _using_sd_record;
+    return _filesize != 0;
 }
 PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
 {
@@ -1075,6 +1076,7 @@ void PVR_HDHR_TCP::_close_stream()
     _using_sd_record = false;
     _starttime = 0;
     _endtime = 0;
+    _filesize = 0;
 }
 
 int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
@@ -1188,6 +1190,10 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
             }
 
         }
+    }
+    if (_filehandle)
+    {
+        _filesize = g.XBMC->GetFileLength(_filehandle);
     }
 
     KODI_LOG(LOG_DEBUG, "Attempt to open TCP stream from url %s : %s",
