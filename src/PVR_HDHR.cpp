@@ -91,8 +91,8 @@ bool PVR_HDHR::DiscoverTunerDevices()
     bool storage_added   = false;
     bool storage_removed = false;
 
-    Lock pvrlock(_pvr_lock);
     Lock guidelock(_guide_lock);
+    Lock pvrlock(_pvr_lock);
     for (size_t i=0; i<device_count; i++)
     {
         auto& dd = discover_devices[i];
@@ -405,8 +405,8 @@ bool PVR_HDHR::UpdateLineup()
 
 void PVR_HDHR::_age_out(time_t now)
 {
-    Lock pvrlock(_pvr_lock);
     Lock guidelock(_guide_lock);
+    Lock pvrlock(_pvr_lock);
 
     for (auto& mapentry : _guide)
     {
@@ -671,8 +671,8 @@ PVR_ERROR PVR_HDHR::GetEPGForChannel(ADDON_HANDLE handle,
         const PVR_CHANNEL& channel, time_t start, time_t end
         )
 {
-    Lock pvrlock(_pvr_lock);
     Lock guidelock(_guide_lock);
+    Lock pvrlock(_pvr_lock);
 
     auto& guide = _guide[channel.iUniqueId];
 
@@ -1176,6 +1176,7 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
                 _bps = std::atoi(bps_s);
                 free(const_cast<char*>(bps_s));
             }
+
 
             std::cout << " Len: " << _length << " dur: " << _duration << " bps: " << _bps /* << " Len: " << Length() */ << std::endl;
             if (cr_s)
