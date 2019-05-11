@@ -567,7 +567,7 @@ const char *GetBackendName(void)
 
 const char *GetBackendVersion(void)
 {
-    return "4.0.3";
+    return "4.0.4";
 }
 
 const char *GetConnectionString(void)
