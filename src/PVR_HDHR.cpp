@@ -395,12 +395,13 @@ bool PVR_HDHR::UpdateLineup()
         return true;
     }
 
-    bool removed = false;
     for (const auto& number: prior)
     {
         if (_lineup.find(number) == _lineup.end())
             return true;
     }
+
+    return false;
 }
 
 void PVR_HDHR::_age_out(time_t now)

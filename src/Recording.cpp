@@ -84,8 +84,9 @@ void RecordingEntry::Resume(int i)
         return;
 
     _resume = i;
-    std::stringstream url{_cmdurl};
-    url << "cmd=set&Resume=" << i;
+    std::stringstream url;
+    url << _cmdurl << "&cmd=set&Resume=" << i;
+    //std::cout << __FUNCTION__ << ' ' << i << ' ' << url.str() << std::endl;
     std::string result;
     GetFileContents(url.str(), result);
 }
