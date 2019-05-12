@@ -25,6 +25,7 @@
 #include "Filesystem.h"
 #include "IFileTypes.h"
 #include <iostream>
+#include <sstream>
 
 namespace PVRHDHomeRun
 {
@@ -75,6 +76,18 @@ time_t RecordingEntry::StartTime() const
 time_t RecordingEntry::EndTime() const
 {
     return _recordendtime;
+}
+
+void RecordingEntry::Resume(int i)
+{
+    if (i < 0)
+        return;
+
+    _resume = i;
+    std::stringstream url{_cmdurl};
+    url << "cmd=set&Resume=" << i;
+    std::string result;
+    GetFileContents(url.str(), result);
 }
 
 bool operator==(const RecordingEntry& a, const RecordingEntry& b)

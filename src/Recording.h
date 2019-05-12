@@ -73,6 +73,11 @@ public:
     {
         return _pvr_recording();
     }
+    void Resume(int);
+    int Resume() const
+    {
+        return _resume;
+    }
 private:
     PVR_RECORDING _pvr_recording() const;
     bool Scan();

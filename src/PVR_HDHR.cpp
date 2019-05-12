@@ -784,7 +784,7 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
         auto end = std::min(_endtime, now);
         auto len = end - _starttime;
 
-        times->startTime = _starttime;
+        times->startTime = 0;
         times->ptsStart  = 0;
         times->ptsBegin  = 0;
         times->ptsEnd = len * 1000 * 1000;
@@ -809,7 +809,7 @@ bool PVR_HDHR::IsRealTimeStream()
 {
     //std::cout << __FUNCTION__ << " " << _live_stream << std::endl;
     Lock pvrlock(_pvr_lock);
-    return _live_stream;
+    return _filesize != 0; // _live_stream;
 }
 bool PVR_HDHR::SeekTime(double time,bool backwards,double* startpts)
 {
@@ -834,10 +834,12 @@ bool PVR_HDHR::CanSeekStream(void)
     //return _using_sd_record;
     return _filesize != 0;
 }
-PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
+PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* v, unsigned int* c)
 {
-    // TODO
-    *iPropertiesCount = 0;
+    if (!channel || !v || !c)
+        return PVR_ERROR_SERVER_ERROR;
+    std::cout << __FUNCTION__ << ' ' << *c << std::endl;
+    *c = 0;
 
     return PVR_ERROR_NO_ERROR;
 }
@@ -854,6 +856,7 @@ PVR_ERROR PVR_HDHR::GetDriveSpace(long long *iTotal, long long *iUsed)
 }
 PVR_ERROR PVR_HDHR::GetStreamProperties(PVR_STREAM_PROPERTIES*)
 {
+    std::cout << __FUNCTION__ << std::endl;
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -866,33 +869,30 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
 
     _close_stream();
 
-    const auto& id = pvrrec.strRecordingId;
-    const auto prec = _recording.Records().find(id);
-    if (prec == _recording.Records().end())
+    const auto rec = _recording.getEntry(pvrrec.strRecordingId);
+    if (!rec)
     {
-        KODI_LOG(LOG_ERROR, "Cannot find ID: %s", id);
-        std::cout << "Cannot find ID: " << id << std::endl;
+        KODI_LOG(LOG_ERROR, "Cannot find ID: %s", pvrrec.strRecordingId);
+        std::cout << "Cannot find ID: " << pvrrec.strRecordingId << std::endl;
         return false;
     }
 
-    const auto& rec = prec->second;
+    const auto& ttl = rec->_title;
+    const auto& ep = rec->_episodetitle;
+    std::cout << pvrrec.strRecordingId << " " << ttl << " " << ep << std::endl;
+    std::cout << rec->_playurl << std::endl;
 
-    const auto& ttl = rec._title;
-    const auto& ep = rec._episodetitle;
-    std::cout << id << " " << ttl << " " << ep << std::endl;
-    std::cout << rec._playurl << std::endl;
-
-    auto sts = _open_tcp_stream(rec._playurl);
+    auto sts = _open_tcp_stream(rec->_playurl);
     if (sts)
     {
-        _current_entry = &rec;
+        _current_entry = rec;
 
         auto len = _length_stream();
         _live_stream = len == 0;
 
         _using_sd_record = true;
-        _starttime = rec.StartTime();
-        _endtime   = rec.EndTime();
+        _starttime = rec->StartTime();
+        _endtime   = rec->EndTime();
     }
 
     return sts;
@@ -915,10 +915,14 @@ long long PVR_HDHR::LengthRecordedStream(void)
 {
     return _length_stream();
 }
-PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const PVR_RECORDING*, PVR_NAMED_VALUE*, unsigned int*)
+PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const PVR_RECORDING* pvrrec, PVR_NAMED_VALUE* v, unsigned int* c)
 {
-    // TODO
-    return PVR_ERROR_NOT_IMPLEMENTED;
+    if (!pvrrec || !v || !c)
+        return PVR_ERROR_SERVER_ERROR;
+    std::cout << __FUNCTION__ << ' ' << *c << std::endl;
+    *c = 0;
+
+    return PVR_ERROR_NO_ERROR;
 }
 PVR_ERROR PVR_HDHR::DeleteRecording(const PVR_RECORDING&)
 {
@@ -966,19 +970,19 @@ PVR_ERROR PVR_HDHR::SetRecordingPlayCount(const PVR_RECORDING&, int count)
 }
 int PVR_HDHR::GetRecordingLastPlayedPosition(const PVR_RECORDING& pvrrec)
 {
-    std::cout << __FUNCTION__ << " " << pvrrec.strTitle << std::endl;
+    //std::cout << __FUNCTION__ << " " << pvrrec.strTitle << std::endl;
     Lock pvrlock(_pvr_lock);
     auto rec = _recording.getEntry(pvrrec.strRecordingId);
-    return rec ? rec->_resume : 0;
+    return rec ? rec->Resume() : 0;
 }
 PVR_ERROR PVR_HDHR::SetRecordingLastPlayedPosition(const PVR_RECORDING& pvrrec, int i)
 {
-    std::cout << __FUNCTION__ << " " << pvrrec.strTitle << " " << i << std::endl;
+    //std::cout << __FUNCTION__ << " " << pvrrec.strTitle << " " << i << std::endl;
     Lock pvrlock(_pvr_lock);
     auto rec = _recording.getEntry(pvrrec.strRecordingId);
     if (rec)
     {
-        rec->_resume = i;
+        rec->Resume(i);
     }
     return PVR_ERROR_NO_ERROR;
 }
@@ -1101,9 +1105,9 @@ int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
 
     if (_filehandle)
     {
-        std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')';
+        //std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')';
         auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
-        std::cout  << " -> " << pos << std::endl;
+        //std::cout  << " -> " << pos << std::endl;
         return pos;
     }
     return -1;
@@ -1120,8 +1124,7 @@ int64_t PVR_HDHR::_length_stream()
     if (_filehandle)
     {
         auto len = g.XBMC->GetFileLength(_filehandle);
-        std::cout << __FUNCTION__ << " " << len << std::endl;
-        //int num;
+        //std::cout << __FUNCTION__ << " " << len << std::endl;
         //auto pvs = g.XBMC->GetFilePropertyValues(_filehandle, )
         //std::cout << "  pos: " << g.XBMC->GetFilePosition(_filehandle) << std::endl;
         return len ? len : -1;
