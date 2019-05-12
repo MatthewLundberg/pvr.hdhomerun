@@ -1137,6 +1137,7 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
 {
     Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
+    static const auto OPEN_OPTIONS = XFILE::READ_AUDIO_VIDEO;// XFILE::READ_NO_CACHE | XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN;
 
     _filehandle = nullptr;
     if (url.size())
@@ -1155,7 +1156,7 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
             }
             else
             {
-                sts = g.XBMC->CURLOpen(_filehandle, XFILE::READ_NO_CACHE | XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN );
+                sts = g.XBMC->CURLOpen(_filehandle, OPEN_OPTIONS );
             }
             if (!sts)
             {
@@ -1163,6 +1164,7 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
                 _filehandle = nullptr;
             }
 
+#if 0
             const char* dur_s = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "X-Content-Duration");
             const char* bps_s = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "X-Content-BitsPerSecond");
             const char* cr_s  = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "Content-Range");
@@ -1193,7 +1195,7 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
                 std::cout << "AR: " << ar_s << std::endl;
                 free(const_cast<char*>(ar_s));
             }
-
+#endif
         }
     }
     if (_filehandle)
