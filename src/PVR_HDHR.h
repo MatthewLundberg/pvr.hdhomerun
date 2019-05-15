@@ -135,7 +135,7 @@ private:
     virtual int64_t _seek_stream(int64_t position, int whence);
     virtual int64_t _length_stream();
 protected:
-    bool  _open_tcp_stream(const std::string&);
+    bool  _open_tcp_stream(const std::string&, bool live);
 
 protected:
     std::set<uint32_t>        _device_ids;

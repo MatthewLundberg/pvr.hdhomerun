@@ -883,7 +883,7 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
     std::cout << pvrrec.strRecordingId << " " << ttl << " " << ep << std::endl;
     std::cout << rec->_playurl << std::endl;
 
-    auto sts = _open_tcp_stream(rec->_playurl);
+    auto sts = _open_tcp_stream(rec->_playurl, false);
     if (sts)
     {
         _current_entry = rec;
@@ -1133,15 +1133,21 @@ int64_t PVR_HDHR::_length_stream()
     return -1;
 }
 
-bool PVR_HDHR::_open_tcp_stream(const std::string& url)
+bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool live)
 {
     Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
+
+#   define COMMON_OPTIONS (XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN)
 #   if NO_FILE_CACHE
-        static const auto OPEN_OPTIONS = XFILE::READ_AUDIO_VIDEO  | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN | XFILE::READ_NO_CACHE;
+#       define OPEN_OPTIONS (COMMON_OPTIONS | XFILE::READ_NO_CACHE)
 #   else
-        static const auto OPEN_OPTIONS = XFILE::READ_AUDIO_VIDEO  | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN;
+#       define OPEN_OPTIONS (COMMON_OPTIONS | XFILE::READ_CACHED)
 #   endif
+
+    unsigned int flags = OPEN_OPTIONS;
+    if (live)
+        flags |= XFILE::READ_BITRATE;
 
     _filehandle = nullptr;
     if (url.size())
@@ -1160,7 +1166,7 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url)
             }
             else
             {
-                sts = g.XBMC->CURLOpen(_filehandle, OPEN_OPTIONS );
+                sts = g.XBMC->CURLOpen(_filehandle, flags );
             }
             if (!sts)
             {
@@ -1237,7 +1243,7 @@ bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
             ss << device->BaseURL() << "/auto/v" + info._guidenumber;
             ss << "?SessionID=0x" << std::hex << std::setw(8) << std::setfill('0') << sessionid;
             auto url = ss.str();
-            if (_open_tcp_stream(url))
+            if (_open_tcp_stream(url, true))
             {
                 _current_storage = device;
                 _using_sd_record = true;
@@ -1252,12 +1258,12 @@ bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
     for (auto id : g.Settings.preferredDevice)
     {
         for (auto device : info)
-            if (device->DeviceID() == id && _open_tcp_stream(info.DlnaURL(device)))
+            if (device->DeviceID() == id && _open_tcp_stream(info.DlnaURL(device), true))
                 return true;
     }
     for (auto device : info)
     {
-        if (_open_tcp_stream(info.DlnaURL(device)))
+        if (_open_tcp_stream(info.DlnaURL(device), true))
             return true;
     }
 
