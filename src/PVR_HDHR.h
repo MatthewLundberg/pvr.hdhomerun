@@ -35,6 +35,8 @@
 #include "Info.h"
 #include "Recording.h"
 
+#define NO_FILE_CACHE 1
+
 namespace PVRHDHomeRun {
 
 class PVR_HDHR : public HasTunerSet<PVR_HDHR>
@@ -149,7 +151,7 @@ protected:
     time_t                    _starttime = 0;
     time_t                    _endtime   = 0;
 
-#if 0
+#if NO_FILE_CACHE
     size_t _length   = 0;
     size_t _duration = 0;
     size_t _bps      = 0;
