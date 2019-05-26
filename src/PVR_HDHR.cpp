@@ -1133,12 +1133,13 @@ int64_t PVR_HDHR::_length_stream()
     return -1;
 }
 
-bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool live)
+bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool /*live*/)
 {
     Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
-#   define COMMON_OPTIONS (XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN | XFILE::READ_TRUNCATED)
+//#   define COMMON_OPTIONS (XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN | XFILE::READ_TRUNCATED)
+#   define COMMON_OPTIONS (XFILE::READ_CHUNKED | XFILE::READ_TRUNCATED)
 #   if NO_FILE_CACHE
 #       define OPEN_OPTIONS (COMMON_OPTIONS | XFILE::READ_NO_CACHE)
 #   else
@@ -1146,8 +1147,8 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool live)
 #   endif
 
     unsigned int flags = OPEN_OPTIONS;
-    if (live)
-        flags |= XFILE::READ_BITRATE;
+//    if (live)
+//        flags |= XFILE::READ_BITRATE;
 
     _filehandle = nullptr;
     if (url.size())
