@@ -36,6 +36,7 @@
 #include <numeric>
 #include <iostream>
 #include <random>
+#include <chrono>
 
 namespace PVRHDHomeRun
 {
@@ -840,7 +841,10 @@ PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_N
     if (!channel || !v || !c)
         return PVR_ERROR_SERVER_ERROR;
     std::cout << __FUNCTION__ << ' ' << *c << std::endl;
-    *c = 0;
+
+    pvr_strcpy(v[0].strName,  PVR_STREAM_PROPERTY_ISREALTIMESTREAM);
+    pvr_strcpy(v[0].strValue, "true");
+    *c = 1;
 
     return PVR_ERROR_NO_ERROR;
 }
@@ -921,8 +925,11 @@ PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const PVR_RECORDING* pvrrec, PV
     if (!pvrrec || !v || !c)
         return PVR_ERROR_SERVER_ERROR;
     std::cout << __FUNCTION__ << ' ' << *c << std::endl;
+
     *c = 0;
 
+
+    return PVR_ERROR_NOT_IMPLEMENTED;
     return PVR_ERROR_NO_ERROR;
 }
 PVR_ERROR PVR_HDHR::DeleteRecording(const PVR_RECORDING&)
@@ -1138,8 +1145,9 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool /*live*/)
     Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
+#   define COMMON_OPTIONS (XFILE::READ_CHUNKED | XFILE::READ_AUDIO_VIDEO | XFILE::READ_REOPEN | XFILE::READ_TRUNCATED)
 //#   define COMMON_OPTIONS (XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN | XFILE::READ_TRUNCATED)
-#   define COMMON_OPTIONS (XFILE::READ_CHUNKED | XFILE::READ_TRUNCATED)
+//#   define COMMON_OPTIONS (XFILE::READ_CHUNKED | XFILE::READ_TRUNCATED)
 #   if NO_FILE_CACHE
 #       define OPEN_OPTIONS (COMMON_OPTIONS | XFILE::READ_NO_CACHE)
 #   else
