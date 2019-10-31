@@ -124,8 +124,7 @@ extern "C"
 	extern DLL_EXPORT const char *GetConnectionString(void);
 	extern DLL_EXPORT const char *GetBackendHostname(void);
 	extern DLL_EXPORT PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed);
-	extern DLL_EXPORT PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL& channel,
-		time_t iStart, time_t iEnd);
+	extern DLL_EXPORT PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, int channel, time_t iStart, time_t iEnd);
 	extern DLL_EXPORT int GetChannelsAmount(void);
 	extern DLL_EXPORT PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio);
 	extern DLL_EXPORT int GetChannelGroupsAmount(void);

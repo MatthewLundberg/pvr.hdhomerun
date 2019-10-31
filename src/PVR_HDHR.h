@@ -65,7 +65,7 @@ public:
     PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio);
     int       GetChannelsAmount();
     PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle,
-                  const PVR_CHANNEL& channel,
+                  int channel,
                   time_t iStart,
                   time_t iEnd);
     int       GetChannelGroupsAmount(void);

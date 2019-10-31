@@ -567,7 +567,7 @@ const char *GetBackendName(void)
 
 const char *GetBackendVersion(void)
 {
-    return "4.0.4";
+    return "5.0.0";
 }
 
 const char *GetConnectionString(void)
@@ -599,7 +599,7 @@ const char *GetBackendHostname(void)
 
 
 PVR_ERR_2(GetDriveSpace,           long long *, long long *)
-PVR_ERR_4(GetEPGForChannel,        ADDON_HANDLE, const PVR_CHANNEL&, time_t, time_t)
+PVR_ERR_4(GetEPGForChannel,        ADDON_HANDLE, int, time_t, time_t)
 PVR_RETR_0(GetChannelsAmount,      int,           -1)
 PVR_ERR_2(GetChannels,             ADDON_HANDLE, bool)
 PVR_RETR_0(GetChannelGroupsAmount, int,           -1)
@@ -676,7 +676,7 @@ void DemuxAbort(void) {}
 void DemuxFlush(void) {}
 DemuxPacket* DemuxRead(void) { return NULL; }
 void DemuxReset(void) {}
-
+void FillBuffer(bool) {}
 
 
 

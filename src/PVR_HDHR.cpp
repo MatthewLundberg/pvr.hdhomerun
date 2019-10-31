@@ -670,13 +670,13 @@ PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
 }
 
 PVR_ERROR PVR_HDHR::GetEPGForChannel(ADDON_HANDLE handle,
-        const PVR_CHANNEL& channel, time_t start, time_t end
+        int channel, time_t start, time_t end
         )
 {
     Lock guidelock(_guide_lock);
     Lock pvrlock(_pvr_lock);
 
-    auto& guide = _guide[channel.iUniqueId];
+    auto& guide = _guide[channel];
 
     for (auto& ge: guide.Entries())
     {
@@ -684,7 +684,7 @@ PVR_ERROR PVR_HDHR::GetEPGForChannel(ADDON_HANDLE handle,
             continue;
         if (ge._starttime > end)
             continue;
-        EPG_TAG tag = ge.Epg_Tag(channel.iUniqueId);
+        EPG_TAG tag = ge.Epg_Tag(channel);
         g.PVR->TransferEpgEntry(handle, &tag);
     }
 
