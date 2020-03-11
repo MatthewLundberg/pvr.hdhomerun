@@ -809,9 +809,9 @@ long long PVR_HDHR::LengthLiveStream()
 
 bool PVR_HDHR::IsRealTimeStream()
 {
-    //std::cout << __FUNCTION__ << " " << _live_stream << std::endl;
+    //std::cout << __FUNCTION__ << " " << _live_stream << " " << _filesize << std::endl;
     Lock pvrlock(_pvr_lock);
-    return _filesize != 0; // _live_stream;
+    return _live_stream;
 }
 bool PVR_HDHR::SeekTime(double time,bool backwards,double* startpts)
 {
