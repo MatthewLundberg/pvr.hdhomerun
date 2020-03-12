@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2017-2019 Matthew Lundberg <matthew.k.lundberg@gmail.com>
+ *      Copyright (C) 2017-2020 Matthew Lundberg <matthew.k.lundberg@gmail.com>
  *      https://github.com/MatthewLundberg/pvr.hdhomerun
  *
  *      Copyright (C) 2011 Pulse-Eight
@@ -254,15 +254,29 @@ void PVR_HDHR::AddLineupEntry(const Json::Value& v, TunerDevice* device)
 
     for (const auto& hidden: g.Settings.hiddenChannels)
     {
+        if (hidden == numberstr)
+            return;
+
+        if (hidden.find('.') == std::string::npos)
+        {
+            // No period, means the whole channel
+            auto dot = numberstr.find('.');
+            if (dot != std::string::npos)
+            {
+                auto base = numberstr.substr(0, dot);
+                if (hidden == base)
+                    return;
+            }
+        }
+
         if (hidden.size() && hidden[hidden.size()-1] == '*')
         {
             auto sz = hidden.size() - 1;
             if (hidden.substr(0, sz) == numberstr.substr(0, sz))
                 return;
         }
-        if (hidden == numberstr)
-        	return;
     }
+
     _lineup.insert(number);
     if (_info.find(number) == _info.end())
     {

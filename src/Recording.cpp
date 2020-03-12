@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2017-2018 Matthew Lundberg <matthew.k.lundberg@gmail.com>
+ *      Copyright (C) 2017-2020 Matthew Lundberg <matthew.k.lundberg@gmail.com>
  *      https://github.com/MatthewLundberg/pvr.hdhomerun
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -145,7 +145,7 @@ void Recording::UpdateEntry(const Json::Value& json)
 }
 bool Recording::UpdateEntryEnd()
 {
-    std::cout << __FUNCTION__ << " #entries: " << _records.size() << std::endl;
+    //std::cout << __FUNCTION__ << " #entries: " << _records.size() << std::endl;
     return _update_end(_records);
 }
 
@@ -155,7 +155,7 @@ void Recording::UpdateRule(const Json::Value& json)
 }
 bool Recording::UpdateRuleEnd()
 {
-    std::cout << __FUNCTION__ << " #rules: " << _rules.size() << std::endl;
+    //std::cout << __FUNCTION__ << " #rules: " << _rules.size() << std::endl;
     return _update_end(_rules);
 }
 
