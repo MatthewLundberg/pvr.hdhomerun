@@ -70,6 +70,7 @@ struct SettingsType
     int udpPort                 = 5000;
     bool record                 = false;
     bool recordforlive          = true;
+    bool use_stream_url         = false;
 
     bool usegroups              = false;
     int deviceDiscoverInterval  = 300;

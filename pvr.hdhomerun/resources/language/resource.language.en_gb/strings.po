@@ -100,6 +100,7 @@ msgctxt "#32207"
 msgid "Use legacy hardware"
 msgstr "Use legacy hardware"
 
-
-
+msgctxt "#32208"
+msgid "Pass Stream URL to Kodi"
+msgstr "Pass Stream URL to Kodi"
 

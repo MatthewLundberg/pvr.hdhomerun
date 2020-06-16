@@ -38,6 +38,19 @@
 #include <random>
 #include <chrono>
 
+namespace
+{
+void add_prop(PVR_NAMED_VALUE* v, const std::string& name, const std::string& value, unsigned int* c, int limit)
+{
+    if (*c < limit)
+    {
+        PVRHDHomeRun::pvr_strcpy(v[*c].strName,  name);
+        PVRHDHomeRun::pvr_strcpy(v[*c].strValue, value);
+        *c ++;
+    }
+}
+}
+
 namespace PVRHDHomeRun
 {
 PVR_HDHR* PVR_HDHR_Factory(int protocol) {
@@ -645,7 +658,9 @@ PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
     if (radio)
         return PVR_ERROR_NO_ERROR;
 
+    Lock guidelock(_guide_lock);
     Lock pvrlock(_pvr_lock);
+
     for (auto& number: _lineup)
     {
         PVR_CHANNEL pvrChannel = {0};
@@ -742,6 +757,7 @@ PVR_ERROR PVR_HDHR::GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 PVR_ERROR PVR_HDHR::GetChannelGroupMembers(ADDON_HANDLE handle,
         const PVR_CHANNEL_GROUP &group)
 {
+    Lock guidelock(_guide_lock);
     Lock pvrlock(_pvr_lock);
 
     for (const auto& number: _lineup)
@@ -770,6 +786,10 @@ bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
     Lock pvrlock(_pvr_lock);
 
     _close_stream();
+
+    if (g.Settings.use_stream_url)
+        return false;
+
     auto sts = _open_stream(channel);
     if (sts)
     {
@@ -843,22 +863,42 @@ PVR_ERROR PVR_HDHR::SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 bool PVR_HDHR::CanPauseStream(void)
 {
     //return _using_sd_record;
-    return _filesize != 0;
+    return g.Settings.use_stream_url || _filesize != 0;
 }
 bool PVR_HDHR::CanSeekStream(void)
 {
     //return _using_sd_record;
-    return _filesize != 0;
+    return g.Settings.use_stream_url || _filesize != 0;
 }
 PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* v, unsigned int* c)
 {
+    Lock pvrlock(_pvr_lock);
+
     if (!channel || !v || !c)
         return PVR_ERROR_SERVER_ERROR;
     std::cout << __FUNCTION__ << ' ' << *c << std::endl;
+    auto limit = *c;
+    *c = 0;
 
-    pvr_strcpy(v[0].strName,  PVR_STREAM_PROPERTY_ISREALTIMESTREAM);
-    pvr_strcpy(v[0].strValue, "true");
-    *c = 1;
+    if (g.Settings.use_stream_url)
+    {
+        auto id = channel->iUniqueId;
+        auto& info = _info[id];
+
+        for (auto device : _storage_devices)
+        {
+            auto sessionid = ++ _sessionid;
+            std::stringstream ss;
+            ss << device->BaseURL() << "/auto/v" + info._guidenumber;
+            ss << "?SessionID=0x" << std::hex << std::setw(8) << std::setfill('0') << sessionid;
+            auto url = ss.str();
+
+            add_prop(v, PVR_STREAM_PROPERTY_STREAMURL, url, c, limit);
+            std::cout << "Passing URL : " << url << std::endl;
+        }
+    }
+
+    add_prop(v, PVR_STREAM_PROPERTY_ISREALTIMESTREAM, "true", c, limit);
 
     return PVR_ERROR_NO_ERROR;
 }
@@ -887,6 +927,9 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
     std::cout << __FUNCTION__ << std::endl;
 
     _close_stream();
+
+    if (g.Settings.use_stream_url)
+        return false;
 
     const auto rec = _recording.getEntry(pvrrec.strRecordingId);
     if (!rec)
@@ -936,14 +979,24 @@ long long PVR_HDHR::LengthRecordedStream(void)
 }
 PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const PVR_RECORDING* pvrrec, PVR_NAMED_VALUE* v, unsigned int* c)
 {
+    Lock pvrlock(_pvr_lock);
+
     if (!pvrrec || !v || !c)
         return PVR_ERROR_SERVER_ERROR;
     std::cout << __FUNCTION__ << ' ' << *c << std::endl;
-
+    auto limit = *c;
     *c = 0;
 
+    const auto rec = _recording.getEntry(pvrrec->strRecordingId);
+    if (!rec)
+    {
+        KODI_LOG(LOG_ERROR, "Cannot find ID: %s", pvrrec->strRecordingId);
+        std::cout << "Cannot find ID: " << pvrrec->strRecordingId << std::endl;
+        return PVR_ERROR_SERVER_ERROR;
+    }
+    add_prop(v, PVR_STREAM_PROPERTY_STREAMURL, rec->_playurl, c, limit);
+    std::cout << "Record URL: " << rec->_playurl << std::endl;
 
-    return PVR_ERROR_NOT_IMPLEMENTED;
     return PVR_ERROR_NO_ERROR;
 }
 PVR_ERROR PVR_HDHR::DeleteRecording(const PVR_RECORDING&)

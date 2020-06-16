@@ -342,7 +342,6 @@ void ADDON_ReadSettings(void)
         return;
 
     readvalue("hide_protected", g.Settings.hideProtectedChannels);
-    //readvalue("mark_new",       g.Settings.markNewProgram);
     readvalue("debug",          g.Settings.debugLog);
     readvalue("hide_unknown",   g.Settings.hideUnknownChannels);
     readvalue("use_legacy",     g.Settings.useLegacyDevices);
@@ -355,6 +354,7 @@ void ADDON_ReadSettings(void)
     readvalue("preferred",      g.Settings.preferredDevice);
     readvalue("blacklist",      g.Settings.blacklistDevice);
     readvalue("hide_ch_no",     g.Settings.hiddenChannels);
+    readvalue("use_stream_url", g.Settings.use_stream_url);
 
     char protocol[64] = "TCP";
     g.XBMC->GetSetting("protocol", protocol);
@@ -455,9 +455,6 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
     if (setvalue(g.Settings.hideProtectedChannels, "hide_protected", name, value))
         return ADDON_STATUS_NEED_RESTART;
 
-    //if (setvalue(g.Settings.markNewProgram, "mark_new", name, value))
-    //    return ADDON_STATUS_OK;
-
     if (setvalue(g.Settings.debugLog, "debug", name, value))
         return ADDON_STATUS_OK;
 
@@ -481,6 +478,9 @@ ADDON_STATUS ADDON_SetSetting(const char *name, const void *value)
 
     if (setvalue(g.Settings.recordforlive, "recordforlive", name, value))
         return ADDON_STATUS_OK;
+
+    if (setvalue(g.Settings.use_stream_url, "use_stream_url", name, value))
+        return ADDON_STATUS_NEED_RESTART;
 
     if (strcmp(name, "channel_name") == 0)
     {
@@ -547,7 +547,7 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
     pCapabilities->bSupportsChannelGroups            = g.Settings.usegroups;
     pCapabilities->bSupportsChannelScan              = false;
     pCapabilities->bSupportsChannelSettings          = false;
-    pCapabilities->bHandlesInputStream               = true;
+    pCapabilities->bHandlesInputStream               = !g.Settings.use_stream_url;
     pCapabilities->bHandlesDemuxing                  = false;
     pCapabilities->bSupportsRecordingPlayCount       = false;
     pCapabilities->bSupportsLastPlayedPosition       = true;
@@ -557,6 +557,7 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
     pCapabilities->bSupportsDescrambleInfo           = false;
     pCapabilities->iRecordingsLifetimesSize          = 0;
 
+    std::cout << __FUNCTION__ << " handles input stream " << pCapabilities->bHandlesInputStream << std::endl;
     return PVR_ERROR_NO_ERROR;
 }
 

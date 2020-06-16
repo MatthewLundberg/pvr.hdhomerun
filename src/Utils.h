@@ -60,12 +60,7 @@ void pvr_strcpy(char (&dest)[N], const std::string& src)
     strncpy(dest, src.c_str(), N-1);
     dest[N-1] = '\0';
 }
-template<int N>
-void pvr_strcpy(char (&dest)[N], const char* src)
-{
-    strncpy(dest, src, N-1);
-    dest[N-1] = '\0';
-}
+
 
 bool GetFileContents(const std::string& url, std::string& content);
 bool StringToJson(const std::string& in, Json::Value& out, std::string& err);

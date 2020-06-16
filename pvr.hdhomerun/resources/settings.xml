@@ -20,13 +20,14 @@
 
   <!-- Network Settings -->
   <category label=32200>
-    <setting id="record"         type="bool"   label="32201" default="false" />
-    <setting id="recordforlive"  type="bool"   label="32202" default="true" visible="eq(-1,true)" />
-    <setting id="preferred"      type="text"   label="32203" default=""                     visible="eq(-1,false) | eq(-2,false)"  />
-    <setting id="blacklist"      type="text"   label="32204" default=""                     visible="eq(-2,false) | eq(-3,false)"  />
-    <setting id="protocol"       type="select" label="32205" values="TCP|UDP" default="TCP" visible="eq(-3,false) | eq(-4,false)"   />
-    <setting id="port"           type="number" label="32206" default=5000       visible="eq(-1,1) & (eq(-4,false) | eq(-5,false))" />
-    <setting id="use_legacy"     type="bool"   label="32207" default="false"    visible="eq(-2,1) & (eq(-5,false) | eq(-6,false))" />
+    <setting id="record"         type="bool"   label="32201" default="true" />
+    <setting id="recordforlive"  type="bool"   label="32202" default="true"                                 visible="eq(-1,true)" />
+    <setting id="preferred"      type="text"   label="32203" default=""                      visible="eq(-1,false) | eq(-2,false)"  />
+    <setting id="blacklist"      type="text"   label="32204" default=""                      visible="eq(-2,false) | eq(-3,false)"  />
+    <setting id="protocol"       type="select" label="32205" values="TCP|UDP" default="TCP"  visible="false" />
+    <setting id="port"           type="number" label="32206" default=5000       visible="(eq(-1,1) + (eq(-4,false) | eq(-5,false)))" />
+    <setting id="use_legacy"     type="bool"   label="32207" default="false"    visible="(eq(-2,1) + (eq(-5,false) | eq(-6,false)))" />
+    <setting id="use_stream_url" type="bool"   label="32208" default="false"    visible="eq(-3,0)" />
   </category>
 
 
