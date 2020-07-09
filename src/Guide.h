@@ -21,7 +21,7 @@
  */
 
 #include "IntervalSet.h"
-#include "Addon.h"
+#include "Settings.h"
 #include "Entry.h"
 #include "UniqueID.h"
 #include <json/json.h>

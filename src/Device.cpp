@@ -21,7 +21,7 @@
 
 #include "Device.h"
 #include "Utils.h"
-#include "Addon.h"
+#include "Settings.h"
 #include "Recording.h"
 #include <json/json.h>
 

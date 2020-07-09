@@ -22,7 +22,7 @@
  *
  */
 
-#include "Addon.h"
+#include "Settings.h"
 #include "Utils.h"
 #include "PVR_HDHR.h"
 #include <chrono>

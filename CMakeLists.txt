@@ -30,18 +30,17 @@ set(DEPLIBS ${kodiplatform_LIBRARIES}
             ${JSONCPP_LIBRARIES}
             ${HDHOMERUN_LIBRARIES})
 
-set(PVRHDHOMERUN_SOURCES src/Addon.cpp
-                         src/Entry.cpp
+set(PVRHDHOMERUN_SOURCES src/Entry.cpp
                          src/Device.cpp
                          src/Info.cpp
                          src/Guide.cpp
                          src/IntervalSet.cpp
                          src/PVR_HDHR.cpp
                          src/Recording.cpp
+                         src/Settings.cpp
                          src/Utils.cpp)
 
-set(PVRHDHOMERUN_HEADERS src/Addon.h
-                         src/Entry.h
+set(PVRHDHOMERUN_HEADERS src/Entry.h
                          src/Device.h
                          src/Info.h
                          src/Guide.h
@@ -49,6 +48,7 @@ set(PVRHDHOMERUN_HEADERS src/Addon.h
                          src/IntervalSet.h
                          src/PVR_HDHR.h
                          src/Recording.h
+                         src/Settings.h
                          src/UniqueID.h
                          src/Utils.h)
 

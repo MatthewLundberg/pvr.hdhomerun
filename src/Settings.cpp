@@ -28,7 +28,7 @@
  *
  */
 
-#include "Addon.h"
+#include "Settings.h"
 
 #include <cstring>
 #include <string>

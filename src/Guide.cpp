@@ -20,7 +20,7 @@
  */
 
 #include "Guide.h"
-#include "Addon.h"
+#include "Settings.h"
 #include "Utils.h"
 
 #include <iostream>

@@ -31,7 +31,7 @@
 #include <memory>
 #include <p8-platform/util/StringUtils.h>
 
-#include "Addon.h"
+#include "Settings.h"
 
 #if defined(USE_DBG_CONSOLE) && defined(TARGET_WINDOWS)
 int DbgPrintf(const char* szFormat, ...)

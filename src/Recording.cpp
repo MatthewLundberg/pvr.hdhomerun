@@ -21,7 +21,7 @@
 
 #include "Recording.h"
 #include "Utils.h"
-#include "Addon.h"
+#include "Settings.h"
 #include "Filesystem.h"
 #include "IFileTypes.h"
 #include <iostream>
