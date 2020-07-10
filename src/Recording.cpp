@@ -23,7 +23,7 @@
 #include "Utils.h"
 #include "Settings.h"
 #include "Filesystem.h"
-#include "IFileTypes.h"
+//#include "IFileTypes.h"
 #include <iostream>
 #include <sstream>
 
@@ -49,21 +49,21 @@ RecordingEntry::RecordingEntry(const Json::Value& v)
     _recordendtime   = v["RecordEndTime"].asUInt64();
 }
 
-PVR_RECORDING RecordingEntry::_pvr_recording() const
+kodi::addon::PVRRecording RecordingEntry::_pvr_recording() const
 {
-    PVR_RECORDING x = {0};
+    kodi::addon::PVRRecording x;
 
-    pvr_strcpy(x.strRecordingId, _programID);
-    pvr_strcpy(x.strTitle,       _title);
-    pvr_strcpy(x.strEpisodeName, _episodetitle);
-    x.iSeriesNumber = _season;
-    x.iEpisodeNumber = _episode;
-    pvr_strcpy(x.strPlot,        _synopsis);
-    pvr_strcpy(x.strChannelName, _channelnum + " " + _affiliate); // TODO - allow choice
-    pvr_strcpy(x.strIconPath,    _imageURL); // _channelimg
-    pvr_strcpy(x.strDirectory,   _grouptitle);
-    x.recordingTime = _starttime;
-    x.iDuration = _endtime - _starttime;
+    x.SetRecordingId(_programID);
+    x.SetTitle(_title);
+    x.SetEpisodeName(_episodetitle);
+    x.SetSeriesNumber(_season);
+    x.SetEpisodeNumber(_episode);
+    x.SetPlot(_synopsis);
+    x.SetChannelName(_channelnum + " " + _affiliate); // TODO - allow choice
+    x.SetIconPath(_imageURL); // _channelimg
+    x.SetDirectory(_grouptitle);
+    x.SetRecordingTime(_starttime);
+    x.SetDuration(_endtime - _starttime);
 
     return x;
 }
@@ -164,7 +164,7 @@ RecordingEntry* Recording::getEntry(const std::string& id)
     auto it = _records.find(id);
     if (it == _records.end())
     {
-        KODI_LOG(LOG_ERROR, "Cannot find recording ID: %s", id.c_str());
+        KODI_LOG(ADDON_LOG_ERROR, "Cannot find recording ID: %s", id.c_str());
         return nullptr;
     }
     auto& rec = it->second;

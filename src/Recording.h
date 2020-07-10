@@ -26,7 +26,7 @@
 #include <set>
 #include <map>
 #include <json/json.h>
-#include <libXBMC_pvr.h>
+#include <kodi/addon-instance/PVR.h>
 
 namespace PVRHDHomeRun
 {
@@ -69,7 +69,7 @@ public:
         return _programID;
     }
 
-    operator PVR_RECORDING() const
+    operator kodi::addon::PVRRecording() const
     {
         return _pvr_recording();
     }
@@ -79,7 +79,7 @@ public:
         return _resume;
     }
 private:
-    PVR_RECORDING _pvr_recording() const;
+    kodi::addon::PVRRecording _pvr_recording() const;
     bool Scan();
     bool _complete = false;
     friend class Recording;

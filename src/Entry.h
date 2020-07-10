@@ -23,7 +23,7 @@
 #include <string>
 #include <cstdint>
 #include <json/json.h>
-#include <xbmc_epg_types.h>
+#include <kodi/addon-instance/pvr/EPG.h>
 
 namespace PVRHDHomeRun
 {

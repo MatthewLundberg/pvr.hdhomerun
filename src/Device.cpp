@@ -84,20 +84,20 @@ void Tuner::_get_var(std::string& value, const char* name)
     char *get_err;
     if (hdhomerun_device_get_var(_device, name, &get_val, &get_err) < 0)
     {
-        KODI_LOG(LOG_ERROR,
+        KODI_LOG(ADDON_LOG_ERROR,
                 "communication error sending %s request to %08x-%u",
                 name, _box->DeviceID(), _index
         );
     }
     else if (get_err)
     {
-        KODI_LOG(LOG_ERROR, "error %s with %s request from %08x-%u",
+        KODI_LOG(ADDON_LOG_ERROR, "error %s with %s request from %08x-%u",
                 get_err, name, _box->DeviceID(), _index
         );
     }
     else
     {
-        KODI_LOG(LOG_DEBUG, "Success getting value %s = %s from %08x-%u",
+        KODI_LOG(ADDON_LOG_DEBUG, "Success getting value %s = %s from %08x-%u",
                 name, get_val,
                 _box->DeviceID(), _index
         );
@@ -110,7 +110,7 @@ void Tuner::_set_var(const char* value, const char* name)
     char* set_err;
     if (hdhomerun_device_set_var(_device, name, value, NULL, &set_err) < 0)
     {
-        KODI_LOG(LOG_ERROR,
+        KODI_LOG(ADDON_LOG_ERROR,
                 "communication error sending set request %s = %s to %08x-%u",
                 name, value,
                 _box->DeviceID(), _index
@@ -118,7 +118,7 @@ void Tuner::_set_var(const char* value, const char* name)
     }
     else if (set_err)
     {
-        KODI_LOG(LOG_ERROR, "error %s with %s = %s request from %08x-%u",
+        KODI_LOG(ADDON_LOG_ERROR, "error %s with %s = %s request from %08x-%u",
                 set_err,
                 name, value,
                 _box->DeviceID(), _index
@@ -126,7 +126,7 @@ void Tuner::_set_var(const char* value, const char* name)
     }
     else
     {
-        KODI_LOG(LOG_DEBUG, "Success setting value %s = %s from %08x",
+        KODI_LOG(ADDON_LOG_DEBUG, "Success setting value %s = %s from %08x",
                 name, value,
                 _box->DeviceID(), _index
         );
@@ -143,7 +143,7 @@ void StorageDevice::_parse_discover_data(const Json::Value& json)
     }
     catch (...)
     {
-        KODI_LOG(LOG_INFO, "Exception caught parsing JSON from device");
+        KODI_LOG(ADDON_LOG_INFO, "Exception caught parsing JSON from device");
     }
 }
 
@@ -162,7 +162,7 @@ void TunerDevice::_parse_discover_data(const Json::Value& json)
             _tuners.push_back(std::unique_ptr<Tuner>(new Tuner(this, index)));
         }
     }
-    KODI_LOG(LOG_DEBUG, "HDR ID %08x LineupURL %s Tuner Count %d Legacy %d",
+    KODI_LOG(ADDON_LOG_DEBUG, "HDR ID %08x LineupURL %s Tuner Count %d Legacy %d",
             _discover_device.device_id,
             _lineupURL.c_str(),
             _tunercount,

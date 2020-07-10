@@ -36,7 +36,7 @@
 #include <numeric>
 #include <iostream>
 #include <random>
-#include <chrono>
+#include <kodi/c-api/filesystem.h>
 
 namespace
 {
@@ -76,6 +76,61 @@ PVR_HDHR::~PVR_HDHR()
     }
 }
 
+PVR_ERROR PVR_HDHR::OnSystemWake()
+{
+    if (g.pvr_hdhr)
+    {
+        g.pvr_hdhr->Update();
+        g.pvr_hdhr->TriggerChannelUpdate();
+    }
+    return PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR PVR_HDHR::GetCapabilities(kodi::addon::PVRCapabilities& capabilities)
+{
+    capabilities.SetSupportsEPG(true);
+    capabilities.SetSupportsEPGEdl(false);
+    capabilities.SetSupportsTV(true);
+    capabilities.SetSupportsRadio(false);
+    capabilities.SetSupportsRecordings(g.Settings.record);
+    capabilities.SetSupportsRecordingsUndelete(false);
+    capabilities.SetSupportsTimers(g.Settings.record);
+    capabilities.SetSupportsChannelGroups(g.Settings.usegroups);
+    capabilities.SetSupportsChannelScan(false);
+    capabilities.SetSupportsChannelSettings(false);
+    capabilities.SetHandlesInputStream(!g.Settings.use_stream_url);
+    capabilities.SetHandlesDemuxing(false);
+    capabilities.SetSupportsRecordingPlayCount(false);
+    capabilities.SetSupportsLastPlayedPosition(true);
+    capabilities.SetSupportsRecordingEdl(false);
+    capabilities.SetSupportsRecordingsRename(false);
+    capabilities.SetSupportsRecordingsLifetimeChange(false);
+    capabilities.SetSupportsDescrambleInfo(false);
+    //capabilities.SetRecordingsLifetimesSize(0);
+
+    std::cout << __FUNCTION__ << " handles input stream " << !g.Settings.use_stream_url << std::endl;
+    return PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR PVR_HDHR::GetBackendName(std::string& name)
+{
+    name = "otherkids PVR";
+    return PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR PVR_HDHR::GetBackendVersion(std::string& ver)
+{
+    ver = "5.0.0";
+    return PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR PVR_HDHR::GetConnectionString(std::string& con)
+{
+    con = "connected";
+    return PVR_ERROR_NO_ERROR;
+}
+
+
 bool PVR_HDHR::DiscoverTunerDevices()
 {
     struct hdhomerun_discover_device_t discover_devices[64];
@@ -87,7 +142,7 @@ bool PVR_HDHR::DiscoverTunerDevices()
             64
             );
 
-    KODI_LOG(LOG_DEBUG, "PVR_HDHR::DiscoverTunerDevices Found %d devices", device_count);
+    KODI_LOG(ADDON_LOG_DEBUG, "PVR_HDHR::DiscoverTunerDevices Found %d devices", device_count);
 
     if (device_count == 0)
     {
@@ -125,7 +180,7 @@ bool PVR_HDHR::DiscoverTunerDevices()
             if (_storage_urls.find(url) == _storage_urls.end())
             {
                 storage_added = true;
-                KODI_LOG(LOG_DEBUG, "Adding storage %s", url);
+                KODI_LOG(ADDON_LOG_DEBUG, "Adding storage %s", url);
                 std::cout << "New Storage URL " << url << std::endl;
 
                 _storage_urls.insert(url);
@@ -133,7 +188,7 @@ bool PVR_HDHR::DiscoverTunerDevices()
             }
             else
             {
-                KODI_LOG(LOG_DEBUG, "Known storage %s", url);
+                KODI_LOG(ADDON_LOG_DEBUG, "Known storage %s", url);
                 for (auto s: _storage_devices)
                 {
                     if (!strcmp(s->BaseURL(), url))
@@ -150,13 +205,13 @@ bool PVR_HDHR::DiscoverTunerDevices()
 
             if (g.Settings.blacklistDevice.find(id) != g.Settings.blacklistDevice.end())
             {
-                KODI_LOG(LOG_INFO, "Ignoring blacklisted device %08x", id);
+                KODI_LOG(ADDON_LOG_INFO, "Ignoring blacklisted device %08x", id);
                 continue;
             }
 
             if (dd.is_legacy && !g.Settings.UseLegacyDevices())
             {
-                KODI_LOG(LOG_INFO, "Ignoring legacy device %08x", id);
+                KODI_LOG(ADDON_LOG_INFO, "Ignoring legacy device %08x", id);
                 continue;
             }
 
@@ -166,7 +221,7 @@ bool PVR_HDHR::DiscoverTunerDevices()
             {
                 // New device
                 device_added = true;
-                KODI_LOG(LOG_DEBUG, "Adding device %08x", id);
+                KODI_LOG(ADDON_LOG_DEBUG, "Adding device %08x", id);
                 std::cout << "New tuner "
                         << std::hex << dd.device_id << std::dec
                         << " auth " << EncodeURL(dd.device_auth)
@@ -178,7 +233,7 @@ bool PVR_HDHR::DiscoverTunerDevices()
             }
             else
             {
-                KODI_LOG(LOG_DEBUG, "Known device %08x", id);
+                KODI_LOG(ADDON_LOG_DEBUG, "Known device %08x", id);
 
                 for (auto t: _tuner_devices)
                 {
@@ -217,7 +272,7 @@ bool PVR_HDHR::DiscoverTunerDevices()
         {
             // Device went away
             device_removed = true;
-            KODI_LOG(LOG_DEBUG, "Removing device %08x", id);
+            KODI_LOG(ADDON_LOG_DEBUG, "Removing device %08x", id);
 
             auto pdevice = const_cast<TunerDevice*>(device);
 
@@ -228,12 +283,12 @@ bool PVR_HDHR::DiscoverTunerDevices()
                 auto& info = _info[number];
                 if (info.RemoveDevice(device))
                 {
-                    KODI_LOG(LOG_DEBUG, "Removed device from GuideNumber %s", number.extendedName().c_str());
+                    KODI_LOG(ADDON_LOG_DEBUG, "Removed device from GuideNumber %s", number.extendedName().c_str());
                 }
                 if (info.DeviceCount() == 0)
                 {
                     // No devices left for this lineup guide entry, remove it
-                    KODI_LOG(LOG_DEBUG, "No devices left, removing GuideNumber %s", number.extendedName().c_str());
+                    KODI_LOG(ADDON_LOG_DEBUG, "No devices left, removing GuideNumber %s", number.extendedName().c_str());
                     nit = _lineup.erase(nit);
                     _guide.erase(number);
                     _info.erase(number);
@@ -335,7 +390,7 @@ bool PVR_HDHR::UpdateRules()
         std::string rulestring;
         if (!GetFileContents(URL, rulestring))
         {
-            KODI_LOG(LOG_ERROR, "Error requesting recording rules from %s", URL.c_str());
+            KODI_LOG(ADDON_LOG_ERROR, "Error requesting recording rules from %s", URL.c_str());
         }
         else
         {
@@ -343,7 +398,7 @@ bool PVR_HDHR::UpdateRules()
             std::string err;
             if (!StringToJson(rulestring, rulesjson, err))
             {
-                KODI_LOG(LOG_ERROR, "Error parsing JSON guilde data for %s - %s", URL.c_str(), err.c_str());
+                KODI_LOG(ADDON_LOG_ERROR, "Error parsing JSON guilde data for %s - %s", URL.c_str(), err.c_str());
             }
             else
             {
@@ -356,7 +411,7 @@ bool PVR_HDHR::UpdateRules()
 
 bool PVR_HDHR::UpdateLineup()
 {
-    KODI_LOG(LOG_DEBUG, "PVR_HDHR::UpdateLineup");
+    KODI_LOG(ADDON_LOG_DEBUG, "PVR_HDHR::UpdateLineup");
 
     Lock pvrlock(_pvr_lock);
     std::set<GuideNumber> prior;
@@ -367,14 +422,14 @@ bool PVR_HDHR::UpdateLineup()
     for (auto device: _tuner_devices)
     {
 
-        KODI_LOG(LOG_DEBUG, "Requesting channel lineup for %08x: %s",
+        KODI_LOG(ADDON_LOG_DEBUG, "Requesting channel lineup for %08x: %s",
                 device->DeviceID(), device->LineupURL().c_str()
         );
 
         std::string lineupStr;
         if (!GetFileContents(device->LineupURL(), lineupStr))
         {
-            KODI_LOG(LOG_ERROR, "Cannot get lineup from %s", device->LineupURL().c_str());
+            KODI_LOG(ADDON_LOG_ERROR, "Cannot get lineup from %s", device->LineupURL().c_str());
             continue;
         }
 
@@ -382,13 +437,13 @@ bool PVR_HDHR::UpdateLineup()
         std::string err;
         if (!StringToJson(lineupStr, lineupJson, err))
         {
-            KODI_LOG(LOG_ERROR, "Cannot parse JSON value returned from %s - %s", device->LineupURL().c_str(), err.c_str());
+            KODI_LOG(ADDON_LOG_ERROR, "Cannot parse JSON value returned from %s - %s", device->LineupURL().c_str(), err.c_str());
             continue;
         }
 
         if (lineupJson.type() != Json::arrayValue)
         {
-            KODI_LOG(LOG_ERROR, "Lineup is not a JSON array, returned from %s", device->LineupURL().c_str());
+            KODI_LOG(ADDON_LOG_ERROR, "Lineup is not a JSON array, returned from %s", device->LineupURL().c_str());
             continue;
         }
 
@@ -408,7 +463,7 @@ bool PVR_HDHR::UpdateLineup()
         {
             added = true;
 
-            KODI_LOG(LOG_DEBUG,
+            KODI_LOG(ADDON_LOG_DEBUG,
                     "New Lineup Entry: %d.%d - %s - %s - %s",
                     number._channel,
                     number._subchannel,
@@ -451,7 +506,7 @@ void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
 
     if (jsondeviceguide.type() != Json::arrayValue)
     {
-        KODI_LOG(LOG_ERROR, "Top-level JSON guide data is not an array for %s", idstr);
+        KODI_LOG(ADDON_LOG_ERROR, "Top-level JSON guide data is not an array for %s", idstr);
         return;
     }
 
@@ -461,7 +516,7 @@ void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
 
         if (_guide.find(number) == _guide.end())
         {
-            KODI_LOG(LOG_DEBUG, "Inserting guide for channel %u", number.ID());
+            KODI_LOG(ADDON_LOG_DEBUG, "Inserting guide for channel %u", number.ID());
             _guide.emplace(number, jsonchannelguide);
         }
 
@@ -470,7 +525,7 @@ void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
         auto jsonguidenetries = jsonchannelguide["Guide"];
         if (jsonguidenetries.type() != Json::arrayValue)
         {
-            KODI_LOG(LOG_ERROR, "Guide entries is not an array for %s", idstr);
+            KODI_LOG(ADDON_LOG_ERROR, "Guide entries is not an array for %s", idstr);
             continue;
         }
 
@@ -515,13 +570,13 @@ void PVR_HDHR::_fetch_guide_data(const uint32_t* number, time_t start)
             URL.append(std::to_string(start));
         }
     }
-    KODI_LOG(LOG_DEBUG, "Requesting guide for %s: %s %s",
+    KODI_LOG(ADDON_LOG_DEBUG, "Requesting guide for %s: %s %s",
             idstring.c_str(), start?FormatTime(start).c_str():"", URL.c_str());
 
     std::string guidedata;
     if (!GetFileContents(URL, guidedata))
     {
-        KODI_LOG(LOG_ERROR, "Error requesting guide for %s from %s",
+        KODI_LOG(ADDON_LOG_ERROR, "Error requesting guide for %s from %s",
                 idstring.c_str(), URL.c_str());
         return;
     }
@@ -532,7 +587,7 @@ void PVR_HDHR::_fetch_guide_data(const uint32_t* number, time_t start)
     std::string err;
     if (!StringToJson(guidedata, jsondeviceguide, err))
     {
-        KODI_LOG(LOG_ERROR, "Error parsing JSON guide data for %s - %s", idstring.c_str(), err.c_str());
+        KODI_LOG(ADDON_LOG_ERROR, "Error parsing JSON guide data for %s - %s", idstring.c_str(), err.c_str());
         return;
     }
     _insert_json_guide_data(jsondeviceguide, idstring.c_str());
@@ -649,13 +704,14 @@ void PVR_HDHR::UpdateGuide()
     }
 }
 
-int PVR_HDHR::GetChannelsAmount()
+PVR_ERROR PVR_HDHR::GetChannelsAmount(int& amount)
 {
-    return _lineup.size();
+    amount =  _lineup.size();
+    return PVR_ERROR_NO_ERROR;
 }
-PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
+PVR_ERROR PVR_HDHR::GetChannels(bool bRadio, kodi::addon::PVRChannelsResultSet& results)
 {
-    if (radio)
+    if (bRadio)
         return PVR_ERROR_NO_ERROR;
 
     Lock guidelock(_guide_lock);
@@ -663,13 +719,13 @@ PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
 
     for (auto& number: _lineup)
     {
-        PVR_CHANNEL pvrChannel = {0};
+        kodi::addon::PVRChannel pvrChannel;
         auto& guide = _guide[number];
         auto& info  = _info[number];
 
-        pvrChannel.iUniqueId         = number.ID();
-        pvrChannel.iChannelNumber    = number._channel;
-        pvrChannel.iSubChannelNumber = number._subchannel;
+        pvrChannel.SetUniqueId(number.ID());
+        pvrChannel.SetChannelNumber(number._channel);
+        pvrChannel.SetSubChannelNumber(number._subchannel);
 
         const std::string* name;
         if (g.Settings.channelName == SettingsType::AFFILIATE) {
@@ -690,17 +746,15 @@ PVR_ERROR PVR_HDHR::GetChannels(ADDON_HANDLE handle, bool radio)
             static const std::string empty{""};
             name = &empty;
         }
-        pvr_strcpy(pvrChannel.strChannelName, *name);
-        pvr_strcpy(pvrChannel.strIconPath, guide.ImageURL());
+        pvrChannel.SetChannelName(*name);
+        pvrChannel.SetIconPath(guide.ImageURL());
 
-        g.PVR->TransferChannelEntry(handle, &pvrChannel);
+        results.Add(pvrChannel);
     }
     return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR PVR_HDHR::GetEPGForChannel(ADDON_HANDLE handle,
-        int channel, time_t start, time_t end
-        )
+PVR_ERROR PVR_HDHR::GetEPGForChannel(int channel, time_t start, time_t end, kodi::addon::PVREPGTagsResultSet& results)
 {
     Lock guidelock(_guide_lock);
     Lock pvrlock(_pvr_lock);
@@ -713,16 +767,17 @@ PVR_ERROR PVR_HDHR::GetEPGForChannel(ADDON_HANDLE handle,
             continue;
         if (ge._starttime > end)
             continue;
-        EPG_TAG tag = ge.Epg_Tag(channel);
-        g.PVR->TransferEpgEntry(handle, &tag);
+        auto tag = ge.Epg_Tag(channel);
+        results.Add(tag);
     }
 
     return PVR_ERROR_NO_ERROR;
 }
 
-int PVR_HDHR::GetChannelGroupsAmount()
+PVR_ERROR PVR_HDHR::GetChannelGroupsAmount(int& c)
 {
-    return 3;
+    c = 3;
+    return PVR_ERROR_NO_ERROR;
 }
 
 static const std::string FavoriteChannels = "Favorite channels";
@@ -730,32 +785,30 @@ static const std::string HDChannels       = "HD channels";
 static const std::string SDChannels       = "SD channels";
 
 
-PVR_ERROR PVR_HDHR::GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
+PVR_ERROR PVR_HDHR::GetChannelGroups(bool bRadio, kodi::addon::PVRChannelGroupsResultSet& results)
 {
-    PVR_CHANNEL_GROUP channelGroup;
 
     if (bRadio)
         return PVR_ERROR_NO_ERROR;
 
-    memset(&channelGroup, 0, sizeof(channelGroup));
+    kodi::addon::PVRChannelGroup channelGroup;
 
-    channelGroup.iPosition = 1;
-    pvr_strcpy(channelGroup.strGroupName, FavoriteChannels);
-    g.PVR->TransferChannelGroup(handle, &channelGroup);
+    channelGroup.SetPosition(1);
+    channelGroup.SetGroupName(FavoriteChannels);
+    results.Add(channelGroup);
 
-    channelGroup.iPosition++;
-    pvr_strcpy(channelGroup.strGroupName, HDChannels);
-    g.PVR->TransferChannelGroup(handle, &channelGroup);
+    channelGroup.SetPosition(2);
+    channelGroup.SetGroupName(HDChannels);
+    results.Add(channelGroup);
 
-    channelGroup.iPosition++;
-    pvr_strcpy(channelGroup.strGroupName, SDChannels);
-    g.PVR->TransferChannelGroup(handle, &channelGroup);
+    channelGroup.SetPosition(3);
+    channelGroup.SetGroupName(SDChannels);
+    results.Add(channelGroup);
 
     return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR PVR_HDHR::GetChannelGroupMembers(ADDON_HANDLE handle,
-        const PVR_CHANNEL_GROUP &group)
+PVR_ERROR PVR_HDHR::GetChannelGroupMembers(const kodi::addon::PVRChannelGroup& group, kodi::addon::PVRChannelGroupMembersResultSet& results)
 {
     Lock guidelock(_guide_lock);
     Lock pvrlock(_pvr_lock);
@@ -765,23 +818,26 @@ PVR_ERROR PVR_HDHR::GetChannelGroupMembers(ADDON_HANDLE handle,
         auto& info  = _info[number];
         auto& guide = _guide[number];
 
-        if ((FavoriteChannels != group.strGroupName) && !info._favorite)
+        if ((FavoriteChannels != group.GetGroupName()) && !info._favorite)
             continue;
-        if ((HDChannels != group.strGroupName) && !info._hd)
+        if ((HDChannels != group.GetGroupName()) && !info._hd)
             continue;
-        if ((SDChannels != group.strGroupName) && info._hd)
+        if ((SDChannels != group.GetGroupName()) && info._hd)
             continue;
 
-        PVR_CHANNEL_GROUP_MEMBER channelGroupMember = {0};
-        pvr_strcpy(channelGroupMember.strGroupName, group.strGroupName);
-        channelGroupMember.iChannelUniqueId = number.ID();
+        kodi::addon::PVRChannelGroupMember channelGroupMember;
+        
+        channelGroupMember.SetGroupName(group.GetGroupName());
+        channelGroupMember.SetChannelUniqueId(number.ID());
+        channelGroupMember.SetChannelNumber(number._channel);
+        channelGroupMember.SetSubChannelNumber(number._subchannel);
 
-        g.PVR->TransferChannelGroupMember(handle, &channelGroupMember);
+        results.Add(channelGroupMember);
     }
     return PVR_ERROR_NO_ERROR;
 }
 
-bool PVR_HDHR::OpenLiveStream(const PVR_CHANNEL& channel)
+bool PVR_HDHR::OpenLiveStream(const kodi::addon::PVRChannel& channel)
 {
     Lock pvrlock(_pvr_lock);
 
@@ -810,7 +866,7 @@ int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
     return _read_stream(buffer, size);
 }
 
-PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
+PVR_ERROR PVR_HDHR::GetStreamTimes(kodi::addon::PVRStreamTimes& times)
 {
     Lock pvrlock(_pvr_lock);
 
@@ -820,10 +876,10 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
         auto end = std::min(_endtime, now);
         auto len = end - _starttime;
 
-        times->startTime = 0;
-        times->ptsStart  = 0;
-        times->ptsBegin  = 0;
-        times->ptsEnd = len * 1000 * 1000;
+        times.SetStartTime(0);
+        times.SetPTSStart(0);
+        times.SetPTSBegin(0);
+        times.SetPTSEnd(len * 1000 * 1000);
 
         //std::cout << __FUNCTION__ << " len: " << len << std::endl;
     }
@@ -836,7 +892,7 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(PVR_STREAM_TIMES *times)
     return PVR_ERROR_NO_ERROR;
 }
 
-long long PVR_HDHR::LengthLiveStream()
+int64_t PVR_HDHR::LengthLiveStream()
 {
     return _length_stream();
 }
@@ -847,16 +903,15 @@ bool PVR_HDHR::IsRealTimeStream()
     Lock pvrlock(_pvr_lock);
     return _live_stream;
 }
-bool PVR_HDHR::SeekTime(double time,bool backwards,double* startpts)
+bool PVR_HDHR::SeekTime(double time,bool backwards,double& startpts)
 {
     std::cout << __FUNCTION__ << "(" << time << "," << backwards << ",)" << std::endl;
     return false;
 }
-PVR_ERROR PVR_HDHR::SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
+PVR_ERROR PVR_HDHR::GetSignalStatus(int channelUid, kodi::addon::PVRSignalStatus& signalStatus)
 {
-    // TODO
-    pvr_strcpy(signalStatus.strAdapterName, "otherkids PVR");
-    pvr_strcpy(signalStatus.strAdapterStatus, "OK");
+    signalStatus.SetAdapterName("otherkids PVR");
+    signalStatus.SetAdapterStatus("OK");
 
     return PVR_ERROR_NO_ERROR;
 }
@@ -870,19 +925,13 @@ bool PVR_HDHR::CanSeekStream(void)
     //return _using_sd_record;
     return g.Settings.use_stream_url || _filesize != 0;
 }
-PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* v, unsigned int* c)
+PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
     Lock pvrlock(_pvr_lock);
 
-    if (!channel || !v || !c)
-        return PVR_ERROR_SERVER_ERROR;
-    std::cout << __FUNCTION__ << ' ' << *c << std::endl;
-    auto limit = *c;
-    *c = 0;
-
     if (g.Settings.use_stream_url)
     {
-        auto id = channel->iUniqueId;
+        auto id = channel.GetUniqueId();
         auto& info = _info[id];
 
         for (auto device : _storage_devices)
@@ -893,33 +942,33 @@ PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_N
             ss << "?SessionID=0x" << std::hex << std::setw(8) << std::setfill('0') << sessionid;
             auto url = ss.str();
 
-            add_prop(v, PVR_STREAM_PROPERTY_STREAMURL, url, c, limit);
+            properties.emplace_back(PVR_STREAM_PROPERTY_STREAMURL, url);
             std::cout << "Passing URL : " << url << std::endl;
+            break;
         }
     }
-
-    add_prop(v, PVR_STREAM_PROPERTY_ISREALTIMESTREAM, "true", c, limit);
+    properties.emplace_back(PVR_STREAM_PROPERTY_ISREALTIMESTREAM, "true");
 
     return PVR_ERROR_NO_ERROR;
 }
-PVR_ERROR PVR_HDHR::GetDriveSpace(long long *iTotal, long long *iUsed)
+PVR_ERROR PVR_HDHR::GetDriveSpace(uint64_t& total, uint64_t& used)
 {
-    *iTotal = 0;
-    *iUsed = 0;
+    total = 0;
+    used = 0;
     if (_current_storage)
     {
-        *iTotal = _current_storage->FreeSpace();
-        *iUsed = 0;
+        total = _current_storage->FreeSpace();
+        used = 0;
     }
     return PVR_ERROR_NO_ERROR;
 }
-PVR_ERROR PVR_HDHR::GetStreamProperties(PVR_STREAM_PROPERTIES*)
+PVR_ERROR PVR_HDHR::GetStreamProperties(std::vector<kodi::addon::PVRStreamProperties>&)
 {
     std::cout << __FUNCTION__ << std::endl;
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
+bool PVR_HDHR::OpenRecordedStream(const kodi::addon::PVRRecording& recording)
 {
     Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
@@ -930,18 +979,20 @@ bool PVR_HDHR::OpenRecordedStream(const PVR_RECORDING& pvrrec)
 
     if (g.Settings.use_stream_url)
         return false;
+    
+    auto id = recording.GetRecordingId();
 
-    const auto rec = _recording.getEntry(pvrrec.strRecordingId);
+    const auto rec = _recording.getEntry(id);
     if (!rec)
     {
-        KODI_LOG(LOG_ERROR, "Cannot find ID: %s", pvrrec.strRecordingId);
-        std::cout << "Cannot find ID: " << pvrrec.strRecordingId << std::endl;
+        KODI_LOG(ADDON_LOG_ERROR, "Cannot find ID: %s", id);
+        std::cout << "Cannot find ID: " << id << std::endl;
         return false;
     }
 
     const auto& ttl = rec->_title;
     const auto& ep = rec->_episodetitle;
-    std::cout << pvrrec.strRecordingId << " " << ttl << " " << ep << std::endl;
+    std::cout << id << " " << ttl << " " << ep << std::endl;
     std::cout << rec->_playurl << std::endl;
 
     auto sts = _open_tcp_stream(rec->_playurl, false);
@@ -969,42 +1020,37 @@ int PVR_HDHR::ReadRecordedStream(unsigned char* buf, unsigned int len)
 {
     return _read_stream(buf, len);
 }
-long long PVR_HDHR::SeekRecordedStream(long long pos, int whence)
+int64_t PVR_HDHR::SeekRecordedStream(int64_t pos, int whence)
 {
     return _seek_stream(pos, whence);
 }
-long long PVR_HDHR::LengthRecordedStream(void)
+int64_t PVR_HDHR::LengthRecordedStream(void)
 {
     return _length_stream();
 }
-PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const PVR_RECORDING* pvrrec, PVR_NAMED_VALUE* v, unsigned int* c)
+PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const kodi::addon::PVRRecording& recording, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
     Lock pvrlock(_pvr_lock);
 
-    if (!pvrrec || !v || !c)
-        return PVR_ERROR_SERVER_ERROR;
-    std::cout << __FUNCTION__ << ' ' << *c << std::endl;
-    auto limit = *c;
-    *c = 0;
-
-    const auto rec = _recording.getEntry(pvrrec->strRecordingId);
+    auto id = recording.GetRecordingId();
+    const auto rec = _recording.getEntry(id);
     if (!rec)
     {
-        KODI_LOG(LOG_ERROR, "Cannot find ID: %s", pvrrec->strRecordingId);
-        std::cout << "Cannot find ID: " << pvrrec->strRecordingId << std::endl;
+        KODI_LOG(ADDON_LOG_ERROR, "Cannot find ID: %s", id);
+        std::cout << "Cannot find ID: " << id << std::endl;
         return PVR_ERROR_SERVER_ERROR;
     }
-    add_prop(v, PVR_STREAM_PROPERTY_STREAMURL, rec->_playurl, c, limit);
+    properties.emplace_back(PVR_STREAM_PROPERTY_STREAMURL, rec->_playurl);
     std::cout << "Record URL: " << rec->_playurl << std::endl;
 
     return PVR_ERROR_NO_ERROR;
 }
-PVR_ERROR PVR_HDHR::DeleteRecording(const PVR_RECORDING&)
+PVR_ERROR PVR_HDHR::DeleteRecording(const kodi::addon::PVRRecording& recording)
 {
     // TODO
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR PVR_HDHR::GetRecordings(ADDON_HANDLE handle, bool deleted)
+PVR_ERROR PVR_HDHR::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultSet& results)
 {
     if (!deleted)
     {
@@ -1012,56 +1058,56 @@ PVR_ERROR PVR_HDHR::GetRecordings(ADDON_HANDLE handle, bool deleted)
 
         for (auto& r: _recording.Records())
         {
-            auto& rec = r.second;
-            PVR_RECORDING prec = rec;
-            g.PVR->TransferRecordingEntry(handle, &prec);
+            results.Add(r.second);
         }
     }
 
     return PVR_ERROR_NO_ERROR;
 }
-int PVR_HDHR::GetRecordingsAmount(bool deleted)
+PVR_ERROR PVR_HDHR::GetRecordingsAmount(bool deleted, int& amount)
 {
+    amount = 0;
     if (deleted)
-        return 0;
-
+        return PVR_ERROR_NO_ERROR;
     Lock pvrlock(_pvr_lock);
-    return static_cast<int>(_recording.size());
+    amount = static_cast<int>(_recording.size());
+    return PVR_ERROR_NO_ERROR;
 }
-PVR_ERROR PVR_HDHR::RenameRecording(const PVR_RECORDING&)
+PVR_ERROR PVR_HDHR::RenameRecording(const kodi::addon::PVRRecording& recording)
 {
     // TODO ?
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR PVR_HDHR::GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int* size)
+PVR_ERROR PVR_HDHR::GetRecordingEdl(const kodi::addon::PVRRecording& recording, std::vector<kodi::addon::PVREDLEntry>& edl)
 {
     // TODO ?
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR PVR_HDHR::SetRecordingPlayCount(const PVR_RECORDING&, int count)
+PVR_ERROR PVR_HDHR::SetRecordingPlayCount(const kodi::addon::PVRRecording& recording, int count)
 {
     // TODO ?
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-int PVR_HDHR::GetRecordingLastPlayedPosition(const PVR_RECORDING& pvrrec)
+PVR_ERROR PVR_HDHR::GetRecordingLastPlayedPosition(const kodi::addon::PVRRecording& recording, int& position)
 {
     //std::cout << __FUNCTION__ << " " << pvrrec.strTitle << std::endl;
     Lock pvrlock(_pvr_lock);
-    auto rec = _recording.getEntry(pvrrec.strRecordingId);
-    return rec ? rec->Resume() : 0;
+    auto rec = _recording.getEntry(recording.GetRecordingId());
+    position = rec ? rec->Resume() : 0;
+    return PVR_ERROR_NO_ERROR;
 }
-PVR_ERROR PVR_HDHR::SetRecordingLastPlayedPosition(const PVR_RECORDING& pvrrec, int i)
+PVR_ERROR PVR_HDHR::SetRecordingLastPlayedPosition(const kodi::addon::PVRRecording& recording, int i)
 {
     //std::cout << __FUNCTION__ << " " << pvrrec.strTitle << " " << i << std::endl;
     Lock pvrlock(_pvr_lock);
-    auto rec = _recording.getEntry(pvrrec.strRecordingId);
+    auto rec = _recording.getEntry(recording.GetRecordingId());
     if (rec)
     {
         rec->Resume(i);
     }
     return PVR_ERROR_NO_ERROR;
 }
-PVR_ERROR PVR_HDHR::SetRecordingLifetime(const PVR_RECORDING*)
+PVR_ERROR PVR_HDHR::SetRecordingLifetime(const kodi::addon::PVRRecording& recording)
 {
     // TODO ?
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1071,16 +1117,17 @@ PVR_ERROR PVR_HDHR::DeleteAllRecordingsFromTrash()
     // TODO ?
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR PVR_HDHR::UndeleteRecording(const PVR_RECORDING&)
+PVR_ERROR PVR_HDHR::UndeleteRecording(const kodi::addon::PVRRecording& recording)
 {
     // TODO ?
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 #define TP(x) "  " << #x << " " << t.x << std::endl
-PVR_ERROR PVR_HDHR::AddTimer(const PVR_TIMER& t)
+PVR_ERROR PVR_HDHR::AddTimer(const kodi::addon::PVRTimer& timer)
 {
-    std::cout << __FUNCTION__ << std::endl <<
+/*
+     std::cout << __FUNCTION__ << std::endl <<
             TP(iParentClientIndex) <<
             TP(startTime) <<
             TP(endTime) <<
@@ -1106,25 +1153,25 @@ PVR_ERROR PVR_HDHR::AddTimer(const PVR_TIMER& t)
             TP(iGenreType) <<
             TP(iGenreSubType) <<
             TP(strSeriesLink);
-
+*/
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR PVR_HDHR::DeleteTimer(const PVR_TIMER&, bool)
+PVR_ERROR PVR_HDHR::DeleteTimer(const kodi::addon::PVRTimer& timer, bool forceDelete)
 {
     // TODO
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-int PVR_HDHR::GetTimersAmount(void)
-{
-    // TODO
-    return -1;
-}
-PVR_ERROR PVR_HDHR::GetTimers(ADDON_HANDLE)
+PVR_ERROR PVR_HDHR::GetTimersAmount(int& amount)
 {
     // TODO
     return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR PVR_HDHR::UpdateTimer(const PVR_TIMER&)
+PVR_ERROR PVR_HDHR::GetTimers(kodi::addon::PVRTimersResultSet& results)
+{
+    // TODO
+    return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR PVR_HDHR::UpdateTimer(const kodi::addon::PVRTimer& timer)
 {
     // TODO ?
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1138,11 +1185,6 @@ void PVR_HDHR::SetSpeed(int speed)
 {
     // TODO
 }
-bool PVR_HDHR::IsTimeshifting(void)
-{
-    // TODO
-    return false;
-}
 
 void PVR_HDHR_TCP::_close_stream()
 {
@@ -1150,8 +1192,9 @@ void PVR_HDHR_TCP::_close_stream()
     Lock strlock(_stream_lock);
 
     if (_filehandle)
-        g.XBMC->CloseFile(_filehandle);
-    _filehandle = nullptr;
+        _filehandle->Close();
+    _filehandle.reset();
+    
     _using_sd_record = false;
     _starttime = 0;
     _endtime = 0;
@@ -1164,12 +1207,12 @@ int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
 
     if (_filehandle)
     {
-        return g.XBMC->ReadFile(_filehandle, buffer, size);
+        return _filehandle->Read(buffer, size);
     }
     return 0;
 }
 
-long long PVR_HDHR::SeekLiveStream(long long position, int whence)
+int64_t PVR_HDHR::SeekLiveStream(int64_t position, int whence)
 {
     return _seek_stream(position, whence);
 }
@@ -1181,7 +1224,7 @@ int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
     if (_filehandle)
     {
         //std::cout << __FUNCTION__ << '(' << position << ',' << whence << ')';
-        auto pos = g.XBMC->SeekFile(_filehandle, position, whence);
+        auto pos = _filehandle->Seek(position, whence);
         //std::cout  << " -> " << pos << std::endl;
         return pos;
     }
@@ -1198,10 +1241,10 @@ int64_t PVR_HDHR::_length_stream()
     //else
     if (_filehandle)
     {
-        auto len = g.XBMC->GetFileLength(_filehandle);
+        auto len = _filehandle->GetLength();
         //std::cout << __FUNCTION__ << " " << len << std::endl;
         //auto pvs = g.XBMC->GetFilePropertyValues(_filehandle, )
-        //std::cout << "  pos: " << g.XBMC->GetFilePosition(_filehandle) << std::endl;
+        //std::cout << "  pos: " << _filehandle->GetPosition() << std::endl;
         return len ? len : -1;
     }
     return -1;
@@ -1212,100 +1255,97 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool /*live*/)
     Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
-#   define COMMON_OPTIONS (XFILE::READ_CHUNKED | XFILE::READ_AUDIO_VIDEO | XFILE::READ_REOPEN | XFILE::READ_TRUNCATED)
-//#   define COMMON_OPTIONS (XFILE::READ_AUDIO_VIDEO | XFILE::READ_MULTI_STREAM | XFILE::READ_REOPEN | XFILE::READ_TRUNCATED)
-//#   define COMMON_OPTIONS (XFILE::READ_CHUNKED | XFILE::READ_TRUNCATED)
+#   define COMMON_OPTIONS (ADDON_READ_CHUNKED | ADDON_READ_AUDIO_VIDEO | ADDON_READ_REOPEN | ADDON_READ_TRUNCATED)
+//#   define COMMON_OPTIONS (ADDON_READ_AUDIO_VIDEO | ADDON_READ_MULTI_STREAM | ADDON_READ_REOPEN | ADDON_READ_TRUNCATED)
+//#   define COMMON_OPTIONS (ADDON_READ_CHUNKED | ADDON_READ_TRUNCATED)
 #   if NO_FILE_CACHE
-#       define OPEN_OPTIONS (COMMON_OPTIONS | XFILE::READ_NO_CACHE)
+#       define OPEN_OPTIONS (COMMON_OPTIONS | ADDON_READ_NO_CACHE)
 #   else
-#       define OPEN_OPTIONS (COMMON_OPTIONS | XFILE::READ_CACHED)
+#       define OPEN_OPTIONS (COMMON_OPTIONS | ADDON_READ_CACHED)
 #   endif
 
     unsigned int flags = OPEN_OPTIONS;
 //    if (live)
-//        flags |= XFILE::READ_BITRATE;
+//        flags |= ADDON_READ_BITRATE;
 
-    _filehandle = nullptr;
+    _filehandle.reset();
     if (url.size())
     {
-        _filehandle = g.XBMC->CURLCreate(url.c_str());
+        _filehandle.reset(new kodi::vfs::CFile());
+        _filehandle->CURLCreate(url.c_str());
         if (!_filehandle)
         {
-            KODI_LOG(LOG_ERROR, "Error creating CURL connection.");
+            KODI_LOG(ADDON_LOG_ERROR, "Error creating CURL connection.");
         }
         else
         {
-            bool sts = g.XBMC->CURLAddOption(_filehandle, XFILE::CURLOPTIONTYPE::CURL_OPTION_PROTOCOL, "seekable", "1");
+            bool sts = _filehandle->CURLAddOption(ADDON_CURL_OPTION_PROTOCOL, "seekable", "1");
             if (!sts)
             {
-                KODI_LOG(LOG_ERROR, "Cannot add CURL seekable option.");
+                KODI_LOG(ADDON_LOG_ERROR, "Cannot add CURL seekable option.");
             }
             else
             {
-                sts = g.XBMC->CURLOpen(_filehandle, flags );
+                sts = _filehandle->CURLOpen(flags);
             }
             if (!sts)
             {
-                g.XBMC->CloseFile(_filehandle);
-                _filehandle = nullptr;
+                _filehandle->Close();
+                _filehandle.reset();
             }
 
 #if NO_FILE_CACHE
-            const char* dur_s = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "X-Content-Duration");
-            const char* bps_s = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "X-Content-BitsPerSecond");
-            const char* cr_s  = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "Content-Range");
-            const char* ar_s  = g.XBMC->GetFilePropertyValue(_filehandle, XFILE::FILE_PROPERTY_RESPONSE_HEADER, "Accept-Ranges");
+            auto dur_s = _filehandle->GetPropertyValue(ADDON_FILE_PROPERTY_RESPONSE_HEADER, "X-Content-Duration");
+            auto bps_s = _filehandle->GetPropertyValue(ADDON_FILE_PROPERTY_RESPONSE_HEADER, "X-Content-BitsPerSecond");
+            auto cr_s  = _filehandle->GetPropertyValue(ADDON_FILE_PROPERTY_RESPONSE_HEADER, "Content-Range");
+            auto ar_s  = _filehandle->GetPropertyValue(ADDON_FILE_PROPERTY_RESPONSE_HEADER, "Accept-Ranges");
 
             _duration = 0;
-            if (dur_s)
+            if (dur_s != "")
             {
-                _duration = std::atoi(dur_s);
-                free(const_cast<char*>(dur_s));
+                _duration = std::atoi(dur_s.c_str());
             }
             _bps = 0;
-            if (bps_s)
+            if (bps_s != "")
             {
-                _bps = std::atoi(bps_s);
-                free(const_cast<char*>(bps_s));
+                _bps = std::atoi(bps_s.c_str());
             }
 
 
             std::cout << " Len: " << _length << " dur: " << _duration << " bps: " << _bps /* << " Len: " << Length() */ << std::endl;
-            if (cr_s)
+            if (cr_s != "")
             {
                 std::cout << "CR: " << cr_s << std::endl;
-                free(const_cast<char*>(cr_s));
             }
-            if (ar_s)
+            if (ar_s != "")
             {
                 std::cout << "AR: " << ar_s << std::endl;
-                free(const_cast<char*>(ar_s));
             }
 #endif
         }
     }
     if (_filehandle)
     {
-        _filesize = g.XBMC->GetFileLength(_filehandle);
+        _filesize = _filehandle->GetLength();
     }
 
-    KODI_LOG(LOG_DEBUG, "Attempt to open TCP stream from url %s : %s",
+    KODI_LOG(ADDON_LOG_DEBUG, "Attempt to open TCP stream from url %s : %s",
             url.c_str(),
-            _filehandle == nullptr ? "Fail":"Success");
+            _filehandle ? "Fail":"Success");
 
-    return _filehandle != nullptr;
+    return _filehandle.get();
 }
 
-bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
+bool PVR_HDHR_TCP::_open_stream(const kodi::addon::PVRChannel& channel)
 {
     Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
-    auto id = channel.iUniqueId;
+    auto id = channel.GetUniqueId();
     const auto& entry = _lineup.find(id);
     if (entry == _lineup.end())
     {
-        KODI_LOG(LOG_ERROR, "Channel %d not found!", id);
+        KODI_LOG(ADDON_LOG_ERROR, "Channel %d not found!", id);
         return false;
     }
     auto& info = _info[id];
@@ -1326,7 +1366,7 @@ bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
                 return true;
             }
         }
-        KODI_LOG(LOG_INFO, "Failed to tune channel %s from storage, falling back to tuner device", info._guidenumber.c_str());
+        KODI_LOG(ADDON_LOG_INFO, "Failed to tune channel %s from storage, falling back to tuner device", info._guidenumber.c_str());
     }
     std::cout << "Using direct tuning" << std::endl;
     _using_sd_record = false;
@@ -1346,7 +1386,7 @@ bool PVR_HDHR_TCP::_open_stream(const PVR_CHANNEL& channel)
     return false;
 }
 
-bool PVR_HDHR_UDP::_open_stream(const PVR_CHANNEL& channel)
+bool PVR_HDHR_UDP::_open_stream(const kodi::addon::PVRChannel& channel)
 {
     Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);

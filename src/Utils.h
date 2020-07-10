@@ -39,15 +39,14 @@ int DbgPrintf(const char* szFormat, ...);
 #define DbgPrintf(...)              do {} while(0)
 #endif // USE_DBG_CONSOLE
 
-#define KODI_LOG(level, ...)											\
-    do																	\
-    {                                                                   \
-        using namespace ADDON;                                          \
-        DbgPrintf("%-10s: ",  #level);									\
-        DbgPrintf(__VA_ARGS__);											\
-        DbgPrintf("\n");												\
-        if (g.XBMC && (level > ADDON::LOG_DEBUG || g.Settings.debugLog))\
-            g.XBMC->Log((addon_log_t)level, __VA_ARGS__);               \
+#define KODI_LOG(level, ...)                                \
+    do                                                      \
+    {                                                       \
+        DbgPrintf("%-10s: ",  #level);                      \
+        DbgPrintf(__VA_ARGS__);                             \
+        DbgPrintf("\n");                                    \
+        if (level > ADDON_LOG_DEBUG || g.Settings.debugLog) \
+            kodi::Log(level, __VA_ARGS__);                  \
     } while (0)
 
 

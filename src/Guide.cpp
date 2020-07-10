@@ -22,8 +22,11 @@
 #include "Guide.h"
 #include "Settings.h"
 #include "Utils.h"
+#include "PVR_HDHR.h"
 
 #include <iostream>
+
+#include <kodi/addon-instance/pvr/EPG.h>
 
 namespace PVRHDHomeRun
 {
@@ -100,23 +103,34 @@ bool operator==(const GuideEntry& a, const GuideEntry& b)
             && a._id == b._id;
 }
 
-EPG_TAG GuideEntry::Epg_Tag(uint32_t number) const
+namespace {
+std::string ParseAsW3CDateString(time_t time)
 {
-    EPG_TAG tag = {0};
+  std::tm* tm = std::gmtime(&time);
+  char buffer[16];
+  std::strftime(buffer, 16, "%Y-%m-%d", tm);
 
-    tag.iUniqueChannelId   = number;
+  return buffer;
+}
+}
 
-    tag.iUniqueBroadcastId = _id;
-    tag.strTitle           = _title.c_str();
-    tag.strEpisodeName     = _episodetitle.c_str();
-    tag.startTime          = _starttime;
-    tag.endTime            = _endtime;
-    tag.firstAired         = _originalairdate;
-    tag.strPlot            = _synopsis.c_str();
-    tag.strIconPath        = _imageURL.c_str();
-    tag.iGenreType         = _genre;
-    tag.iSeriesNumber      = _season;
-    tag.iEpisodeNumber     = _episode;
+kodi::addon::PVREPGTag GuideEntry::Epg_Tag(uint32_t number) const
+{
+    kodi::addon::PVREPGTag tag;
+
+    tag.SetUniqueChannelId(number);
+
+    tag.SetUniqueBroadcastId(_id);
+    tag.SetTitle(_title.c_str());
+    tag.SetEpisodeName(_episodetitle.c_str());
+    tag.SetStartTime(_starttime);
+    tag.SetEndTime(_endtime);
+    tag.SetFirstAired(_originalairdate > 0 ? ParseAsW3CDateString(_originalairdate) : "");
+    tag.SetPlot(_synopsis.c_str());
+    tag.SetIconPath(_imageURL.c_str());
+    tag.SetGenreType(_genre);
+    tag.SetSeriesNumber(_season);
+    tag.SetEpisodeNumber(_episode);
 
     return tag;
 }
@@ -148,8 +162,8 @@ bool Guide::AddEntry(GuideEntry& v, uint32_t number)
     _entries.insert(v);
 
     EPG_EVENT_STATE state = newentry ? EPG_EVENT_CREATED : EPG_EVENT_UPDATED;
-    EPG_TAG tag = v.Epg_Tag(number);
-    g.PVR->EpgEventStateChange(&tag, state);
+    auto tag = v.Epg_Tag(number);
+    g.pvr_hdhr->EpgEventStateChange(tag, state);
 
     return newentry;
 }

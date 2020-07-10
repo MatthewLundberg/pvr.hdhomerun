@@ -25,6 +25,7 @@
 #include "Entry.h"
 #include "UniqueID.h"
 #include <json/json.h>
+#include <kodi/addon-instance/pvr/EPG.h>
 
 namespace PVRHDHomeRun
 {
@@ -82,7 +83,7 @@ public:
     {
         return {_starttime, _endtime};
     }
-    EPG_TAG Epg_Tag(uint32_t number) const;
+    kodi::addon::PVREPGTag Epg_Tag(uint32_t number) const;
 };
 
 bool operator<(const GuideEntry&, const GuideEntry&);
