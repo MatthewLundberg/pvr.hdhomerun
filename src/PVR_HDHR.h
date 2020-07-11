@@ -53,7 +53,6 @@ class ATTRIBUTE_HIDDEN PVR_HDHR
 {
 public:
     PVR_HDHR() = default;
-    virtual ~PVR_HDHR();
 
     ADDON_STATUS Create() override;
     ADDON_STATUS SetSetting(const std::string& settingName, const kodi::CSettingValue& settingValue) override;
@@ -144,12 +143,8 @@ private:
     void  _insert_json_guide_data(const Json::Value&, const char* idstr);
     void  _fetch_guide_data(const uint32_t* = nullptr, time_t start=0);
 
-    //virtual bool _open_stream(const kodi::addon::PVRChannel& channel) { return false; };
-    //virtual bool _open_stream(const kodi::addon::PVRRecording& recording) { return false; };
-    //virtual int  _read_stream(unsigned char* buffer, unsigned int size) = 0;
-    //virtual void _close_stream() = 0;
-    virtual int64_t _seek_stream(int64_t position, int whence);
-    virtual int64_t _length_stream();
+    int64_t _seek_stream(int64_t position, int whence);
+    int64_t _length_stream();
 
     std::unique_ptr<PVR_HDHR_TUNER> _tuner;
 

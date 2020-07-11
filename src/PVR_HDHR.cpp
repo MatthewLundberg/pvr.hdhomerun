@@ -37,6 +37,11 @@
 #include <iostream>
 #include <random>
 #include <kodi/c-api/filesystem.h>
+#include <kodi/AddonBase.h>
+
+namespace kodi {
+ADDONCREATOR(PVRHDHomeRun::PVR_HDHR);
+}
 
 namespace PVRHDHomeRun
 {
@@ -274,6 +279,11 @@ PVR_ERROR PVR_HDHR::OnSystemWake()
     TriggerChannelUpdate();
 
     return PVR_ERROR_NO_ERROR;
+}
+
+ADDON_STATUS PVR_HDHR::SetSetting(const std::string& settingName, const kodi::CSettingValue& settingValue)
+{
+    return g.Settings.SetSetting(settingName, settingValue);
 }
 
 PVR_ERROR PVR_HDHR::GetCapabilities(kodi::addon::PVRCapabilities& capabilities)
@@ -1633,3 +1643,4 @@ void PVR_HDHR_UDP::_close_stream()
 }
 
 }; // namespace PVRHDHomeRun
+
