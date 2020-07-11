@@ -41,12 +41,13 @@ namespace PVRHDHomeRun
 
 class PVR_HDHR;
 
-
 class ATTRIBUTE_HIDDEN SettingsType
 {
 public:
     bool ReadSettings();
     ADDON_STATUS SetSetting(const std::string& settingName, const kodi::CSettingValue& settingValue);
+    void SetChannelName(int name);
+    void SetProtocol(const std::string& proto);
     
     bool UseLegacyDevices()
     {
@@ -95,14 +96,6 @@ public:
 
 struct ATTRIBUTE_HIDDEN GlobalsType
 {
-    bool         isCreated               = false;
-    ADDON_STATUS currentStatus           = ADDON_STATUS_UNKNOWN;
-    std::string  userPath;
-    std::string  clientPath;
-    //ADDON::CHelper_libXBMC_addon* XBMC    = nullptr;
-    //CHelper_libXBMC_pvr*          PVR     = nullptr;
-    PVR_HDHR*                     pvr_hdhr = nullptr;
-
     SettingsType Settings;
 };
 

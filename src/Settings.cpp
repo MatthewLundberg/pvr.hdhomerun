@@ -46,342 +46,6 @@ namespace PVRHDHomeRun
 
 GlobalsType g;
 
-// Move to PVR_HDHR
-class UpdateThread: public P8PLATFORM::CThread, Lockable
-{
-    time_t _lastDiscover = 0;
-    time_t _lastLineup   = 0;
-    time_t _lastGuide    = 0;
-    time_t _lastRecord   = 0;
-    time_t _lastRules    = 0;
-
-    bool   _running      = false;
-
-public:
-    void Wake()
-    {
-        Lock lock(this);
-
-        _lastDiscover = 0;
-        _lastLineup   = 0;
-        _lastGuide    = 0;
-        _lastRecord   = 0;
-        _lastRules    = 0;
-        _running      = false;
-    }
-    void *Process()
-    {
-        int state{0};
-        int prev_num_networks{0};
-
-        for (;;)
-        {
-            P8PLATFORM::CThread::Sleep(1000);
-            if (IsStopped())
-            {
-                break;
-            }
-
-            {
-                int num_networks = 0;
-
-                const uint32_t localhost = 127 << 24;
-                const size_t max = 64;
-                struct hdhomerun_local_ip_info_t ip_info[max];
-                int ip_info_count = hdhomerun_local_ip_info(ip_info, max);
-                for (int i=0; i<ip_info_count; i++)
-                {
-                    auto& info = ip_info[i];
-                    //KODI_LOG(ADDON_LOG_DEBUG, "Local IP: %s %s", FormatIP(info.ip_addr).c_str(), FormatIP(info.subnet_mask).c_str());
-                    if (!IPSubnetMatch(localhost, info.ip_addr, info.subnet_mask))
-                    {
-                        num_networks ++;
-                    }
-                }
-
-                if (num_networks != prev_num_networks)
-                {
-                    if (num_networks == 0)
-                    {
-                        KODI_LOG(ADDON_LOG_DEBUG, "UpdateThread::Process No external networks found, waiting.");
-                    }
-                    else
-                    {
-                        for (int i=0; i<ip_info_count; i++)
-                        {
-                            KODI_LOG(ADDON_LOG_DEBUG, "UpdateThread::Process IP %s %s",
-                                    FormatIP(ip_info[i].ip_addr).c_str(),
-                                    FormatIP(ip_info[i].subnet_mask).c_str()
-                            );
-                        }
-                    }
-                    prev_num_networks = num_networks;
-                }
-                if (num_networks == 0)
-                {
-                    continue;
-                }
-            }
-
-            time_t now = time(nullptr);
-            bool updateDiscover = false;
-            bool updateLineup   = false;
-            bool updateGuide    = false;
-            bool updateRecord   = false;
-            bool updateRules    = false;
-
-            time_t discover, lineup, guide, recordings, rules;
-            {
-                Lock lock(this);
-                discover   = _lastDiscover;
-                lineup     = _lastLineup;
-                guide      = _lastGuide;
-                recordings = _lastRecord;
-                rules      = _lastRules;
-            }
-
-            if (g.pvr_hdhr)
-            {
-                if (state == 0)
-                {
-                    // Tuner discover
-                    if (now >= discover + g.Settings.deviceDiscoverInterval)
-                    {
-                        bool discovered = g.pvr_hdhr->DiscoverTunerDevices();
-                        if (discovered)
-                        {
-                            KODI_LOG(ADDON_LOG_DEBUG, "PVR::DiscoverDevices returned true, try again");
-                            now = 0;
-                            state = 0;
-                        }
-                        else
-                        {
-                            state = 1;
-                        }
-                        updateDiscover = true;
-                    }
-                    else
-                        state = 1;
-                }
-
-                if (state == 1)
-                {
-                    if (now >= lineup + g.Settings.lineupUpdateInterval)
-                    {
-                        if (g.pvr_hdhr->UpdateLineup())
-                        {
-                            g.pvr_hdhr->TriggerChannelUpdate();
-                            g.pvr_hdhr->TriggerChannelGroupsUpdate();
-                        }
-
-                        updateLineup = true;
-                    }
-                    else if (now >= recordings + g.Settings.recordUpdateInterval)
-                    {
-                        if (g.pvr_hdhr->UpdateRecordings())
-                            g.pvr_hdhr->TriggerRecordingUpdate();
-
-                        updateRecord = true;
-                    }
-                    else
-                        state = 2;
-                }
-
-                if (state == 2)
-                {
-                    if (now >= rules + g.Settings.ruleUpdateInterval)
-                    {
-                         if (g.pvr_hdhr->UpdateRules()) {}
-                            ; // g.pvr_hdhr->Trigger? TODO
-
-                         updateRules = true;
-                    }
-                    else
-                        state = 3;
-                }
-
-                if (state == 3)
-                {
-                    if (now >= guide + g.Settings.guideUpdateInterval)
-                    {
-                        g.pvr_hdhr->UpdateGuide();
-
-                        updateGuide = true;
-                    }
-                    state = 0;
-                }
-            }
-
-            if (updateDiscover || updateLineup || updateGuide || updateRecord || updateRules)
-            {
-                Lock lock(this);
-
-                if (updateDiscover)
-                    _lastDiscover = now;
-                if (updateLineup)
-                    _lastLineup = now;
-                if (updateGuide)
-                    _lastGuide = now;
-                if (updateRecord)
-                    _lastRecord = now;
-                if (updateRules)
-                    _lastRules = now;
-            }
-        }
-        return nullptr;
-    }
-};
-
-UpdateThread g_UpdateThread;
-
-
-
-bool SettingsType::ReadSettings(void)
-{
-    if (g.XBMC == nullptr)
-        return false;
-
-    readvalue("hide_protected", g.Settings.hideProtectedChannels);
-    readvalue("debug",          g.Settings.debugLog);
-    readvalue("hide_unknown",   g.Settings.hideUnknownChannels);
-    readvalue("use_legacy",     g.Settings.useLegacyDevices);
-    readvalue("extended",       g.Settings.extendedGuide);
-    readvalue("guidedays",      g.Settings.guideDays);
-    readvalue("channel_name",   g.Settings.channelName);
-    readvalue("port",           g.Settings.udpPort);
-    readvalue("record",         g.Settings.record);
-    readvalue("recordforlive",  g.Settings.recordforlive);
-    readvalue("preferred",      g.Settings.preferredDevice);
-    readvalue("blacklist",      g.Settings.blacklistDevice);
-    readvalue("hide_ch_no",     g.Settings.hiddenChannels);
-    readvalue("use_stream_url", g.Settings.use_stream_url);
-
-    char protocol[64] = "TCP";
-    g.XBMC->GetSetting("protocol", protocol);
-    SetProtocol(protocol);
-    return true;
-}
-extern "C"
-{
-
-ADDON_STATUS ADDON_Create(void* hdl, void* props)
-{
-    if (!hdl || !props)
-        return ADDON_STATUS_UNKNOWN;
-
-    PVR_PROPERTIES* pvrprops = (PVR_PROPERTIES*) props;
-
-    g.XBMC = new ADDON::CHelper_libXBMC_addon;
-    if (!g.XBMC->RegisterMe(hdl))
-    {
-        delete(g.XBMC); g.XBMC = nullptr;
-        return ADDON_STATUS_PERMANENT_FAILURE;
-    }
-
-    g.PVR = new CHelper_libXBMC_pvr;
-    if (!g.PVR->RegisterMe(hdl))
-    {
-        delete(g.PVR);  g.PVR = nullptr;
-        delete(g.XBMC); g.XBMC = nullptr;
-        return ADDON_STATUS_PERMANENT_FAILURE;
-    }
-
-    KODI_LOG(ADDON_LOG_NOTICE, "%s - Creating the PVR HDHomeRun add-on",
-            __FUNCTION__);
-
-    g.currentStatus = ADDON_STATUS_UNKNOWN;
-    g.userPath = pvrprops->strUserPath;
-    g.clientPath = pvrprops->strClientPath;
-
-    ADDON_ReadSettings();
-
-    KODI_LOG(ADDON_LOG_DEBUG, "Creating new-style Lineup");
-    g.pvr_hdhr = PVR_HDHR_Factory(g.Settings.protocol);
-
-    if (g.pvr_hdhr == nullptr)
-    {
-        return ADDON_STATUS_PERMANENT_FAILURE;
-    }
-    KODI_LOG(ADDON_LOG_DEBUG, "Done with new-style Lineup");
-
-    g.pvr_hdhr->Update();
-    g_UpdateThread.CreateThread(false);
-
-    g.currentStatus = ADDON_STATUS_OK;
-    g.isCreated = true;
-
-    return ADDON_STATUS_OK;
-}
-
-}; // namespace
-
-ADDON_STATUS ADDON_GetStatus()
-{
-    return g.currentStatus;
-}
-
-void ADDON_Destroy()
-{
-    g_UpdateThread.StopThread();
-
-    delete(g.pvr_hdhr); g.pvr_hdhr = nullptr;
-    delete(g.PVR);      g.PVR = nullptr;
-    delete(g.XBMC);     g.XBMC = nullptr;
-
-    g.isCreated = false;
-    g.currentStatus = ADDON_STATUS_UNKNOWN;
-}
-
-bool ADDON_HasSettings()
-{
-    return true;
-}
-} // extern "C"
-
-namespace {
-template<typename T>
-bool setvalue(T& t, const char* text, const char* name, const void* value)
-{
-    if (strcmp(text, name) == 0)
-    {
-        t = *(T*) value;
-        return true;
-    }
-    return false;
-}
-
-using namespace PVRHDHomeRun;
-
-void SetChannelName(int name)
-{
-    if (g.XBMC == nullptr)
-        return;
-
-    switch(name)
-    {
-    case 1:
-        g.Settings.channelName = SettingsType::TUNER_NAME;
-        break;
-    case 2:
-        g.Settings.channelName = SettingsType::GUIDE_NAME;
-        break;
-    case 3:
-        g.Settings.channelName = SettingsType::AFFILIATE;
-        break;
-    }
-}
-void SetProtocol(const char* proto)
-{
-    if (strcmp(proto, "TCP") == 0)
-    {
-        g.Settings.protocol = SettingsType::TCP;
-    }
-    else if (strcmp(proto, "UDP") == 0)
-    {
-        g.Settings.protocol = SettingsType::UDP;
-    }
-}
-
 namespace {
 template<typename T>
 std::vector<T> split_vec(const std::string& s)
@@ -412,104 +76,194 @@ std::set<T> split_set(const std::string& s)
     return sset;
 }
 
-// g.XBMC is non-null when readvalue is called.
+void GetSetting(const std::string& name, int& i)
+{
+    i = kodi::GetSettingInt(name);
+}
+void GetSetting(const std::string& name, std::string& s)
+{
+    s = kodi::GetSettingString(name);
+}
+void GetSetting(const std::string& name, bool& b)
+{
+    b = kodi::GetSettingBoolean(name);
+}
+void GetSetting(const std::string& name, float& f)
+{
+    f = kodi::GetSettingFloat(name);
+}
+
+
 template<typename T>
-void readvalue(const char* name, T& t)
+void readvalue(const std::string& name, T& t)
 {
-    g.XBMC->GetSetting(name, &t);
+    GetSetting(name, t);
 }
 template<>
-void readvalue<std::vector<uint32_t>>(const char*name, std::vector<uint32_t>& t)
+void readvalue<std::vector<uint32_t>>(const std::string& name, std::vector<uint32_t>& t)
 {
-    char value[10240];
-    g.XBMC->GetSetting(name, value);
-    t = split_vec<uint32_t>(value);
+    auto value = kodi::GetSettingString(name);
+    t = split_vec<uint32_t>(std::move(value));
 }
 template<>
-void readvalue<std::vector<std::string>>(const char* name, std::vector<std::string>& t)
+void readvalue<std::vector<std::string>>(const std::string& name, std::vector<std::string>& t)
 {
-    char value[10240];
-    g.XBMC->GetSetting(name, value);
-    t = split_vec<std::string>(value);
+    auto value = kodi::GetSettingString(name);
+    t = split_vec<std::string>(std::move(value));
 }
 template<>
-void readvalue<std::set<uint32_t>>(const char* name, std::set<uint32_t>& t)
+void readvalue<std::set<uint32_t>>(const std::string& name, std::set<uint32_t>& t)
 {
-    char value[10240];
-    g.XBMC->GetSetting(name, value);
-    t = split_set<uint32_t>(value);
+    auto value = kodi::GetSettingString(name);
+    t = split_set<uint32_t>(std::move(value));
 }
 template<>
-void readvalue<std::set<std::string>>(const char* name, std::set<std::string>& t)
+void readvalue<std::set<std::string>>(const std::string& name, std::set<std::string>& t)
 {
-    char value[10240];
-    g.XBMC->GetSetting(name, value);
-    t = split_set<std::string>(value);
+    auto value = kodi::GetSettingString(name);
+    t = split_set<std::string>(std::move(value));
 }
 } // namespace
 
-ADDON_STATUS SettingsType::SetSetting(const char *name, const void *value)
+void SettingsType::SetProtocol(const std::string& proto)
 {
-    if (g.pvr_hdhr == nullptr)
-        return ADDON_STATUS_OK;
-
-    if (setvalue(g.Settings.hideProtectedChannels, "hide_protected", name, value))
-        return ADDON_STATUS_NEED_RESTART;
-
-    if (setvalue(g.Settings.debugLog, "debug", name, value))
-        return ADDON_STATUS_OK;
-
-    if (setvalue(g.Settings.useLegacyDevices, "use_legacy", name, value))
-        return ADDON_STATUS_NEED_RESTART;
-
-    if (setvalue(g.Settings.hideUnknownChannels, "hide_unknown", name, value))
-        return ADDON_STATUS_NEED_RESTART;
-
-    if (setvalue(g.Settings.udpPort, "port", name, value))
-        return ADDON_STATUS_OK;
-
-    if (setvalue(g.Settings.extendedGuide, "extended", name, value))
-        return ADDON_STATUS_OK;
-
-    if (setvalue(g.Settings.guideDays, "guidedays", name, value))
-        return ADDON_STATUS_OK;
-
-    if (setvalue(g.Settings.record, "record", name, value))
-        return ADDON_STATUS_OK;
-
-    if (setvalue(g.Settings.recordforlive, "recordforlive", name, value))
-        return ADDON_STATUS_OK;
-
-    if (setvalue(g.Settings.use_stream_url, "use_stream_url", name, value))
-        return ADDON_STATUS_NEED_RESTART;
-
-    if (strcmp(name, "channel_name") == 0)
+    if (proto == "TCP")
     {
-        SetChannelName(*(int*) value);
+        protocol = SettingsType::TCP;
+    }
+    else if (proto == "UDP")
+    {
+        protocol = SettingsType::UDP;
+    }
+}
+
+bool SettingsType::ReadSettings(void)
+{
+    readvalue("hide_protected", hideProtectedChannels);
+    readvalue("debug",          debugLog);
+    readvalue("hide_unknown",   hideUnknownChannels);
+    readvalue("use_legacy",     useLegacyDevices);
+    readvalue("extended",       extendedGuide);
+    readvalue("guidedays",      guideDays);
+    readvalue("port",           udpPort);
+    readvalue("record",         record);
+    readvalue("recordforlive",  recordforlive);
+    readvalue("preferred",      preferredDevice);
+    readvalue("blacklist",      blacklistDevice);
+    readvalue("hide_ch_no",     hiddenChannels);
+    readvalue("use_stream_url", use_stream_url);
+
+    auto cn = kodi::GetSettingInt("channel_name");
+    channelName = static_cast<CHANNEL_NAME>(cn);
+    auto protocol = kodi::GetSettingString("protocol");
+    SetProtocol(protocol);
+    return true;
+}
+
+
+
+namespace {
+template<typename T>
+void castsetting(T& t, const kodi::CSettingValue& value) {throw "Bad setting cast";}
+
+template<>
+void castsetting<int>(int& t, const kodi::CSettingValue& value)
+{
+    t = value.GetInt();
+}
+template<>
+void castsetting<std::string>(std::string& s, const kodi::CSettingValue& value)
+{
+    s = value.GetString();
+}
+
+template<typename T>
+bool setvalue(T& t, const std::string& text, const std::string& name, const kodi::CSettingValue& value)
+{
+    if (text == name)
+    {
+        castsetting(t, value);
+        return true;
+    }
+    return false;
+}
+}
+
+using namespace PVRHDHomeRun;
+
+void SettingsType::SetChannelName(int name)
+{
+    switch(name)
+    {
+    case 1:
+        channelName = SettingsType::TUNER_NAME;
+        break;
+    case 2:
+        channelName = SettingsType::GUIDE_NAME;
+        break;
+    case 3:
+        channelName = SettingsType::AFFILIATE;
+        break;
+    }
+}
+
+ADDON_STATUS SettingsType::SetSetting(const std::string& name, const kodi::CSettingValue& value)
+{
+    if (setvalue(hideProtectedChannels, "hide_protected", name, value))
+        return ADDON_STATUS_NEED_RESTART;
+
+    if (setvalue(debugLog, "debug", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(useLegacyDevices, "use_legacy", name, value))
+        return ADDON_STATUS_NEED_RESTART;
+
+    if (setvalue(hideUnknownChannels, "hide_unknown", name, value))
+        return ADDON_STATUS_NEED_RESTART;
+
+    if (setvalue(udpPort, "port", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(extendedGuide, "extended", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(guideDays, "guidedays", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(record, "record", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(recordforlive, "recordforlive", name, value))
+        return ADDON_STATUS_OK;
+
+    if (setvalue(use_stream_url, "use_stream_url", name, value))
+        return ADDON_STATUS_NEED_RESTART;
+
+    if (name == "channel_name")
+    {
+        SetChannelName(value.GetInt());
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(name, "protocol") == 0)
+    else if (name == "protocol")
     {
-        SetProtocol((char*) value);
+        SetProtocol(value.GetString());
         return ADDON_STATUS_NEED_RESTART;
     }
-    else if (strcmp(name, "preferred") == 0)
+    else if (name == "preferred")
     {
-        g.Settings.preferredDevice = split_vec<uint32_t>((char*) value);
+        preferredDevice = split_vec<uint32_t>(value.GetString());
     }
-    else if (strcmp(name, "blackist") == 0)
+    else if (name == "blackist")
     {
-        g.Settings.blacklistDevice = split_set<uint32_t>((char*) value);
+        blacklistDevice = split_set<uint32_t>(value.GetString());
     }
-    else if (strcmp(name, "hide_ch_no") == 0)
+    else if (name == "hide_ch_no")
     {
-        g.Settings.hiddenChannels = split_set<std::string>((char*) value);
+        hiddenChannels = split_set<std::string>(value.GetString());
     }
 
     return ADDON_STATUS_OK;
 }
-
-
 
 
 
@@ -719,4 +473,6 @@ PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int* count)
 
     return PVR_ERROR::PVR_ERROR_NO_ERROR;
 }
+
+} // namespace
 

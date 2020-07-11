@@ -38,33 +38,210 @@
 #include <random>
 #include <kodi/c-api/filesystem.h>
 
-namespace
-{
-void add_prop(PVR_NAMED_VALUE* v, const std::string& name, const std::string& value, unsigned int* c, int limit)
-{
-    if (*c < limit)
-    {
-        PVRHDHomeRun::pvr_strcpy(v[*c].strName,  name);
-        PVRHDHomeRun::pvr_strcpy(v[*c].strValue, value);
-        *c ++;
-    }
-}
-}
-
 namespace PVRHDHomeRun
 {
-PVR_HDHR* PVR_HDHR_Factory(int protocol) {
+class UpdateThread: public P8PLATFORM::CThread, Lockable
+{
+public:
+    UpdateThread(PVR_HDHR* _pvr)
+        : pvr_hdhr(_pvr)
+    {};
+private:
+    time_t _lastDiscover = 0;
+    time_t _lastLineup   = 0;
+    time_t _lastGuide    = 0;
+    time_t _lastRecord   = 0;
+    time_t _lastRules    = 0;
+
+    bool   _running      = false;
+    PVR_HDHR* pvr_hdhr;
+    
+public:
+    void Wake()
+    {
+        Lock lock(this);
+
+        _lastDiscover = 0;
+        _lastLineup   = 0;
+        _lastGuide    = 0;
+        _lastRecord   = 0;
+        _lastRules    = 0;
+        _running      = false;
+    }
+    void *Process() override
+    {
+        int state{0};
+        int prev_num_networks{0};
+
+        for (;;)
+        {
+            P8PLATFORM::CThread::Sleep(1000);
+            if (IsStopped())
+            {
+                break;
+            }
+
+            {
+                int num_networks = 0;
+
+                const uint32_t localhost = 127 << 24;
+                const size_t max = 64;
+                struct hdhomerun_local_ip_info_t ip_info[max];
+                int ip_info_count = hdhomerun_local_ip_info(ip_info, max);
+                for (int i=0; i<ip_info_count; i++)
+                {
+                    auto& info = ip_info[i];
+                    //KODI_LOG(ADDON_LOG_DEBUG, "Local IP: %s %s", FormatIP(info.ip_addr).c_str(), FormatIP(info.subnet_mask).c_str());
+                    if (!IPSubnetMatch(localhost, info.ip_addr, info.subnet_mask))
+                    {
+                        num_networks ++;
+                    }
+                }
+
+                if (num_networks != prev_num_networks)
+                {
+                    if (num_networks == 0)
+                    {
+                        KODI_LOG(ADDON_LOG_DEBUG, "UpdateThread::Process No external networks found, waiting.");
+                    }
+                    else
+                    {
+                        for (int i=0; i<ip_info_count; i++)
+                        {
+                            KODI_LOG(ADDON_LOG_DEBUG, "UpdateThread::Process IP %s %s",
+                                    FormatIP(ip_info[i].ip_addr).c_str(),
+                                    FormatIP(ip_info[i].subnet_mask).c_str()
+                            );
+                        }
+                    }
+                    prev_num_networks = num_networks;
+                }
+                if (num_networks == 0)
+                {
+                    continue;
+                }
+            }
+
+            time_t now = time(nullptr);
+            bool updateDiscover = false;
+            bool updateLineup   = false;
+            bool updateGuide    = false;
+            bool updateRecord   = false;
+            bool updateRules    = false;
+
+            time_t discover, lineup, guide, recordings, rules;
+            {
+                Lock lock(this);
+                discover   = _lastDiscover;
+                lineup     = _lastLineup;
+                guide      = _lastGuide;
+                recordings = _lastRecord;
+                rules      = _lastRules;
+            }
+
+            if (state == 0)
+            {
+                // Tuner discover
+                if (now >= discover + g.Settings.deviceDiscoverInterval)
+                {
+                    bool discovered = pvr_hdhr->DiscoverTunerDevices();
+                    if (discovered)
+                    {
+                        KODI_LOG(ADDON_LOG_DEBUG, "PVR::DiscoverDevices returned true, try again");
+                        now = 0;
+                        state = 0;
+                    }
+                    else
+                    {
+                        state = 1;
+                    }
+                    updateDiscover = true;
+                }
+                else
+                    state = 1;
+            }
+
+            if (state == 1)
+            {
+                if (now >= lineup + g.Settings.lineupUpdateInterval)
+                {
+                    if (pvr_hdhr->UpdateLineup())
+                    {
+                        pvr_hdhr->TriggerChannelUpdate();
+                        pvr_hdhr->TriggerChannelGroupsUpdate();
+                    }
+
+                    updateLineup = true;
+                }
+                else if (now >= recordings + g.Settings.recordUpdateInterval)
+                {
+                    if (pvr_hdhr->UpdateRecordings())
+                        pvr_hdhr->TriggerRecordingUpdate();
+
+                    updateRecord = true;
+                }
+                else
+                    state = 2;
+            }
+
+            if (state == 2)
+            {
+                if (now >= rules + g.Settings.ruleUpdateInterval)
+                {
+                     if (pvr_hdhr->UpdateRules()) {}
+                        ; // pvr_hdhr->Trigger? TODO
+
+                     updateRules = true;
+                }
+                else
+                    state = 3;
+            }
+
+            if (state == 3)
+            {
+                if (now >= guide + g.Settings.guideUpdateInterval)
+                {
+                    pvr_hdhr->UpdateGuide();
+
+                    updateGuide = true;
+                }
+                state = 0;
+            }
+
+            if (updateDiscover || updateLineup || updateGuide || updateRecord || updateRules)
+            {
+                Lock lock(this);
+
+                if (updateDiscover)
+                    _lastDiscover = now;
+                if (updateLineup)
+                    _lastLineup = now;
+                if (updateGuide)
+                    _lastGuide = now;
+                if (updateRecord)
+                    _lastRecord = now;
+                if (updateRules)
+                    _lastRules = now;
+            }
+        }
+        return nullptr;
+    }
+};
+
+
+
+PVR_HDHR_TUNER* PVR_HDHR_Factory(PVR_HDHR* pvr, int protocol) {
     switch (protocol)
     {
     case SettingsType::TCP:
-        return new PVR_HDHR_TCP();
+        return new PVR_HDHR_TCP(pvr);
     case SettingsType::UDP:
-        return new PVR_HDHR_UDP();
+        return new PVR_HDHR_UDP(pvr);
     }
     return nullptr;
 }
 
-PVR_HDHR::~PVR_HDHR()
+PVR_HDHR_TUNER::~PVR_HDHR_TUNER()
 {
     for (auto device: _tuner_devices)
     {
@@ -76,13 +253,26 @@ PVR_HDHR::~PVR_HDHR()
     }
 }
 
+ADDON_STATUS PVR_HDHR::Create()
+{
+    KODI_LOG(ADDON_LOG_INFO, "%s - Creating the PVR HDHomeRun add-on", __FUNCTION__);
+
+    g.Settings.ReadSettings();
+    _tuner.reset(PVR_HDHR_Factory(this, g.Settings.protocol));
+    Update();
+    
+    _updatethread.reset(new UpdateThread(this));
+    if (_updatethread->CreateThread(false))
+        return ADDON_STATUS_PERMANENT_FAILURE;
+
+    return ADDON_STATUS_OK;
+}
+
 PVR_ERROR PVR_HDHR::OnSystemWake()
 {
-    if (g.pvr_hdhr)
-    {
-        g.pvr_hdhr->Update();
-        g.pvr_hdhr->TriggerChannelUpdate();
-    }
+    Update();
+    TriggerChannelUpdate();
+
     return PVR_ERROR_NO_ERROR;
 }
 
@@ -129,9 +319,15 @@ PVR_ERROR PVR_HDHR::GetConnectionString(std::string& con)
     con = "connected";
     return PVR_ERROR_NO_ERROR;
 }
-
-
 bool PVR_HDHR::DiscoverTunerDevices()
+{
+    Lock guidelock(_guide_lock);
+    Lock pvrlock(_pvr_lock);
+    return _tuner->discover_tuner_devices();
+}
+
+
+bool PVR_HDHR_TUNER::discover_tuner_devices()
 {
     struct hdhomerun_discover_device_t discover_devices[64];
     size_t device_count = hdhomerun_discover_find_devices_custom_v2(
@@ -160,8 +356,6 @@ bool PVR_HDHR::DiscoverTunerDevices()
     bool storage_added   = false;
     bool storage_removed = false;
 
-    Lock guidelock(_guide_lock);
-    Lock pvrlock(_pvr_lock);
     for (size_t i=0; i<device_count; i++)
     {
         auto& dd = discover_devices[i];
@@ -276,11 +470,11 @@ bool PVR_HDHR::DiscoverTunerDevices()
 
             auto pdevice = const_cast<TunerDevice*>(device);
 
-            auto nit = _lineup.begin();
-            while (nit != _lineup.end())
+            auto nit = _parent->_lineup.begin();
+            while (nit != _parent->_lineup.end())
             {
                 auto& number = *nit;
-                auto& info = _info[number];
+                auto& info = _parent->_info[number];
                 if (info.RemoveDevice(device))
                 {
                     KODI_LOG(ADDON_LOG_DEBUG, "Removed device from GuideNumber %s", number.extendedName().c_str());
@@ -289,9 +483,9 @@ bool PVR_HDHR::DiscoverTunerDevices()
                 {
                     // No devices left for this lineup guide entry, remove it
                     KODI_LOG(ADDON_LOG_DEBUG, "No devices left, removing GuideNumber %s", number.extendedName().c_str());
-                    nit = _lineup.erase(nit);
-                    _guide.erase(number);
-                    _info.erase(number);
+                    nit = _parent->_lineup.erase(nit);
+                    _parent->_guide.erase(number);
+                    _parent->_info.erase(number);
                 }
                 else
                     nit ++;
@@ -359,7 +553,7 @@ bool PVR_HDHR::UpdateRecordings()
     Lock pvrlock(_pvr_lock);
 
     _recording.UpdateBegin();
-    for (const auto dev: _storage_devices)
+    for (const auto dev: _tuner->_storage_devices)
     {
         std::string s;
         if (GetFileContents(dev->StorageURL(), s))
@@ -380,7 +574,7 @@ bool PVR_HDHR::UpdateRules()
     Lock pvrlock(_pvr_lock);
 
     _recording.UpdateBegin();
-    TunerSet* ts = this;
+    TunerSet* ts = _tuner.get();
     if (ts->DeviceCount())
     {
         std::string URL{"http://api.hdhomerun.com/api/recording_rules?DeviceAuth="};
@@ -419,7 +613,7 @@ bool PVR_HDHR::UpdateLineup()
 
     _lineup.clear();
 
-    for (auto device: _tuner_devices)
+    for (auto device: _tuner->_tuner_devices)
     {
 
         KODI_LOG(ADDON_LOG_DEBUG, "Requesting channel lineup for %08x: %s",
@@ -536,7 +730,7 @@ void PVR_HDHR::_insert_json_guide_data(const Json::Value& jsondeviceguide, const
             static uint32_t counter = 1;
 
             GuideEntry entry{jsonentry};
-            bool n = channelguide.AddEntry(entry, number.ID());
+            bool n = channelguide.AddEntry(this, entry, number.ID());
         }
 
     }
@@ -548,7 +742,7 @@ void PVR_HDHR::_fetch_guide_data(const uint32_t* number, time_t start)
     if (number)
         ts = &_info[*number];
     else
-        ts = this;
+        ts = _tuner.get();
 
     if (!ts->DeviceCount())
         return;
@@ -669,7 +863,7 @@ void PVR_HDHR::UpdateGuide()
 
             if (guide.Requests().Empty())
             {
-                continue;
+                continue;                 
             }
 
             // First try the last interval in requests
@@ -841,34 +1035,34 @@ bool PVR_HDHR::OpenLiveStream(const kodi::addon::PVRChannel& channel)
 {
     Lock pvrlock(_pvr_lock);
 
-    _close_stream();
+    _tuner->close_stream();
 
     if (g.Settings.use_stream_url)
         return false;
 
-    auto sts = _open_stream(channel);
-    if (sts)
-    {
-        _live_stream = true;
-        _starttime = time(0);
-        _endtime   = std::numeric_limits<time_t>::max();
-    }
+    auto sts = _tuner->open_stream(channel);
     return sts;
 }
 
 void PVR_HDHR::CloseLiveStream(void)
 {
-    _close_stream();
+    Lock pvrlock(_pvr_lock);
+    _tuner->close_stream();
 }
 
 int PVR_HDHR::ReadLiveStream(unsigned char* buffer, unsigned int size)
 {
-    return _read_stream(buffer, size);
+    return _tuner->read_stream(buffer, size);
 }
 
 PVR_ERROR PVR_HDHR::GetStreamTimes(kodi::addon::PVRStreamTimes& times)
 {
     Lock pvrlock(_pvr_lock);
+    return _tuner->get_stream_times(times);
+}
+
+PVR_ERROR PVR_HDHR_TUNER::get_stream_times(kodi::addon::PVRStreamTimes& times)
+{
 
     if (_using_sd_record && _filesize) // no filesize && _starttime && _endtime)
     {
@@ -894,14 +1088,14 @@ PVR_ERROR PVR_HDHR::GetStreamTimes(kodi::addon::PVRStreamTimes& times)
 
 int64_t PVR_HDHR::LengthLiveStream()
 {
-    return _length_stream();
+    return _tuner->length_stream();
 }
 
 bool PVR_HDHR::IsRealTimeStream()
 {
     //std::cout << __FUNCTION__ << " " << _live_stream << " " << _filesize << std::endl;
     Lock pvrlock(_pvr_lock);
-    return _live_stream;
+    return _tuner->live_stream();
 }
 bool PVR_HDHR::SeekTime(double time,bool backwards,double& startpts)
 {
@@ -915,24 +1109,38 @@ PVR_ERROR PVR_HDHR::GetSignalStatus(int channelUid, kodi::addon::PVRSignalStatus
 
     return PVR_ERROR_NO_ERROR;
 }
-bool PVR_HDHR::CanPauseStream(void)
+bool PVR_HDHR::CanPauseStream()
 {
-    //return _using_sd_record;
+    return _tuner->can_pause_stream();
+}
+bool PVR_HDHR_TUNER::can_pause_stream()
+{
+    Lock strlock(_stream_lock);
     return g.Settings.use_stream_url || _filesize != 0;
 }
-bool PVR_HDHR::CanSeekStream(void)
+
+bool PVR_HDHR::CanSeekStream()
 {
-    //return _using_sd_record;
+    return _tuner->can_seek_stream();
+}
+bool PVR_HDHR_TUNER::can_seek_stream()
+{
+    Lock strlock(_stream_lock);
     return g.Settings.use_stream_url || _filesize != 0;
 }
 PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
     Lock pvrlock(_pvr_lock);
+    return _tuner->get_channel_stream_properties(channel, properties);
+}
+
+PVR_ERROR PVR_HDHR_TUNER::get_channel_stream_properties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties)
+{
 
     if (g.Settings.use_stream_url)
     {
         auto id = channel.GetUniqueId();
-        auto& info = _info[id];
+        auto& info = _parent->_info[id];
 
         for (auto device : _storage_devices)
         {
@@ -955,9 +1163,9 @@ PVR_ERROR PVR_HDHR::GetDriveSpace(uint64_t& total, uint64_t& used)
 {
     total = 0;
     used = 0;
-    if (_current_storage)
+    if (_tuner->_current_storage)
     {
-        total = _current_storage->FreeSpace();
+        total = _tuner->_current_storage->FreeSpace();
         used = 0;
     }
     return PVR_ERROR_NO_ERROR;
@@ -971,18 +1179,23 @@ PVR_ERROR PVR_HDHR::GetStreamProperties(std::vector<kodi::addon::PVRStreamProper
 bool PVR_HDHR::OpenRecordedStream(const kodi::addon::PVRRecording& recording)
 {
     Lock pvrlock(_pvr_lock);
+    return _tuner->open_stream(recording);
+}
+
+bool PVR_HDHR_TUNER::open_stream(const kodi::addon::PVRRecording& recording)
+{
     Lock strlock(_stream_lock);
 
     std::cout << __FUNCTION__ << std::endl;
 
-    _close_stream();
+    close_stream();
 
     if (g.Settings.use_stream_url)
         return false;
     
     auto id = recording.GetRecordingId();
 
-    const auto rec = _recording.getEntry(id);
+    const auto rec = _parent->_recording.getEntry(id);
     if (!rec)
     {
         KODI_LOG(ADDON_LOG_ERROR, "Cannot find ID: %s", id);
@@ -995,12 +1208,12 @@ bool PVR_HDHR::OpenRecordedStream(const kodi::addon::PVRRecording& recording)
     std::cout << id << " " << ttl << " " << ep << std::endl;
     std::cout << rec->_playurl << std::endl;
 
-    auto sts = _open_tcp_stream(rec->_playurl, false);
+    auto sts = open_tcp_stream(rec->_playurl, false);
     if (sts)
     {
         _current_entry = rec;
 
-        auto len = _length_stream();
+        auto len = length_stream();
         _live_stream = len == 0;
 
         _using_sd_record = true;
@@ -1013,20 +1226,21 @@ bool PVR_HDHR::OpenRecordedStream(const kodi::addon::PVRRecording& recording)
 void PVR_HDHR::CloseRecordedStream(void)
 {
     std::cout << __FUNCTION__ << std::endl;
-    _close_stream();
-    _current_entry = nullptr;
+    Lock pvrlock(_pvr_lock);
+    _tuner->close_stream();
+    _tuner->_current_entry = nullptr;
 }
 int PVR_HDHR::ReadRecordedStream(unsigned char* buf, unsigned int len)
 {
-    return _read_stream(buf, len);
+    return _tuner->read_stream(buf, len);
 }
 int64_t PVR_HDHR::SeekRecordedStream(int64_t pos, int whence)
 {
-    return _seek_stream(pos, whence);
+    return _tuner->seek_stream(pos, whence);
 }
 int64_t PVR_HDHR::LengthRecordedStream(void)
 {
-    return _length_stream();
+    return _tuner->length_stream();
 }
 PVR_ERROR PVR_HDHR::GetRecordingStreamProperties(const kodi::addon::PVRRecording& recording, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
@@ -1188,7 +1402,7 @@ void PVR_HDHR::SetSpeed(int speed)
 
 void PVR_HDHR_TCP::_close_stream()
 {
-    Lock pvrlock(_pvr_lock);
+    //Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
     if (_filehandle)
@@ -1214,10 +1428,10 @@ int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
 
 int64_t PVR_HDHR::SeekLiveStream(int64_t position, int whence)
 {
-    return _seek_stream(position, whence);
+    return _tuner->seek_stream(position, whence);
 }
 
-int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
+int64_t PVR_HDHR_TUNER::seek_stream(int64_t position, int whence)
 {
     Lock strlock(_stream_lock);
 
@@ -1230,7 +1444,7 @@ int64_t PVR_HDHR::_seek_stream(int64_t position, int whence)
     }
     return -1;
 }
-int64_t PVR_HDHR::_length_stream()
+int64_t PVR_HDHR_TUNER::length_stream()
 {
     Lock strlock(_stream_lock);
 
@@ -1250,10 +1464,13 @@ int64_t PVR_HDHR::_length_stream()
     return -1;
 }
 
-bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool /*live*/)
+bool PVR_HDHR_TUNER::open_tcp_stream(const std::string& url, bool live)
 {
-    Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
+    
+    _live_stream = false;
+    _starttime = 0;
+    _endtime = 0;
 
 #   define COMMON_OPTIONS (ADDON_READ_CHUNKED | ADDON_READ_AUDIO_VIDEO | ADDON_READ_REOPEN | ADDON_READ_TRUNCATED)
 //#   define COMMON_OPTIONS (ADDON_READ_AUDIO_VIDEO | ADDON_READ_MULTI_STREAM | ADDON_READ_REOPEN | ADDON_READ_TRUNCATED)
@@ -1265,8 +1482,10 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool /*live*/)
 #   endif
 
     unsigned int flags = OPEN_OPTIONS;
-//    if (live)
+    if (live)
+    {
 //        flags |= ADDON_READ_BITRATE;
+    }
 
     _filehandle.reset();
     if (url.size())
@@ -1326,6 +1545,12 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool /*live*/)
     }
     if (_filehandle)
     {
+        if (live)
+        {
+            _live_stream = true;
+            _starttime = time(0);
+            _endtime = std::numeric_limits<time_t>::max();
+        }
         _filesize = _filehandle->GetLength();
     }
 
@@ -1338,17 +1563,16 @@ bool PVR_HDHR::_open_tcp_stream(const std::string& url, bool /*live*/)
 
 bool PVR_HDHR_TCP::_open_stream(const kodi::addon::PVRChannel& channel)
 {
-    Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
     auto id = channel.GetUniqueId();
-    const auto& entry = _lineup.find(id);
-    if (entry == _lineup.end())
+    const auto& entry = _parent->_lineup.find(id);
+    if (entry == _parent->_lineup.end())
     {
         KODI_LOG(ADDON_LOG_ERROR, "Channel %d not found!", id);
         return false;
     }
-    auto& info = _info[id];
+    auto& info = _parent->_info[id];
 
     if (g.Settings.recordforlive && _storage_devices.size())
     {
@@ -1359,7 +1583,7 @@ bool PVR_HDHR_TCP::_open_stream(const kodi::addon::PVRChannel& channel)
             ss << device->BaseURL() << "/auto/v" + info._guidenumber;
             ss << "?SessionID=0x" << std::hex << std::setw(8) << std::setfill('0') << sessionid;
             auto url = ss.str();
-            if (_open_tcp_stream(url, true))
+            if (open_tcp_stream(url, true))
             {
                 _current_storage = device;
                 _using_sd_record = true;
@@ -1374,12 +1598,12 @@ bool PVR_HDHR_TCP::_open_stream(const kodi::addon::PVRChannel& channel)
     for (auto id : g.Settings.preferredDevice)
     {
         for (auto device : info)
-            if (device->DeviceID() == id && _open_tcp_stream(info.DlnaURL(device), true))
+            if (device->DeviceID() == id && open_tcp_stream(info.DlnaURL(device), true))
                 return true;
     }
     for (auto device : info)
     {
-        if (_open_tcp_stream(info.DlnaURL(device), true))
+        if (open_tcp_stream(info.DlnaURL(device), true))
             return true;
     }
 
@@ -1388,8 +1612,11 @@ bool PVR_HDHR_TCP::_open_stream(const kodi::addon::PVRChannel& channel)
 
 bool PVR_HDHR_UDP::_open_stream(const kodi::addon::PVRChannel& channel)
 {
-    Lock pvrlock(_pvr_lock);
+    //Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
+    _live_stream = true;
+    _starttime = time(0);
+    _endtime   = std::numeric_limits<time_t>::max();
     return false;
 }
 
@@ -1401,7 +1628,7 @@ int PVR_HDHR_UDP::_read_stream(unsigned char* buffer, unsigned int size)
 
 void PVR_HDHR_UDP::_close_stream()
 {
-    Lock pvrlock(_pvr_lock);
+    //Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 }
 

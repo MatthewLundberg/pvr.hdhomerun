@@ -30,6 +30,7 @@
 namespace PVRHDHomeRun
 {
 
+class PVR_HDHR;
 class GuideNumber
 {
 private:
@@ -95,7 +96,7 @@ public:
     Guide(const Json::Value&);
     Guide() = default;
 
-    bool AddEntry(GuideEntry&, uint32_t number);
+    bool AddEntry(PVR_HDHR* parent, GuideEntry&, uint32_t number);
     void AddRequest(const Interval& r)
     {
         _requests.Add(r);

@@ -30,6 +30,7 @@
 #include <string>
 #include <memory>
 #include <p8-platform/util/StringUtils.h>
+#include <kodi/Filesystem.h>
 
 #include "Settings.h"
 
@@ -62,27 +63,25 @@ namespace PVRHDHomeRun
 
 bool GetFileContents(const std::string& url, std::string& strContent)
 {
-    char buffer[1024];
-    void* fileHandle;
+    kodi::vfs::CFile fileHandle;
 
-    strContent.clear();
-    fileHandle = g.XBMC->OpenFile(url.c_str(), 0);
-
-    if (fileHandle == nullptr)
+    if (!fileHandle.OpenFile(url))
     {
-        KODI_LOG(0, "GetFileContents: %s failed\n", url.c_str());
+        KODI_LOG(ADDON_LOG_ERROR, "GetFileContents: %s failed\n", url.c_str());
         return false;
     }
 
+    strContent.clear();
+
+    char buffer[1024];
     for (;;)
     {
-        int bytesRead = g.XBMC->ReadFile(fileHandle, buffer, sizeof(buffer));
+        int bytesRead = fileHandle.Read(buffer, sizeof(buffer));
         if (bytesRead <= 0)
             break;
         strContent.append(buffer, bytesRead);
     }
 
-    g.XBMC->CloseFile(fileHandle);
 
     return true;
 }

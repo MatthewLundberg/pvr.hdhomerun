@@ -142,7 +142,7 @@ Guide::Guide(const Json::Value& v)
     _imageURL  = v["ImageURL"].asString();
 }
 
-bool Guide::AddEntry(GuideEntry& v, uint32_t number)
+bool Guide::AddEntry(PVR_HDHR* parent, GuideEntry& v, uint32_t number)
 {
     bool newentry = false;
     auto it = _entries.find(v);
@@ -163,7 +163,7 @@ bool Guide::AddEntry(GuideEntry& v, uint32_t number)
 
     EPG_EVENT_STATE state = newentry ? EPG_EVENT_CREATED : EPG_EVENT_UPDATED;
     auto tag = v.Epg_Tag(number);
-    g.pvr_hdhr->EpgEventStateChange(tag, state);
+    parent->EpgEventStateChange(tag, state);
 
     return newentry;
 }

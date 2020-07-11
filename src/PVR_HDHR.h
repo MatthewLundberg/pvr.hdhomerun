@@ -44,17 +44,16 @@
 
 namespace PVRHDHomeRun {
 
+class ATTRIBUTE_HIDDEN PVR_HDHR_TUNER;
+class ATTRIBUTE_HIDDEN UpdateThread;
+
 class ATTRIBUTE_HIDDEN PVR_HDHR
-    : public HasTunerSet<PVR_HDHR>
-    , public kodi::addon::CAddonBase
+    : public kodi::addon::CAddonBase
     , public kodi::addon::CInstancePVRClient
-    , public P8PLATFORM::CThread
 {
 public:
     PVR_HDHR() = default;
     virtual ~PVR_HDHR();
-
-    void* Process() override;
 
     ADDON_STATUS Create() override;
     ADDON_STATUS SetSetting(const std::string& settingName, const kodi::CSettingValue& settingValue) override;
@@ -139,33 +138,79 @@ public:
     //PVR_ERROR GetStreamReadChunkSize(int& chunksize) override { return PVR_ERROR_NOT_IMPLEMENTED; }
 
 private:
+    std::unique_ptr<UpdateThread> _updatethread;
     void  _age_out(time_t);
     bool  _guide_contains(time_t);
     void  _insert_json_guide_data(const Json::Value&, const char* idstr);
     void  _fetch_guide_data(const uint32_t* = nullptr, time_t start=0);
 
-    virtual bool _open_stream(const kodi::addon::PVRChannel& channel) { return false; };
-    virtual bool _open_stream(const kodi::addon::PVRRecording& recording) { return false; };
-    virtual int  _read_stream(unsigned char* buffer, unsigned int size) = 0;
-    virtual void _close_stream() = 0;
+    //virtual bool _open_stream(const kodi::addon::PVRChannel& channel) { return false; };
+    //virtual bool _open_stream(const kodi::addon::PVRRecording& recording) { return false; };
+    //virtual int  _read_stream(unsigned char* buffer, unsigned int size) = 0;
+    //virtual void _close_stream() = 0;
     virtual int64_t _seek_stream(int64_t position, int whence);
     virtual int64_t _length_stream();
-protected:
-    bool  _open_tcp_stream(const std::string&, bool live);
+
+    std::unique_ptr<PVR_HDHR_TUNER> _tuner;
 
 protected:
-    std::set<uint32_t>        _device_ids;
-    std::set<std::string>     _storage_urls;
     std::set<GuideNumber>     _lineup;
     std::map<uint32_t, Info>  _info;
     std::map<uint32_t, Guide> _guide;
     Recording                 _recording;
-    uint32_t                  _sessionid = 0;
-    size_t                    _filesize = 0;
 
-    bool                      _using_sd_record = false;
-    time_t                    _starttime = 0;
-    time_t                    _endtime   = 0;
+protected:
+    Lockable _guide_lock;
+    Lockable _pvr_lock;
+
+friend class PVR_HDHR_TUNER;
+friend class PVR_HDHR_TCP;
+};
+
+class ATTRIBUTE_HIDDEN PVR_HDHR_TUNER : public HasTunerSet<PVR_HDHR_TUNER>
+{
+public:
+    PVR_HDHR_TUNER(PVR_HDHR* p)
+        : _parent(p)
+    {}
+    virtual ~PVR_HDHR_TUNER();
+    bool    open_stream(const kodi::addon::PVRChannel& channel) { return _open_stream(channel); }
+    bool    open_stream(const kodi::addon::PVRRecording& recording);
+    int     read_stream(unsigned char* buffer, unsigned int size) { return _read_stream(buffer,size); }
+    void    close_stream() { _close_stream(); }
+    bool    open_tcp_stream(const std::string&, bool live);
+    int64_t seek_stream(int64_t position, int whence);
+    int64_t length_stream();
+    PVR_ERROR get_stream_times(kodi::addon::PVRStreamTimes& times);
+    bool    can_pause_stream();
+    bool    can_seek_stream();
+    bool    discover_tuner_devices();
+    PVR_ERROR get_channel_stream_properties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties);
+    
+    size_t filesize() { return _filesize; }
+    bool   using_sd_record() { return _using_sd_record; }
+    time_t starttime() { return _starttime; }
+    time_t endtime() { return _endtime; }
+    bool   live_stream() { return _live_stream; }
+
+private:
+    virtual bool  _open_stream(const kodi::addon::PVRChannel& channel) = 0;
+    virtual int   _read_stream(unsigned char* buffer, unsigned int size) = 0;
+    virtual void  _close_stream() = 0;
+
+public:
+    std::set<TunerDevice*>    _tuner_devices;
+    std::set<StorageDevice*>  _storage_devices;
+    StorageDevice*            _current_storage = nullptr;
+    const Entry*              _current_entry   = nullptr;
+
+protected:
+    size_t   _filesize = 0;
+    bool     _using_sd_record = false;
+    time_t   _starttime = 0;
+    time_t   _endtime   = 0;
+    bool     _live_stream = false;
+    uint32_t _sessionid = 0;
 
 #if NO_FILE_CACHE
     size_t _length   = 0;
@@ -173,26 +218,32 @@ protected:
     size_t _bps      = 0;
 #endif
 
-public:
-    std::set<TunerDevice*>    _tuner_devices;
-    std::set<StorageDevice*>  _storage_devices;
-    StorageDevice*            _current_storage = nullptr;
-    const Entry*              _current_entry   = nullptr;
-    bool                      _live_stream = false;
-protected:
-    Lockable _guide_lock;
-    Lockable _pvr_lock;
+    std::set<uint32_t>        _device_ids;
+    std::set<std::string>     _storage_urls;
+
     Lockable _stream_lock;
+
     std::unique_ptr<kodi::vfs::CFile> _filehandle;
+    PVR_HDHR* _parent;
 };
 
-class ATTRIBUTE_HIDDEN PVR_HDHR_TCP : public PVR_HDHR {
+class ATTRIBUTE_HIDDEN PVR_HDHR_TCP : public PVR_HDHR_TUNER
+{
+public:
+    PVR_HDHR_TCP(PVR_HDHR* p)
+        : PVR_HDHR_TUNER(p)
+    {}
 private:
     bool  _open_stream(const kodi::addon::PVRChannel& channel) override;
     int   _read_stream(unsigned char* buffer, unsigned int size) override;
     void  _close_stream() override;
 };
-class ATTRIBUTE_HIDDEN PVR_HDHR_UDP : public PVR_HDHR {
+class ATTRIBUTE_HIDDEN PVR_HDHR_UDP : public PVR_HDHR_TUNER
+{
+public:
+    PVR_HDHR_UDP(PVR_HDHR* p)
+        : PVR_HDHR_TUNER(p)
+    {}
 private:
     bool  _open_stream(const kodi::addon::PVRChannel& channel) override;
     int   _read_stream(unsigned char* buffer, unsigned int size) override;
@@ -200,6 +251,6 @@ private:
 };
 
 
-PVR_HDHR* PVR_HDHR_Factory(int protocol);
+PVR_HDHR_TUNER* PVR_HDHR_Factory(int protocol);
 
 }; // namespace PVRHDHomeRun
