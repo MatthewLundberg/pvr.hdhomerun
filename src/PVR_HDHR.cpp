@@ -267,7 +267,7 @@ ADDON_STATUS PVR_HDHR::Create()
     Update();
     
     _updatethread.reset(new UpdateThread(this));
-    if (_updatethread->CreateThread(false))
+    if (!_updatethread->CreateThread(false))
         return ADDON_STATUS_PERMANENT_FAILURE;
 
     return ADDON_STATUS_OK;
