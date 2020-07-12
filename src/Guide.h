@@ -141,6 +141,7 @@ private:
 
     IntervalSet          _times;
     IntervalSet          _requests;
+    Lockable             _lock;
 };
 
 
