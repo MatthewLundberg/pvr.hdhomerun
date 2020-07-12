@@ -163,16 +163,16 @@ bool SettingsType::ReadSettings(void)
 
 
 namespace {
-template<typename T>
-void castsetting(T& t, const kodi::CSettingValue& value) {throw "Bad setting cast";}
 
-template<>
-void castsetting<int>(int& t, const kodi::CSettingValue& value)
+void castsetting(bool& b, const kodi::CSettingValue& value)
+{
+    b = value.GetBoolean();
+}
+void castsetting(int& t, const kodi::CSettingValue& value)
 {
     t = value.GetInt();
 }
-template<>
-void castsetting<std::string>(std::string& s, const kodi::CSettingValue& value)
+void castsetting(std::string& s, const kodi::CSettingValue& value)
 {
     s = value.GetString();
 }
