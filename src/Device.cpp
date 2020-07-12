@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2017-2018 Matthew Lundberg <matthew.k.lundberg@gmail.com>
+ *      Copyright (C) 2017-2020 Matthew Lundberg <matthew.k.lundberg@gmail.com>
  *      https://github.com/MatthewLundberg/pvr.hdhomerun
  *
  *  This Program is free software; you can redistribute it and/or modify
