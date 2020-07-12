@@ -81,6 +81,8 @@ public:
         for (;;)
         {
             P8PLATFORM::CThread::Sleep(1000);
+            Lock lock(this);
+
             if (IsStopped())
             {
                 break;
@@ -136,7 +138,6 @@ public:
 
             time_t discover, lineup, guide, recordings, rules;
             {
-                Lock lock(this);
                 discover   = _lastDiscover;
                 lineup     = _lastLineup;
                 guide      = _lastGuide;
@@ -215,8 +216,6 @@ public:
 
             if (updateDiscover || updateLineup || updateGuide || updateRecord || updateRules)
             {
-                Lock lock(this);
-
                 if (updateDiscover)
                     _lastDiscover = now;
                 if (updateLineup)
