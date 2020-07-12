@@ -144,6 +144,8 @@ Guide::Guide(const Json::Value& v)
 
 bool Guide::AddEntry(PVR_HDHR* parent, GuideEntry& v, uint32_t number)
 {
+    Lock l(_lock);
+
     bool newentry = false;
     auto it = _entries.find(v);
     if (it == _entries.end())
@@ -170,6 +172,8 @@ bool Guide::AddEntry(PVR_HDHR* parent, GuideEntry& v, uint32_t number)
 
 void Guide::_age_out(uint32_t number, time_t limit)
 {
+    Lock l(_lock);
+
     auto it = _entries.begin();
     while (it != _entries.end())
     {
