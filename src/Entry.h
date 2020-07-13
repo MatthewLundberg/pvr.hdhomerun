@@ -31,7 +31,7 @@ namespace PVRHDHomeRun
 template<typename T>
 class Optional
 {
-    bool _has_value = false;
+    bool _has_value{false};
     T    _t{};
 public:
     Optional() = default;
@@ -49,9 +49,9 @@ public:
     Entry(const Json::Value&);
     virtual ~Entry() = default;
 
-    time_t _starttime       = 0;
-    time_t _endtime         = 0;
-    time_t _originalairdate = 0;
+    time_t _starttime       {0};
+    time_t _endtime         {0};
+    time_t _originalairdate {0};
     std::string _episodenumber;
     std::string _episodetitle;
 
@@ -60,41 +60,13 @@ public:
     std::string _imageURL;
     std::string _posterURL;
     std::string _seriesID;
-    uint32_t    _genre;
+    uint32_t    _genre {0};
     Optional<int> _season;
     Optional<int> _episode;
 
     virtual time_t StartTime() const;
     virtual time_t EndTime() const;
     virtual size_t Length() const;
-
-    template<typename T>
-    static uint32_t GetGenreType(const T& arr)
-    {
-        unsigned int nGenreType = 0;
-
-        for (auto& i : arr)
-        {
-            auto str = i.asString();
-
-            if (str == "News")
-                nGenreType |= EPG_EVENT_CONTENTMASK_NEWSCURRENTAFFAIRS;
-            else if (str == "Comedy")
-                nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
-            else if (str == "Movie" || str == "Drama")
-                nGenreType |= EPG_EVENT_CONTENTMASK_MOVIEDRAMA;
-            else if (str == "Food")
-                nGenreType |= EPG_EVENT_CONTENTMASK_LEISUREHOBBIES;
-            else if (str == "Talk Show")
-                nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
-            else if (str == "Game Show")
-                nGenreType |= EPG_EVENT_CONTENTMASK_SHOW;
-            else if (str == "Sport" || str == "Sports")
-                nGenreType |= EPG_EVENT_CONTENTMASK_SPORTS;
-        }
-
-        return nGenreType;
-    }
 };
 
 bool operator==(const Entry&, const Entry&);
