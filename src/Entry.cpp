@@ -26,7 +26,7 @@ namespace PVRHDHomeRun
 namespace
 {
 template<typename T>
-static uint32_t GetGenreType(const T& arr)
+uint32_t GetGenreType(const T& arr)
 {
     unsigned int nGenreType = 0;
 

@@ -38,8 +38,7 @@ public:
     Optional(const T& t)
         : _t{t}
         , _has_value{true}
-    {
-    }
+    {}
     operator bool() const { return _has_value; }
     operator T()    const { return _t; }
 };
