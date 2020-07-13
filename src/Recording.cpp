@@ -56,8 +56,10 @@ kodi::addon::PVRRecording RecordingEntry::_pvr_recording() const
     x.SetRecordingId(_programID);
     x.SetTitle(_title);
     x.SetEpisodeName(_episodetitle);
-    x.SetSeriesNumber(_season);
-    x.SetEpisodeNumber(_episode);
+    if (_season)
+        x.SetSeriesNumber(_season);
+    if (_episode)
+        x.SetEpisodeNumber(_episode);
     x.SetPlot(_synopsis);
     x.SetChannelName(_channelnum + " " + _affiliate); // TODO - allow choice
     x.SetIconPath(_imageURL); // _channelimg

@@ -28,6 +28,21 @@
 namespace PVRHDHomeRun
 {
 
+template<typename T>
+class Optional
+{
+    bool _has_value = false;
+    T    _t{};
+public:
+    Optional() = default;
+    Optional(const T& t)
+        : _t{t}
+        , _has_value{true}
+    {
+    }
+    operator bool() const { return _has_value; }
+    operator T()    const { return _t; }
+};
 class Entry
 {
 public:
@@ -37,8 +52,6 @@ public:
     time_t _starttime       = 0;
     time_t _endtime         = 0;
     time_t _originalairdate = 0;
-    int         _season     = 0;
-    int         _episode    = 0;
     std::string _episodenumber;
     std::string _episodetitle;
 
@@ -48,6 +61,8 @@ public:
     std::string _posterURL;
     std::string _seriesID;
     uint32_t    _genre;
+    Optional<int> _season;
+    Optional<int> _episode;
 
     virtual time_t StartTime() const;
     virtual time_t EndTime() const;

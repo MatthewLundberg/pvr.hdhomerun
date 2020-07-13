@@ -78,7 +78,6 @@ private:
 public:
     GuideEntry(const Json::Value&);
 
-
 public:
     operator Interval() const
     {

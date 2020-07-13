@@ -49,13 +49,13 @@ Entry::Entry(const Json::Value& v)
         _title = v["Title"].asString();
     }
 
-    if (_episodenumber[0] == 'S') {
+    if (_episodenumber.length() > 1 && _episodenumber[0] == 'S') {
         auto e = _episodenumber.find('E');
         if (e != std::string::npos) {
             auto season  = _episodenumber.substr(1, e);
             auto episode = _episodenumber.substr(e+1);
-            _season  = std::stoi(season);
-            _episode = std::stoi(episode);
+            _season  = int(std::stoi(season));
+            _episode = int(std::stoi(episode));
         }
     }
 

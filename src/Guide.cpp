@@ -129,8 +129,10 @@ kodi::addon::PVREPGTag GuideEntry::Epg_Tag(uint32_t number) const
     tag.SetPlot(_synopsis.c_str());
     tag.SetIconPath(_imageURL.c_str());
     tag.SetGenreType(_genre);
-    tag.SetSeriesNumber(_season);
-    tag.SetEpisodeNumber(_episode);
+    if (_season)
+        tag.SetSeriesNumber(_season);
+    if (_episode)
+        tag.SetEpisodeNumber(_episode);
 
     return tag;
 }
