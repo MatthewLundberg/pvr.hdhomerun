@@ -1042,8 +1042,6 @@ PVR_ERROR PVR_HDHR::GetChannelGroupMembers(const kodi::addon::PVRChannelGroup& g
 
 bool PVR_HDHR::OpenLiveStream(const kodi::addon::PVRChannel& channel)
 {
-    Lock pvrlock(_pvr_lock);
-
     _tuner->close_stream();
 
     if (g.Settings.use_stream_url)
@@ -1055,7 +1053,6 @@ bool PVR_HDHR::OpenLiveStream(const kodi::addon::PVRChannel& channel)
 
 void PVR_HDHR::CloseLiveStream(void)
 {
-    Lock pvrlock(_pvr_lock);
     _tuner->close_stream();
 }
 
@@ -1139,12 +1136,12 @@ bool PVR_HDHR_TUNER::can_seek_stream()
 }
 PVR_ERROR PVR_HDHR::GetChannelStreamProperties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
-    Lock pvrlock(_pvr_lock);
     return _tuner->get_channel_stream_properties(channel, properties);
 }
 
 PVR_ERROR PVR_HDHR_TUNER::get_channel_stream_properties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
+    Lock strlock(_stream_lock);
 
     if (g.Settings.use_stream_url)
     {
@@ -1187,7 +1184,6 @@ PVR_ERROR PVR_HDHR::GetStreamProperties(std::vector<kodi::addon::PVRStreamProper
 
 bool PVR_HDHR::OpenRecordedStream(const kodi::addon::PVRRecording& recording)
 {
-    Lock pvrlock(_pvr_lock);
     return _tuner->open_stream(recording);
 }
 
@@ -1234,10 +1230,7 @@ bool PVR_HDHR_TUNER::open_stream(const kodi::addon::PVRRecording& recording)
 }
 void PVR_HDHR::CloseRecordedStream(void)
 {
-    std::cout << __FUNCTION__ << std::endl;
-    Lock pvrlock(_pvr_lock);
     _tuner->close_stream();
-    _tuner->_current_entry = nullptr;
 }
 int PVR_HDHR::ReadRecordedStream(unsigned char* buf, unsigned int len)
 {
@@ -1411,7 +1404,6 @@ void PVR_HDHR::SetSpeed(int speed)
 
 void PVR_HDHR_TCP::_close_stream()
 {
-    //Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 
     if (_filehandle)
@@ -1422,6 +1414,8 @@ void PVR_HDHR_TCP::_close_stream()
     _starttime = 0;
     _endtime = 0;
     _filesize = 0;
+
+    _current_entry = nullptr;
 }
 
 int PVR_HDHR_TCP::_read_stream(unsigned char* buffer, unsigned int size)
@@ -1621,7 +1615,6 @@ bool PVR_HDHR_TCP::_open_stream(const kodi::addon::PVRChannel& channel)
 
 bool PVR_HDHR_UDP::_open_stream(const kodi::addon::PVRChannel& channel)
 {
-    //Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
     _live_stream = true;
     _starttime = time(0);
@@ -1637,7 +1630,6 @@ int PVR_HDHR_UDP::_read_stream(unsigned char* buffer, unsigned int size)
 
 void PVR_HDHR_UDP::_close_stream()
 {
-    //Lock pvrlock(_pvr_lock);
     Lock strlock(_stream_lock);
 }
 
